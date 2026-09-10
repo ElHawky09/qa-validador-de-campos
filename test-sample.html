@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página de Prueba - QA Form Field Validator</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --danger: #dc2626;
+      --success: #16a34a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    }
+
+    .header {
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 16px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .info-banner {
+      background: #eff6ff;
+      border-left: 4px solid var(--primary);
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      font-size: 13px;
+      color: #1e40af;
+      margin-bottom: 24px;
+    }
+
+    .scenario-highlight {
+      background: #fefce8;
+      border: 1px solid #fde047;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #854d0e;
+      margin-bottom: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #334155;
+    }
+
+    .sub-desc {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      outline: none;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .error-text {
+      color: var(--danger);
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+      font-weight: 600;
+    }
+
+    .has-error input {
+      border-color: var(--danger);
+      background-color: #fff5f5;
+    }
+
+    .has-error .error-text {
+      display: block;
+    }
+
+    /* Global toast / banner error */
+    #global-error-banner {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #f87171;
+      color: #b91c1c;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    #global-success-banner {
+      display: none;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #15803d;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .btn-submit {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧪 Formulario de Prueba - Validación con Acción de Guardar</h1>
+      <p>Diseñado para probar la detección de restricciones tanto <strong>en el campo</strong> como <strong>al presionar Guardar</strong>.</p>
+    </div>
+
+    <div class="info-banner">
+      💡 <strong>Cómo probar el caso reportado:</strong><br>
+      Prueba el <strong>Campo #1 (Identificación / Teléfono)</strong>. Este campo te permite teclear o pegar 15 dígitos sin recortar, pero cuando presionas <strong>"Guardar"</strong>, el formulario rechaza el guardado porque tiene un límite máximo de 10 dígitos. La extensión detectará ahora: <code>🟢 Restringido al Guardar</code>.
+    </div>
+
+    <!-- Formulario 1: Datos Personales y Cuenta -->
+    <div class="form-module-card" style="margin-bottom: 30px; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fafbfc;">
+      <h2 style="font-size: 16px; margin-bottom: 12px; color: #1e3a8a;">📋 Formulario 1: Datos Personales y Cuenta</h2>
+      <div id="global-error-banner-1" class="error-banner" style="display:none; background:#fef2f2; border:1px solid #f87171; color:#b91c1c; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+      <div id="global-success-banner-1" class="success-banner" style="display:none; background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+
+      <form id="qa-form-personales">
+        <!-- 1. Campo que permite escribir más de 10 dígitos, pero BLOQUEA AL GUARDAR -->
+        <div class="form-group" id="group-identificacion">
+          <label for="input-identificacion">1. Identificación / Teléfono (Permite escribir, pero BLOQUEA AL GUARDAR si tiene más de 10 dígitos)</label>
+          <p class="sub-desc">No tiene atributo maxlength en el HTML. Acepta 15 dígitos al escribir, pero falla al presionar Guardar.</p>
+          <input type="text" id="input-identificacion" name="identificacion" placeholder="Ej: 5512345678">
+          <span class="error-text" id="error-identificacion">⚠️ Error al Guardar: La identificación no puede exceder los 10 dígitos.</span>
+        </div>
+
+        <!-- 2. Campo obligatorio (rellenado de hermanos previene falsos rechazos) -->
+        <div class="form-group" id="group-nombre">
+          <label for="input-nombre">2. Nombre del Cliente (Campo Obligatorio - maxlength="20")</label>
+          <p class="sub-desc">Es obligatorio. Al probar otros campos, la extensión lo rellena automáticamente.</p>
+          <input type="text" id="input-nombre" name="nombre" maxlength="20" placeholder="Nombre completo" required>
+          <span class="error-text" id="error-nombre">⚠️ Error al Guardar: El nombre del cliente es obligatorio.</span>
+        </div>
+
+        <!-- 3. Campo numérico con validación al guardar -->
+        <div class="form-group" id="group-edad">
+          <label for="input-edad">3. Edad (Rechaza al Guardar si es menor de 18 o mayor de 99)</label>
+          <input type="number" id="input-edad" name="edad" placeholder="Edad entre 18 y 99">
+          <span class="error-text" id="error-edad">⚠️ Error al Guardar: La edad debe ser entre 18 y 99 años.</span>
+        </div>
+
+        <!-- 4. Campo Desplegable de Tipo de Cuenta (Obligatorio) -->
+        <div class="form-group" id="group-tipo-cuenta">
+          <label for="input-tipo-cuenta">4. Tipo de Cuenta (Selector desplegable obligatorio)</label>
+          <select id="input-tipo-cuenta" name="tipo_cuenta" required>
+            <option value="">-- Seleccionar tipo de cuenta --</option>
+            <option value="personal">Cuenta Personal</option>
+            <option value="corporativa">Cuenta Corporativa</option>
+            <option value="freelance">Cuenta Profesional / Freelance</option>
+          </select>
+          <span class="error-text" id="error-tipo-cuenta">⚠️ Error al Guardar: Debe seleccionar un tipo de cuenta.</span>
+        </div>
+
+        <!-- 5. Términos y Condiciones (Checkbox Obligatorio) -->
+        <div class="form-group" id="group-terminos" style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+          <input type="checkbox" id="check-terminos" name="terminos" required style="width: auto; cursor: pointer;">
+          <label for="check-terminos" style="margin-bottom: 0; font-weight: normal; cursor: pointer;">
+            Acepto los términos y condiciones del servicio (Obligatorio)
+          </label>
+          <span class="error-text" id="error-terminos" style="margin-left: 10px;">⚠️ Debe aceptar los términos.</span>
+        </div>
+
+        <!-- Botón de Envío Formulario 1 -->
+        <button type="submit" id="btn-guardar-personales" class="btn-submit">
+          💾 Guardar Datos Personales
+        </button>
+      </form>
+    </div>
+
+    <!-- Formulario 2: Dirección y Entrega -->
+    <div class="form-module-card" style="padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fafbfc;">
+      <h2 style="font-size: 16px; margin-bottom: 12px; color: #1e3a8a;">📦 Formulario 2: Dirección y Envío</h2>
+      <div id="global-error-banner-2" class="error-banner" style="display:none; background:#fef2f2; border:1px solid #f87171; color:#b91c1c; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+      <div id="global-success-banner-2" class="success-banner" style="display:none; background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+
+      <form id="qa-form-envio">
+        <!-- 4. Campo de Dirección -->
+        <div class="form-group" id="group-direccion">
+          <label for="input-direccion">4. Calle y Número (Obligatorio)</label>
+          <input type="text" id="input-direccion" name="direccion" placeholder="Ej: Av. Juárez 456" required>
+          <span class="error-text" id="error-direccion">⚠️ Error al Guardar: La dirección es obligatoria.</span>
+        </div>
+
+        <!-- 5. Código Postal (Debe tener 5 dígitos exactos) -->
+        <div class="form-group" id="group-cp">
+          <label for="input-cp">5. Código Postal (Valida 5 dígitos al guardar)</label>
+          <input type="text" id="input-cp" name="codigo_postal" placeholder="Ej: 28001">
+          <span class="error-text" id="error-cp">⚠️ Error al Guardar: El código postal debe ser de 5 dígitos numéricos.</span>
+        </div>
+
+        <!-- 6. Campo de Fecha con validación al guardar -->
+        <div class="form-group" id="group-fecha">
+          <label for="input-fecha">6. Fecha de Entrega Deseada</label>
+          <input type="date" id="input-fecha" name="fecha_entrega">
+          <span class="error-text" id="error-fecha">⚠️ Error al Guardar: La fecha no puede ser anterior a 2024.</span>
+        </div>
+
+        <!-- 7. Campo de Comentarios Libres (Sin ninguna restricción) -->
+        <div class="form-group" id="group-comentarios">
+          <label for="input-comentarios">7. Instrucciones para la Entrega (Sin restricción)</label>
+          <textarea id="input-comentarios" name="comentarios" rows="3" placeholder="Instrucciones especiales para el repartidor..."></textarea>
+        </div>
+
+        <!-- Botón de Envío Formulario 2 -->
+        <button type="submit" id="btn-guardar-envio" class="btn-submit" style="background:#059669;">
+          📦 Guardar Dirección y Envío
+        </button>
+      </form>
+    </div>
+
+    <!-- Formulario 3: Módulo Desplegable de Clientes (Se cierra al guardar) -->
+    <div class="form-module-card" style="margin-top: 30px; padding: 20px; border: 2px dashed #8b5cf6; border-radius: 8px; background: #faf5ff;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <h2 style="font-size: 16px; color: #6b21a8;">👥 Módulo de Clientes (Desplegable / Se cierra al Guardar)</h2>
+        <span style="font-size: 11px; background: #f3e8ff; color: #7e22ce; padding: 3px 8px; border-radius: 999px; font-weight: 700;">Simulación Caso Real</span>
+      </div>
+      <p class="sub-desc" style="margin-bottom: 14px; color: #7c3aed;">
+        Haz clic en la tarjeta del cliente o en el botón <strong>"✏️ Editar"</strong> para abrir el formulario desplegable. Al presionar <strong>"Guardar"</strong>, el formulario se cierra automáticamente.
+      </p>
+
+      <!-- Lista de clientes interactiva -->
+      <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px;">
+        <div id="card-cliente-carlos" class="cliente-card" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: white; border: 1px solid #d8b4fe; border-radius: 6px; cursor: pointer;">
+          <div>
+            <div style="font-weight: 700; color: #581c87;">Carlos Mendoza</div>
+            <div style="font-size: 12px; color: #64748b;">ID: CLI-1092 • Tel: 5598765432 • Estado: Activo</div>
+          </div>
+          <button type="button" id="btn-editar-cliente-carlos" class="btn-editar-cliente" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">
+            ✏️ Editar
+          </button>
+        </div>
+      </div>
+
+      <!-- Cajón / Formulario Desplegable (Hidden by default or closes on save) -->
+      <div id="customer-drawer" style="display: none; background: white; border: 2px solid #8b5cf6; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.15); margin-top: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border-bottom: 1px solid #f3e8ff; padding-bottom: 8px;">
+          <h3 style="font-size: 14px; color: #6b21a8; font-weight: 700;">📝 Editar Información de Carlos Mendoza</h3>
+          <button type="button" id="btn-cerrar-drawer" style="background: transparent; border: none; font-size: 16px; cursor: pointer; color: #9333ea;">✕</button>
+        </div>
+
+        <div id="global-error-banner-3" class="error-banner" style="display:none; background:#fef2f2; border:1px solid #f87171; color:#b91c1c; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+        <div id="global-success-banner-3" class="success-banner" style="display:none; background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+
+        <form id="qa-form-cliente">
+          <div class="form-group" id="group-cliente-nombre">
+            <label for="input-cliente-nombre">Nombre del Cliente (Obligatorio)</label>
+            <input type="text" id="input-cliente-nombre" name="cliente_nombre" value="Carlos Mendoza" required>
+            <span class="error-text" id="error-cliente-nombre">⚠️ Error al Guardar: El nombre es obligatorio.</span>
+          </div>
+
+          <div class="form-group" id="group-cliente-telefono">
+            <label for="input-cliente-telefono">Teléfono de Contacto (Máx. 10 dígitos al guardar)</label>
+            <p class="sub-desc">No tiene maxlength en HTML. Falla si tiene más de 10 dígitos al guardar.</p>
+            <input type="text" id="input-cliente-telefono" name="cliente_telefono" value="5598765432" placeholder="10 dígitos">
+            <span class="error-text" id="error-cliente-telefono">⚠️ Error al Guardar: El teléfono no puede exceder 10 dígitos.</span>
+          </div>
+
+          <div class="form-group" id="group-cliente-cargo">
+            <label for="input-cliente-cargo">Cargo o Departamento (Sin restricción)</label>
+            <input type="text" id="input-cliente-cargo" name="cliente_cargo" value="Gerente de Compras">
+          </div>
+
+          <button type="submit" id="btn-guardar-cliente" class="btn-submit" style="background: #7c3aed;">
+            💾 Guardar Cambios de Cliente
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Handlers para Formulario 1
+    const form1 = document.getElementById('qa-form-personales');
+    const errBanner1 = document.getElementById('global-error-banner-1');
+    const succBanner1 = document.getElementById('global-success-banner-1');
+
+    form1.addEventListener('submit', (e) => {
+      e.preventDefault();
+      errBanner1.style.display = 'none';
+      succBanner1.style.display = 'none';
+
+      const inputId = document.getElementById('input-identificacion');
+      const groupIdentificacion = document.getElementById('group-identificacion');
+      const inputNombre = document.getElementById('input-nombre');
+      const groupNombre = document.getElementById('group-nombre');
+      const inputEdad = document.getElementById('input-edad');
+      const groupEdad = document.getElementById('group-edad');
+      const inputTipoCuenta = document.getElementById('input-tipo-cuenta');
+      const groupTipoCuenta = document.getElementById('group-tipo-cuenta');
+
+      groupIdentificacion.classList.remove('has-error');
+      groupNombre.classList.remove('has-error');
+      groupEdad.classList.remove('has-error');
+      if (groupTipoCuenta) groupTipoCuenta.classList.remove('has-error');
+
+      const idVal = inputId.value.trim();
+      const nombreVal = inputNombre.value.trim();
+      const edadVal = parseInt(inputEdad.value, 10);
+      const tipoCuentaVal = inputTipoCuenta ? inputTipoCuenta.value : '';
+
+      // Validación de Nombre obligatorio
+      if (!nombreVal) {
+        groupNombre.classList.add('has-error');
+        errBanner1.innerText = '❌ Error al Guardar: El Nombre del Cliente es obligatorio.';
+        errBanner1.style.display = 'block';
+        return false;
+      }
+
+      // Validación de Tipo de Cuenta obligatorio
+      if (inputTipoCuenta && !tipoCuentaVal) {
+        groupTipoCuenta.classList.add('has-error');
+        errBanner1.innerText = '❌ Error al Guardar: Debe seleccionar un Tipo de Cuenta.';
+        errBanner1.style.display = 'block';
+        return false;
+      }
+
+      // Validación de límite de 10 dígitos en identificación
+      if (idVal.length > 10) {
+        groupIdentificacion.classList.add('has-error');
+        errBanner1.innerText = '❌ Error al Guardar: La identificación tiene ' + idVal.length + ' caracteres y excede el límite máximo de 10 dígitos.';
+        errBanner1.style.display = 'block';
+        return false;
+      }
+
+      // Validación de Términos y Condiciones obligatorio
+      const checkTerminos = document.getElementById('check-terminos');
+      const groupTerminos = document.getElementById('group-terminos');
+      if (groupTerminos) groupTerminos.classList.remove('has-error');
+
+      if (checkTerminos && !checkTerminos.checked) {
+        if (groupTerminos) groupTerminos.classList.add('has-error');
+        errBanner1.innerText = '❌ Error al Guardar: Debe aceptar los términos y condiciones.';
+        errBanner1.style.display = 'block';
+        return false;
+      }
+
+      succBanner1.innerText = '✅ ¡Datos Personales guardados con éxito!';
+      succBanner1.style.display = 'block';
+      return true;
+    });
+
+    // Handlers para Formulario 2
+    const form2 = document.getElementById('qa-form-envio');
+    const errBanner2 = document.getElementById('global-error-banner-2');
+    const succBanner2 = document.getElementById('global-success-banner-2');
+
+    form2.addEventListener('submit', (e) => {
+      e.preventDefault();
+      errBanner2.style.display = 'none';
+      succBanner2.style.display = 'none';
+
+      const inputDir = document.getElementById('input-direccion');
+      const groupDir = document.getElementById('group-direccion');
+      const inputCp = document.getElementById('input-cp');
+      const groupCp = document.getElementById('group-cp');
+      const inputFecha = document.getElementById('input-fecha');
+      const groupFecha = document.getElementById('group-fecha');
+
+      groupDir.classList.remove('has-error');
+      groupCp.classList.remove('has-error');
+      groupFecha.classList.remove('has-error');
+
+      const dirVal = inputDir.value.trim();
+      const cpVal = inputCp.value.trim();
+      const fechaVal = inputFecha.value;
+
+      if (!dirVal) {
+        groupDir.classList.add('has-error');
+        errBanner2.innerText = '❌ Error al Guardar: La dirección es obligatoria.';
+        errBanner2.style.display = 'block';
+        return false;
+      }
+
+      if (cpVal && (!/^\d{5}$/.test(cpVal))) {
+        groupCp.classList.add('has-error');
+        errBanner2.innerText = '❌ Error al Guardar: El código postal debe ser numérico de 5 dígitos.';
+        errBanner2.style.display = 'block';
+        return false;
+      }
+
+      if (fechaVal && fechaVal < '2024-01-01') {
+        groupFecha.classList.add('has-error');
+        errBanner2.innerText = '❌ Error al Guardar: La fecha de entrega no puede ser anterior a 2024.';
+        errBanner2.style.display = 'block';
+        return false;
+      }
+
+      succBanner2.innerText = '✅ ¡Dirección y Envío guardados con éxito!';
+      succBanner2.style.display = 'block';
+      return true;
+    });
+
+    // Handlers para Formulario 3 (Desplegable / Drawer de Cliente)
+    const cardCliente = document.getElementById('card-cliente-carlos');
+    const btnEditarCliente = document.getElementById('btn-editar-cliente-carlos');
+    const drawer = document.getElementById('customer-drawer');
+    const btnCerrarDrawer = document.getElementById('btn-cerrar-drawer');
+    const formCliente = document.getElementById('qa-form-cliente');
+    const errBanner3 = document.getElementById('global-error-banner-3');
+    const succBanner3 = document.getElementById('global-success-banner-3');
+
+    function openDrawer() {
+      drawer.style.display = 'block';
+      errBanner3.style.display = 'none';
+      succBanner3.style.display = 'none';
+    }
+
+    function closeDrawer() {
+      drawer.style.display = 'none';
+    }
+
+    cardCliente.addEventListener('click', openDrawer);
+    btnEditarCliente.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDrawer();
+    });
+    btnCerrarDrawer.addEventListener('click', closeDrawer);
+
+    formCliente.addEventListener('submit', (e) => {
+      e.preventDefault();
+      errBanner3.style.display = 'none';
+      succBanner3.style.display = 'none';
+
+      const inputNombre = document.getElementById('input-cliente-nombre');
+      const inputTel = document.getElementById('input-cliente-telefono');
+      const groupNombre = document.getElementById('group-cliente-nombre');
+      const groupTel = document.getElementById('group-cliente-telefono');
+
+      groupNombre.classList.remove('has-error');
+      groupTel.classList.remove('has-error');
+
+      const nomVal = inputNombre.value.trim();
+      const telVal = inputTel.value.trim();
+
+      if (!nomVal) {
+        groupNombre.classList.add('has-error');
+        errBanner3.innerText = '❌ Error al Guardar: El nombre es obligatorio.';
+        errBanner3.style.display = 'block';
+        return false;
+      }
+
+      if (telVal.length > 10) {
+        groupTel.classList.add('has-error');
+        errBanner3.innerText = '❌ Error al Guardar: El teléfono excede los 10 dígitos permitidos.';
+        errBanner3.style.display = 'block';
+        return false;
+      }
+
+      succBanner3.innerText = '✅ ¡Cliente guardado con éxito!';
+      succBanner3.style.display = 'block';
+
+      // CIERRA AUTOMÁTICAMENTE EL CAJÓN TRAS GUARDAR (Comportamiento real)
+      setTimeout(() => {
+        closeDrawer();
+      }, 250);
+
+      return true;
+    });
+  </script>
+</body>
+</html>

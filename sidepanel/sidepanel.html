@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QA Form Field Validator</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-top">
+        <div class="logo-area">
+          <div class="logo-icon">🎯</div>
+          <div>
+            <h1>QA Form Validator</h1>
+            <span class="compatibility-badge">Edge • Brave • Chrome</span>
+          </div>
+        </div>
+        <button id="btn-reset-all" class="btn-icon" title="Reiniciar todo" aria-label="Reiniciar campos y resultados">↺</button>
+      </div>
+      <p class="header-desc">Verifica múltiples campos de un formulario acorde a su tipo, audita la acción de <strong>Guardar</strong> y genera tablas compatibles con <strong>Notion</strong>.</p>
+    </header>
+
+    <!-- Multi-Field & Save Button Selection Section -->
+    <section class="card selection-card">
+      <div class="card-header">
+        <h2>1. Campos a Probar del Formulario</h2>
+        <span id="fields-count-badge" class="badge badge-idle">0 campos</span>
+      </div>
+
+      <!-- Action buttons for field selection -->
+      <div class="selection-actions-row">
+        <button id="btn-pick-field" class="btn btn-primary" style="flex: 1;">
+          <span class="btn-icon-symbol">🎯</span>
+          <span id="pick-btn-text">Añadir campo en la página</span>
+        </button>
+        <button id="btn-auto-detect-form" class="btn btn-secondary" title="Detecta todos los formularios y módulos presentes en la página">
+          <span class="btn-icon-symbol">⚡</span> Detectar formularios
+        </button>
+      </div>
+
+      <!-- Multi-Form Selector (Shown when multiple forms or modules are detected) -->
+      <div id="forms-selector-wrap" class="forms-selector-wrap" style="display: none;">
+        <div class="forms-selector-header">
+          <span class="forms-selector-title">📋 Sector / Formulario activo:</span>
+          <button id="btn-pick-form-click" class="btn-subtle" title="Apuntar con el cursor a un formulario o sector específico">🎯 Apuntar sector</button>
+        </div>
+        <select id="page-forms-select" class="select-input forms-select-dropdown"></select>
+      </div>
+
+      <!-- Empty state when no field selected -->
+      <div id="field-empty-state" class="empty-notice">
+        <p>Añade campos haciendo clic en <strong>"Añadir campo"</strong> o presiona <strong>"⚡ Auto-detectar formulario"</strong> para cargar todos los campos de texto, números y fechas de una vez.</p>
+      </div>
+
+      <!-- Selected fields chips container -->
+      <div id="selected-fields-list" class="fields-chips-wrap" style="display: none;">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Linked Save Button Subsection -->
+      <div id="save-button-box" class="save-button-box" style="display: none;">
+        <div class="save-button-header">
+          <span class="save-button-title">🔘 Botón Guardar / Enviar:</span>
+          <span id="save-btn-status" class="pill pill-save">Auto-detectando...</span>
+        </div>
+        <div class="save-button-actions">
+          <button id="btn-pick-save-btn" class="btn-sm btn-outline">🔘 Cambiar botón en página</button>
+          <button id="btn-highlight-save-btn" class="btn-sm btn-subtle" style="display: none;">📍 Ver botón</button>
+        </div>
+      </div>
+
+      <!-- Sibling / Required Fields Filler Subsection -->
+      <div id="sibling-fillers-box" class="sibling-fillers-box" style="display: none;">
+        <div class="sibling-fillers-header">
+          <span class="sibling-fillers-title">🛡️ Relleno de Campos Obligatorios:</span>
+          <label class="checkbox-inline" style="font-size: 10px;">
+            <input type="checkbox" id="check-enable-sibling-fillers" checked>
+            <span>Auto-llenar al guardar</span>
+          </label>
+        </div>
+        <p class="sub-desc" style="font-size: 10px; margin-bottom: 6px;">
+          Evita que los demás campos obligatorios bloqueen el guardado. Puedes ajustar o regenerar sus valores válidos:
+        </p>
+        <div id="sibling-fillers-list" class="sibling-fillers-list">
+          <!-- Populated via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Re-open flow for Collapsible / Modal forms (e.g. Cliente -> Editar -> Modal) -->
+      <div id="reopen-flow-box" class="reopen-flow-box">
+        <div class="reopen-flow-header">
+          <label class="checkbox-inline">
+            <input type="checkbox" id="check-enable-reopen">
+            <span class="reopen-flow-title">🚪 Auto re-abrir formulario antes de cada prueba</span>
+          </label>
+        </div>
+        <div id="reopen-steps-content" style="display: none;">
+          <p class="sub-desc" style="font-size: 10px; margin-bottom: 6px;">
+            Para formularios que se cierran al guardar. Apunta los clics para reabrirlo (ej. <em>Paso 1: Tarjeta de Cliente</em>, <em>Paso 2: Botón Editar</em>):
+          </p>
+          <div id="reopen-steps-list" class="reopen-steps-list">
+            <!-- Steps populated via JS -->
+          </div>
+          <div class="reopen-tools-row">
+            <button id="btn-add-reopen-step" class="btn-sm btn-outline" style="font-size: 10px;">➕ Apuntar paso de clic</button>
+            <button id="btn-test-reopen" class="btn-sm btn-subtle" style="font-size: 10px;" title="Probar que los pasos abren el formulario correctamente">🧪 Probar apertura</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Test Suites Section -->
+    <section class="card">
+      <div class="card-header">
+        <h2>2. Entradas y Casos de Prueba</h2>
+        <span id="selected-count-badge" class="badge badge-info">0 pruebas</span>
+      </div>
+
+      <div class="info-note">
+        💡 <strong>Pruebas automáticas por tipo:</strong> Cada campo ejecutará la suite correspondiente a su naturaleza (Texto/Emojis en campos de texto, Números en numéricos, y Fechas en campos de fecha).
+      </div>
+
+      <!-- Depth Tier Selector -->
+      <div class="depth-selector-box">
+        <div class="depth-selector-header">
+          <span class="depth-title">🎯 Profundidad de Validación:</span>
+          <span id="depth-desc-badge" class="depth-desc-badge">🔵 Normal (Recomendado)</span>
+        </div>
+        <div class="depth-buttons-group" role="group" aria-label="Nivel de profundidad de validaciones">
+          <button type="button" class="depth-btn" data-depth="simple" title="Pruebas esenciales y rápidas (Smoke test)">
+            <span class="depth-btn-icon">🟢</span> Simple
+          </button>
+          <button type="button" class="depth-btn active" data-depth="normal" title="Validaciones estándar de negocio más frecuentes">
+            <span class="depth-btn-icon">🔵</span> Normal
+          </button>
+          <button type="button" class="depth-btn" data-depth="advanced" title="Pruebas exhaustivas y casos de borde">
+            <span class="depth-btn-icon">🟣</span> Avanzado
+          </button>
+          <button type="button" class="depth-btn" data-depth="total" title="Batería completa y pruebas de sobrecarga">
+            <span class="depth-btn-icon">⚡</span> Total
+          </button>
+        </div>
+      </div>
+
+      <!-- Categories Filter Tabs -->
+      <div class="category-tabs">
+        <button class="tab-btn active" data-category="all">Todos</button>
+        <button class="tab-btn" data-category="text">📝 Texto</button>
+        <button class="tab-btn" data-category="emoji">😀 Emojis</button>
+        <button class="tab-btn" data-category="number">🔢 Números</button>
+        <button class="tab-btn" data-category="date">📅 Fechas</button>
+        <button class="tab-btn" data-category="security">🛡️ Inyección</button>
+        <button class="tab-btn" data-category="custom">⚙️ Propios</button>
+      </div>
+
+      <!-- Suites Controls -->
+      <div class="suite-tools">
+        <label class="checkbox-inline">
+          <input type="checkbox" id="check-select-all" checked>
+          <span>Seleccionar visibles</span>
+        </label>
+        <button id="btn-open-custom-modal" class="btn-sm btn-outline">➕ Añadir Input</button>
+      </div>
+
+      <!-- Payloads List Container -->
+      <div id="payloads-container" class="payloads-list">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- Execution Section with Save / Submit options -->
+    <section class="card execution-card">
+      <div class="card-header">
+        <h2>3. Ejecución Automatizada</h2>
+      </div>
+
+      <!-- Submit / Save Toggle -->
+      <div class="save-execution-toggle">
+        <label class="checkbox-inline highlight-toggle">
+          <input type="checkbox" id="check-trigger-save" checked>
+          <span><strong>☑️ Presionar "Guardar / Enviar" en cada prueba</strong> (verifica si el sitio rechaza los datos al enviar)</span>
+        </label>
+      </div>
+
+      <div class="execution-options-grid">
+        <div class="execution-options">
+          <label for="execution-speed" class="sub-label">Velocidad general:</label>
+          <select id="execution-speed" class="select-input">
+            <option value="50">Rápida (50ms)</option>
+            <option value="150" selected>Normal (150ms)</option>
+            <option value="350">Detallada (350ms)</option>
+          </select>
+        </div>
+
+        <div class="execution-options">
+          <label for="submit-wait-time" class="sub-label">Espera post-guardar:</label>
+          <select id="submit-wait-time" class="select-input">
+            <option value="250">250ms (Rápido)</option>
+            <option value="500" selected>500ms (Normal)</option>
+            <option value="900">900ms (APIs / AJAX)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="execution-options">
+        <label class="checkbox-inline">
+          <input type="checkbox" id="check-restore-value" checked>
+          <span>Restaurar valores originales de los campos al finalizar</span>
+        </label>
+      </div>
+
+      <button id="btn-run-tests" class="btn btn-success btn-block" disabled>
+        <span class="btn-icon-symbol">▶️</span>
+        <span id="run-btn-text">Iniciar Verificación de Campos</span>
+      </button>
+
+      <!-- Progress bar -->
+      <div id="progress-container" class="progress-wrap" style="display: none;" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso de ejecución de pruebas">
+        <div class="progress-info">
+          <span id="progress-label">Probando...</span>
+          <span id="progress-percent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="progress-bar-fill" class="progress-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Report & Results Section -->
+    <section id="results-card" class="card" style="display: none;">
+      <div class="card-header">
+        <h2>4. Reporte de Resultados</h2>
+        <button id="btn-clear-results" class="btn-subtle" title="Limpiar reporte">Limpiar</button>
+      </div>
+
+      <!-- Summary KPI Counters -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-num" id="kpi-total">0</div>
+          <div class="kpi-desc">Total Pruebas</div>
+        </div>
+        <div class="kpi-card kpi-success">
+          <div class="kpi-num" id="kpi-restricted">0</div>
+          <div class="kpi-desc">Restringidas (🟢)</div>
+        </div>
+        <div class="kpi-card kpi-conforme">
+          <div class="kpi-num" id="kpi-conforme">0</div>
+          <div class="kpi-desc">Conformes (🔵)</div>
+        </div>
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-num" id="kpi-risk">0</div>
+          <div class="kpi-desc">Riesgo (🔴)</div>
+        </div>
+      </div>
+
+      <!-- Filter results bar -->
+      <div class="results-filter-bar">
+        <div class="filter-group">
+          <span>Estado:</span>
+          <button class="filter-chip active" data-filter="all">Todos</button>
+          <button class="filter-chip" data-filter="restricted">Restringidos (🟢)</button>
+          <button class="filter-chip" data-filter="conforme">Conformes (🔵)</button>
+          <button class="filter-chip" data-filter="truncated">Truncados (🟡)</button>
+          <button class="filter-chip" data-filter="risk">Con Riesgo (🔴)</button>
+        </div>
+
+        <div class="filter-group">
+          <label for="filter-field-select" class="sub-label">Campo:</label>
+          <select id="filter-field-select" class="select-input" style="padding: 2px 6px; font-size: 10px;">
+            <option value="all">Todos los campos</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <div class="table-responsive">
+        <table id="results-table" class="report-table">
+          <caption class="sr-only">Resultados detallados de auditoría de campos</caption>
+          <thead>
+            <tr>
+              <th scope="col">Nombre del Campo</th>
+              <th scope="col">Input Probado</th>
+              <th scope="col">Resultado</th>
+              <th scope="col">Detalle del Sitio</th>
+              <th scope="col">Recomendación</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody">
+            <!-- Populated via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Export Toolbar (With Notion-ready button) -->
+      <div class="export-toolbar">
+        <div class="export-label">Exportar / Copiar:</div>
+        <div class="export-buttons">
+          <button id="btn-copy-notion" class="btn btn-notion btn-sm" title="Copia la tabla en formato enriquecido para pegar directamente en Notion con Ctrl+V">
+            📝 Copiar para Notion
+          </button>
+          <button id="btn-copy-markdown" class="btn btn-secondary btn-sm" title="Copiar tabla en formato Markdown">
+            📋 Copiar Markdown
+          </button>
+          <button id="btn-export-csv" class="btn btn-secondary btn-sm" title="Descargar como archivo CSV para Excel">
+            📥 Descargar CSV
+          </button>
+          <button id="btn-print-report" class="btn btn-secondary btn-sm" title="Abrir informe HTML imprimible o PDF">
+            🖨️ Imprimir / PDF
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Custom Payload Modal -->
+    <div id="custom-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="custom-modal-title">➕ Añadir Input Personalizado</h3>
+          <button id="btn-close-modal" class="btn-icon" aria-label="Cerrar modal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="custom-name">Nombre / Descripción de la prueba:</label>
+            <input type="text" id="custom-name" class="text-input" placeholder="Ej: Teléfono con 15 dígitos">
+          </div>
+          <div class="form-group">
+            <label for="custom-category">Categoría:</label>
+            <select id="custom-category" class="select-input">
+              <option value="text">Texto</option>
+              <option value="emoji">Emojis & Símbolos</option>
+              <option value="number">Números</option>
+              <option value="date">Fechas</option>
+              <option value="security">Seguridad / Inyección</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="custom-value">Texto / Input a Inyectar:</label>
+            <textarea id="custom-value" class="text-input" rows="3" placeholder="Escribe o pega aquí el valor exacto..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="custom-desc">Comportamiento esperado:</label>
+            <input type="text" id="custom-desc" class="text-input" placeholder="Ej: No debe permitir guardar más de 10 dígitos">
+          </div>
+          <div class="form-group">
+            <label class="checkbox-inline">
+              <input type="checkbox" id="custom-is-invalid" checked>
+              <span>¿Representa un valor anómalo o inválido? (Si se permite guardar sin error, se marcará como riesgo)</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-cancel-custom" class="btn-secondary">Cancelar</button>
+          <button id="btn-save-custom" class="btn-primary">Guardar y Añadir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payload Details Viewer Modal -->
+    <div id="payload-viewer-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="viewer-title">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="viewer-title">Detalle del Input</h3>
+          <button id="btn-close-viewer" class="btn-icon" aria-label="Cerrar visor">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Contenido Completo:</label>
+            <pre id="viewer-content" class="code-box"></pre>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-copy-viewer" class="btn btn-secondary">Copiar Valor</button>
+          <button id="btn-dismiss-viewer" class="btn btn-primary">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
