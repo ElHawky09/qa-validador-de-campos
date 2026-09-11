@@ -1088,7 +1088,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (fieldData.autoSaveButton) {
-      handleSaveButtonSelected(fieldData.autoSaveButton, true);
+      fieldData.saveButton = fieldData.autoSaveButton;
+      handleSaveButtonSelected(fieldData.autoSaveButton, true, fieldData.formId || fieldData.formSelector || 'general');
     }
 
     renderSelectedFields();
@@ -1277,16 +1278,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     const targetKey = targetFormId !== null ? targetFormId : activePickingFormId;
 
     if (targetKey && targetKey !== 'general' && detectedPageForms.length > 0) {
-      const targetForm = detectedPageForms.find(f => (f.id && f.id === targetKey) || String(f.formIndex) === targetKey);
+      const targetForm = detectedPageForms.find(f => (f.id && f.id === targetKey) || String(f.formIndex) === targetKey || f.selector === targetKey);
       if (targetForm) {
         targetForm.saveButton = btnData;
-        // Sync with all fields associated with this form
+        if (targetForm.fields) {
+          targetForm.fields.forEach(f => {
+            f.saveButton = btnData;
+          });
+        }
+        // Also update any combined entries in detectedPageForms
+        detectedPageForms.forEach(df => {
+          if (df.formIndex === 'all' && df.fields) {
+            df.fields.forEach(f => {
+              if (f.formId === targetForm.id || String(f.formIndex) === String(targetForm.formIndex) || (targetForm.selector && f.formSelector === targetForm.selector)) {
+                f.saveButton = btnData;
+              }
+            });
+          }
+        });
+        // Sync with all fields associated with this form currently in selectedFields
         selectedFields.forEach(field => {
-          if (field.formSelector === targetForm.selector || targetForm.fields?.some(tf => tf.selector === field.selector)) {
+          if (field.formId === targetForm.id || String(field.formIndex) === String(targetForm.formIndex) || (targetForm.selector && field.formSelector === targetForm.selector) || targetForm.fields?.some(tf => tf.selector === field.selector)) {
             field.saveButton = btnData;
           }
         });
-        // If this form is currently selected, also update currentSaveButton
+        // If this form is currently selected in dropdown, also update currentSaveButton
         const currentSelectVal = pageFormsSelect ? pageFormsSelect.value : '0';
         if (detectedPageForms[currentSelectVal] === targetForm) {
           currentSaveButton = btnData;
@@ -1299,11 +1315,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       const activeForm = detectedPageForms[currentSelectVal];
       if (activeForm && activeForm.formIndex !== 'all') {
         activeForm.saveButton = btnData;
+        if (activeForm.fields) activeForm.fields.forEach(f => { f.saveButton = btnData; });
       }
-      // Assign to all currently selected fields
-      selectedFields.forEach(f => {
-        f.saveButton = btnData;
-      });
+      // Assign to all currently selected fields only if there is a single form on the page
+      const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+      if (nonAllForms.length <= 1) {
+        selectedFields.forEach(f => {
+          f.saveButton = btnData;
+        });
+      }
     }
 
     renderSaveButtonsList();
@@ -1608,7 +1628,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       progressPercent.innerText = `${pct}%`;
       progressBarFill.style.width = `${pct}%`;
       progressContainer.setAttribute('aria-valuenow', String(pct));
-      progressLabel.innerText = `(${completed}/${testQueue.length}) [${task.field.label}]: ${task.testItem.name}...`;
+      const formPrefix = task.field.formTitle ? `[${task.field.formTitle}] ` : '';
+      progressLabel.innerText = `(${completed}/${testQueue.length}) ${formPrefix}[${task.field.label}]: ${task.testItem.name}...`;
 
       // Highlight the chip of the field currently being tested
       const currentFieldIndex = selectedFields.indexOf(task.field);
@@ -1622,22 +1643,40 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       try {
-        // Pre-fill valid dummy data in all other sibling fields so they don't block the save!
-        const siblingFields = selectedFields.filter(f => f !== task.field);
+        // Pre-fill valid dummy data in sibling fields of the SAME form so they don't block the save!
+        const siblingFields = selectedFields.filter(f => {
+          if (f === task.field) return false;
+          if (task.field.formId && f.formId) return f.formId === task.field.formId;
+          if (task.field.formSelector && f.formSelector) return f.formSelector === task.field.formSelector;
+          return true;
+        });
         const siblingFillers = shouldFillSiblings ? siblingFields.map(f => ({
           fieldInfo: f,
           value: (f.fillerValue !== undefined ? f.fillerValue : f.suggestedFillerValue) || 'Dato Válido QA'
         })) : [];
 
-        // Dynamically resolve save button for the task's field / form
+        // Dynamically resolve save button strictly for the task's field / form
         let fieldSaveButton = task.field.saveButton || null;
         if (!fieldSaveButton && detectedPageForms.length > 0) {
-          const matchedForm = detectedPageForms.find(df => df.selector && df.selector === task.field.formSelector);
+          const matchedForm = detectedPageForms.find(df => 
+            df.formIndex !== 'all' && (
+              (task.field.formId && df.id === task.field.formId) ||
+              (task.field.formIndex !== undefined && String(df.formIndex) === String(task.field.formIndex)) ||
+              (task.field.formSelector && df.selector === task.field.formSelector) ||
+              (df.fields && df.fields.some(f => f.selector === task.field.selector || f.id === task.field.id))
+            )
+          );
           if (matchedForm && matchedForm.saveButton) {
             fieldSaveButton = matchedForm.saveButton;
+            task.field.saveButton = matchedForm.saveButton;
           }
         }
-        const targetSaveButton = fieldSaveButton || currentSaveButton || null;
+        // ONLY use currentSaveButton if there is only 1 form on the page or if it matches this form
+        const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+        let targetSaveButton = fieldSaveButton;
+        if (!targetSaveButton && nonAllForms.length <= 1) {
+          targetSaveButton = currentSaveButton || null;
+        }
 
         const res = await chrome.tabs.sendMessage(activeTabId, {
           action: 'RUN_SINGLE_PAYLOAD',
@@ -1964,6 +2003,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       fieldName: field.label || field.selector,
       fieldKey: field.id || field.selector || field.name || field.label,
       fieldType: field.type,
+      formTitle: field.formTitle || '',
       testItem: testItem,
       input: payload,
       resultingValue: resVal,
@@ -1990,7 +2030,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     tr.innerHTML = `
       <td>
         <strong>${escapeHtml(result.fieldName)}</strong>
-        <div style="font-size: 9px; color: #94a3b8;">${escapeHtml(result.fieldType)}</div>
+        <div style="font-size: 9px; color: #94a3b8;">${result.formTitle ? `${escapeHtml(result.formTitle)} • ` : ''}${escapeHtml(result.fieldType)}</div>
       </td>
       <td>
         <div>${escapeHtml(result.testItem.name)}</div>

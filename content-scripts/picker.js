@@ -374,25 +374,43 @@
   }
 
   // Auto-detect submit / save button local to the field's container
-  function autoDetectSaveButton(fieldEl) {
+  function autoDetectSaveButton(fieldEl, allowHidden = false) {
     if (!fieldEl) return null;
 
     // 1. Check enclosing <form> or [role="form"]
     const form = fieldEl.form || fieldEl.closest('form, [role="form"]');
     if (form) {
+      // 1a. Check HTML5 linked button[form="id"] outside the form
+      if (form.id) {
+        try {
+          const linkedSubmit = document.querySelector(`button[form="${CSS.escape(form.id)}"][type="submit"], input[form="${CSS.escape(form.id)}"][type="submit"]`);
+          if (linkedSubmit && (allowHidden || isElementVisible(linkedSubmit))) return linkedSubmit;
+
+          const linkedButtons = Array.from(document.querySelectorAll(`button[form="${CSS.escape(form.id)}"], input[form="${CSS.escape(form.id)}"]`));
+          for (const btn of linkedButtons) {
+            if (!allowHidden && !isElementVisible(btn)) continue;
+            const text = (btn.innerText || btn.value || '').toLowerCase();
+            if (/guardar|save|enviar|submit|actualizar|update|crear|create|aceptar|confirmar|continuar/.test(text)) {
+              return btn;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 1b. Check submit buttons inside the form
       const explicitSubmit = form.querySelector('button[type="submit"], input[type="submit"]');
-      if (explicitSubmit && isElementVisible(explicitSubmit)) return explicitSubmit;
+      if (explicitSubmit && (allowHidden || isElementVisible(explicitSubmit))) return explicitSubmit;
 
       const buttons = Array.from(form.querySelectorAll('button, input[type="button"], a.btn, [role="button"]'));
       for (const btn of buttons) {
-        if (!isElementVisible(btn)) continue;
+        if (!allowHidden && !isElementVisible(btn)) continue;
         const text = (btn.innerText || btn.value || '').toLowerCase();
         if (/guardar|save|enviar|submit|actualizar|update|crear|create|aceptar|confirmar|continuar/.test(text)) {
           return btn;
         }
       }
       for (const btn of buttons) {
-        if (isElementVisible(btn)) return btn;
+        if (allowHidden || isElementVisible(btn)) return btn;
       }
     }
 
@@ -400,18 +418,18 @@
     const container = fieldEl.closest('.form-module-card, .modal, .dialog, .card, .drawer, .section, fieldset');
     if (container) {
       const explicitSubmit = container.querySelector('button[type="submit"], input[type="submit"]');
-      if (explicitSubmit && isElementVisible(explicitSubmit)) return explicitSubmit;
+      if (explicitSubmit && (allowHidden || isElementVisible(explicitSubmit))) return explicitSubmit;
 
       const buttons = Array.from(container.querySelectorAll('button, input[type="button"], a.btn, [role="button"]'));
       for (const btn of buttons) {
-        if (!isElementVisible(btn)) continue;
+        if (!allowHidden && !isElementVisible(btn)) continue;
         const text = (btn.innerText || btn.value || '').toLowerCase();
         if (/guardar|save|enviar|submit|actualizar|update|crear|create|aceptar|confirmar|continuar/.test(text)) {
           return btn;
         }
       }
       for (const btn of buttons) {
-        if (isElementVisible(btn)) return btn;
+        if (allowHidden || isElementVisible(btn)) return btn;
       }
     }
 
@@ -419,9 +437,9 @@
   }
 
   // Extract comprehensive element metadata
-  function getElementMetadata(el) {
+  function getElementMetadata(el, allowHidden = false) {
     const parentForm = el.form || el.closest('form, [role="form"], .modal, .card, .section');
-    const formSaveBtn = autoDetectSaveButton(el);
+    const formSaveBtn = autoDetectSaveButton(el, allowHidden);
     return {
       tag: el.tagName.toLowerCase(),
       type: (el.getAttribute('type') || (el.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text')).toLowerCase(),
@@ -497,16 +515,31 @@
         const testable = rawInputs.filter(isTestableField);
         if (testable.length > 0) {
           const title = getFormTitle(formEl, idx + 1);
-          const fields = testable.map(el => getElementMetadata(el));
-          const btn = autoDetectSaveButton(testable[0]);
+          const fields = testable.map(el => getElementMetadata(el, true));
+          const btn = autoDetectSaveButton(testable[0], true);
+          const formSaveBtn = btn ? getButtonMetadata(btn) : null;
+          const formId = formEl.id || `form_${idx}`;
+          const formSelector = getUniqueSelector(formEl);
+
+          // Stamp each field with its parent form identity and local save button
+          fields.forEach(f => {
+            f.formId = formId;
+            f.formIndex = idx;
+            f.formTitle = title;
+            f.formSelector = formSelector;
+            if (!f.saveButton && formSaveBtn) {
+              f.saveButton = formSaveBtn;
+            }
+          });
+
           detected.push({
             formIndex: idx,
-            id: formEl.id || `form_${idx}`,
+            id: formId,
             title: title,
-            selector: getUniqueSelector(formEl),
+            selector: formSelector,
             fields: fields,
             fieldsCount: fields.length,
-            saveButton: btn ? getButtonMetadata(btn) : null
+            saveButton: formSaveBtn
           });
         }
       });
@@ -525,16 +558,30 @@
           if (!seenSignatures.has(sig)) {
             seenSignatures.add(sig);
             const title = getFormTitle(cont, cIdx++);
-            const fields = testable.map(el => getElementMetadata(el));
-            const btn = autoDetectSaveButton(testable[0]);
+            const fields = testable.map(el => getElementMetadata(el, true));
+            const btn = autoDetectSaveButton(testable[0], true);
+            const formSaveBtn = btn ? getButtonMetadata(btn) : null;
+            const formId = cont.id || `section_${cIdx}`;
+            const formSelector = getUniqueSelector(cont);
+
+            fields.forEach(f => {
+              f.formId = formId;
+              f.formIndex = cIdx - 1;
+              f.formTitle = title;
+              f.formSelector = formSelector;
+              if (!f.saveButton && formSaveBtn) {
+                f.saveButton = formSaveBtn;
+              }
+            });
+
             detected.push({
               formIndex: cIdx - 1,
-              id: cont.id || `section_${cIdx}`,
+              id: formId,
               title: title,
-              selector: getUniqueSelector(cont),
+              selector: formSelector,
               fields: fields,
               fieldsCount: fields.length,
-              saveButton: btn ? getButtonMetadata(btn) : null
+              saveButton: formSaveBtn
             });
           }
         }
@@ -561,7 +608,7 @@
         title: `Todos los formularios combinados (${allUniqueFields.length} campos)`,
         fields: allUniqueFields,
         fieldsCount: allUniqueFields.length,
-        saveButton: detected[0]?.saveButton || null
+        saveButton: null
       });
     }
 
@@ -1207,9 +1254,13 @@
           }
         }
 
-        // 3. Fallback to globally selected button
+        // 3. Fallback to globally selected button ONLY IF it belongs to the same form or container
         if (!btnToClick && saveButtonElement && isElementVisible(saveButtonElement)) {
-          btnToClick = saveButtonElement;
+          const fieldForm = el.form || el.closest('form, [role="form"], .form-module-card, .modal, .card, .section');
+          const btnForm = saveButtonElement.form || saveButtonElement.closest('form, [role="form"], .form-module-card, .modal, .card, .section');
+          if (!fieldForm || !btnForm || fieldForm === btnForm) {
+            btnToClick = saveButtonElement;
+          }
         }
 
         // Install temporary capture listener to prevent full-page navigation / page reload during test
