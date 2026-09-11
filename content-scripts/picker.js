@@ -567,133 +567,44 @@
     };
   }
 
-  // Scan and discover ALL forms and form modules across the page
-  function scanAllPageForms() {
-    const detected = [];
-    const forms = Array.from(document.querySelectorAll('form'));
+  // Auto-detect a single form (the targeted one, or the primary form on page)
+  function detectSingleForm(baseEl) {
+    let container = null;
+    if (baseEl) {
+      container = baseEl.form || baseEl.closest('form, [role="form"], .modal, .dialog, .card, .section') || baseEl;
+    }
 
-    if (forms.length > 0) {
-      forms.forEach((formEl, idx) => {
-        const rawInputs = Array.from(formEl.querySelectorAll('input, textarea, select, [contenteditable]'));
-        const testable = rawInputs.filter(isTestableField);
-        if (testable.length > 0) {
-          const title = getFormTitle(formEl, idx + 1);
-          const fields = testable.map(el => getElementMetadata(el, true));
-          const btn = autoDetectSaveButton(testable[0], true);
-          const formSaveBtn = btn ? getButtonMetadata(btn) : null;
-          const formId = formEl.id || `form_${idx}`;
-          const formSelector = getUniqueSelector(formEl);
-
-          // Stamp each field with its parent form identity and local save button
-          fields.forEach(f => {
-            f.formId = formId;
-            f.formIndex = idx;
-            f.formTitle = title;
-            f.formSelector = formSelector;
-            if (!f.saveButton && formSaveBtn) {
-              f.saveButton = formSaveBtn;
-            }
-          });
-
-          detected.push({
-            formIndex: idx,
-            id: formId,
-            title: title,
-            selector: formSelector,
-            fields: fields,
-            fieldsCount: fields.length,
-            saveButton: formSaveBtn
-          });
+    if (!container || container === document.body) {
+      const forms = Array.from(document.querySelectorAll('form, [role="form"], .modal, .card, .section'));
+      for (const f of forms) {
+        const inputs = Array.from(f.querySelectorAll('input, textarea, select, [contenteditable]')).filter(isTestableField);
+        if (inputs.length > 0) {
+          container = f;
+          break;
         }
-      });
+      }
     }
 
-    // Check for form-like sections/cards in SPAs if no formal forms found or multiple modules exist
-    if (detected.length === 0) {
-      const containers = Array.from(document.querySelectorAll('[role="form"], .modal, .card, .section, main, body'));
-      let cIdx = 1;
-      const seenSignatures = new Set();
-      containers.forEach(cont => {
-        const rawInputs = Array.from(cont.querySelectorAll('input, textarea, select, [contenteditable]'));
-        const testable = rawInputs.filter(isTestableField);
-        if (testable.length > 0) {
-          const sig = testable.map(f => f.id || f.name || getUniqueSelector(f)).sort().join('|');
-          if (!seenSignatures.has(sig)) {
-            seenSignatures.add(sig);
-            const title = getFormTitle(cont, cIdx++);
-            const fields = testable.map(el => getElementMetadata(el, true));
-            const btn = autoDetectSaveButton(testable[0], true);
-            const formSaveBtn = btn ? getButtonMetadata(btn) : null;
-            const formId = cont.id || `section_${cIdx}`;
-            const formSelector = getUniqueSelector(cont);
-
-            fields.forEach(f => {
-              f.formId = formId;
-              f.formIndex = cIdx - 1;
-              f.formTitle = title;
-              f.formSelector = formSelector;
-              if (!f.saveButton && formSaveBtn) {
-                f.saveButton = formSaveBtn;
-              }
-            });
-
-            detected.push({
-              formIndex: cIdx - 1,
-              id: formId,
-              title: title,
-              selector: formSelector,
-              fields: fields,
-              fieldsCount: fields.length,
-              saveButton: formSaveBtn
-            });
-          }
-        }
-      });
+    if (!container) {
+      container = document.querySelector('form') || document.body;
     }
 
-    // Add a unified combined entry if more than 1 form found
-    if (detected.length > 1) {
-      const allUniqueFields = [];
-      const seen = new Set();
-      detected.forEach(d => {
-        d.fields.forEach(f => {
-          const key = f.id || f.selector || f.name;
-          if (!seen.has(key)) {
-            seen.add(key);
-            allUniqueFields.push(f);
-          }
-        });
-      });
-
-      detected.unshift({
-        formIndex: 'all',
-        id: 'all_forms_combined',
-        title: `Todos los formularios combinados (${allUniqueFields.length} campos)`,
-        fields: allUniqueFields,
-        fieldsCount: allUniqueFields.length,
-        saveButton: null
-      });
-    }
-
-    return detected;
-  }
-
-  // Auto-detect all testable fields within the form or page
-  function detectAllFormFields(baseEl) {
-    let container = baseEl?.form || baseEl?.closest('form') || document.querySelector('form') || document.body;
     const rawInputs = Array.from(container.querySelectorAll('input, textarea, select, [contenteditable]'));
     const testable = rawInputs.filter(isTestableField);
+    const title = getFormTitle(container, 1);
+    const fields = testable.map(el => getElementMetadata(el, true));
+    const btn = autoDetectSaveButton(testable[0] || container, true);
+    const saveBtnMeta = btn ? getButtonMetadata(btn) : null;
 
-    const fieldsData = testable.map(el => getElementMetadata(el));
-    const detectedBtn = autoDetectSaveButton(testable[0] || baseEl);
-
-    if (detectedBtn) {
-      saveButtonElement = detectedBtn;
+    if (btn) {
+      saveButtonElement = btn;
     }
 
     return {
-      fields: fieldsData,
-      saveButton: detectedBtn ? getButtonMetadata(detectedBtn) : null
+      title: title,
+      fields: fields,
+      fieldsCount: fields.length,
+      saveButton: saveBtnMeta
     };
   }
 
@@ -1297,12 +1208,10 @@
         saveAttempted = true;
         lastCapturedAlert = null;
 
-        // Dynamically resolve the save button for THIS field's form/container
+        // Resolve the single save button for this form
         let btnToClick = null;
 
-        // 1. Explicit save button assigned from sidepanel (per-form or field)
-        //    Use resolveSaveButton which is scoped to the field's form and does NOT
-        //    fall back to targetElement or global first-match by text.
+        // 1. Explicit save button configured for the form
         const targetBtnMeta = options.saveButton || options.fieldInfo?.saveButton;
         if (targetBtnMeta) {
           const resolvedBtn = resolveSaveButton(targetBtnMeta, el);
@@ -1311,59 +1220,16 @@
           }
         }
 
-        // 1b. If explicit button failed but we know the field's detected form container (formSelector),
-        //     search for the button INSIDE that specific container. This is critical for SPAs that
-        //     don't use <form> tags but wrap fields in generic divs/cards/sections.
-        if (!btnToClick && options.fieldInfo?.formSelector) {
-          try {
-            const formContainer = document.querySelector(options.fieldInfo.formSelector);
-            if (formContainer) {
-              // Look for submit/save buttons strictly within this detected form container
-              const explicitSubmit = formContainer.querySelector('button[type="submit"], input[type="submit"]');
-              if (explicitSubmit && isElementVisible(explicitSubmit)) {
-                btnToClick = explicitSubmit;
-              }
-              if (!btnToClick) {
-                const btns = Array.from(formContainer.querySelectorAll('button, input[type="button"], a.btn, [role="button"]'));
-                for (const btn of btns) {
-                  if (!isElementVisible(btn)) continue;
-                  const text = (btn.innerText || btn.value || '').toLowerCase();
-                  if (/guardar|save|enviar|submit|actualizar|update|crear|create|aceptar|confirmar|continuar/.test(text)) {
-                    btnToClick = btn;
-                    break;
-                  }
-                }
-              }
-            }
-          } catch (e) {
-            console.warn('formSelector-scoped button search error:', e);
-          }
+        // 2. Global save button element if active and visible
+        if (!btnToClick && saveButtonElement && isElementVisible(saveButtonElement)) {
+          btnToClick = saveButtonElement;
         }
 
-        // 2. Local button auto-detected inside the field's own form/container
-        //    Use allowHidden=true so we find buttons in tabs/drawers that were not visible at scan time
+        // 3. Local button auto-detected inside the field's container
         if (!btnToClick) {
           const localBtn = autoDetectSaveButton(el, true);
           if (localBtn && isElementVisible(localBtn)) {
             btnToClick = localBtn;
-          }
-        }
-
-        // 3. Fallback to globally selected button ONLY IF it belongs to the SAME form or container
-        //    as the target field. If they belong to different forms, skip entirely.
-        if (!btnToClick && saveButtonElement && isElementVisible(saveButtonElement)) {
-          const fieldForm = el.form || el.closest('form, [role="form"]');
-          const btnForm = saveButtonElement.form || saveButtonElement.closest('form, [role="form"]');
-          // Only use global button if both are in the same <form> or both lack a <form>
-          if (fieldForm && btnForm && fieldForm === btnForm) {
-            btnToClick = saveButtonElement;
-          } else if (!fieldForm && !btnForm) {
-            // Neither is in a <form>, check broader containers
-            const fieldContainer = el.closest('.form-module-card, .modal, .card, .section');
-            const btnContainer = saveButtonElement.closest('.form-module-card, .modal, .card, .section');
-            if (fieldContainer && btnContainer && fieldContainer === btnContainer) {
-              btnToClick = saveButtonElement;
-            }
           }
         }
 
@@ -1507,24 +1373,19 @@
       return false;
     }
 
-    if (message.action === 'DETECT_ALL_PAGE_FORMS') {
+    if (message.action === 'DETECT_ALL_PAGE_FORMS' || message.action === 'DETECT_SINGLE_FORM' || message.action === 'DETECT_ALL_FORM_FIELDS') {
       try {
-        const detected = scanAllPageForms();
-        sendResponse({ forms: detected });
+        const formData = detectSingleForm(targetElement);
+        sendResponse({
+          success: true,
+          title: formData.title,
+          fields: formData.fields,
+          fieldsCount: formData.fieldsCount,
+          saveButton: formData.saveButton
+        });
       } catch (err) {
-        console.error('DETECT_ALL_PAGE_FORMS error:', err);
-        sendResponse({ forms: [], error: err?.message });
-      }
-      return false;
-    }
-
-    if (message.action === 'DETECT_ALL_FORM_FIELDS') {
-      try {
-        const result = detectAllFormFields(targetElement);
-        sendResponse(result);
-      } catch (err) {
-        console.error('DETECT_ALL_FORM_FIELDS error:', err);
-        sendResponse({ fields: [], error: err?.message });
+        console.error('DETECT_SINGLE_FORM error:', err);
+        sendResponse({ success: false, fields: [], error: err?.message });
       }
       return false;
     }

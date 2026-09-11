@@ -38,30 +38,21 @@
       <div class="selection-actions-row">
         <button id="btn-pick-field" class="btn btn-primary" style="flex: 1;">
           <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-          <span id="pick-btn-text">Añadir campo en la página</span>
+          <span id="pick-btn-text">Añadir campo</span>
         </button>
-        <button id="btn-auto-detect-form" class="btn btn-secondary" title="Detecta todos los formularios y módulos presentes en la página">
+        <button id="btn-auto-detect-form" class="btn btn-secondary" title="Detecta automáticamente el formulario de la página">
           <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-          <span>Detectar formularios</span>
+          <span>Detectar formulario</span>
         </button>
-      </div>
-
-      <!-- Multi-Form Selector (Shown when multiple forms or modules are detected) -->
-      <div id="forms-selector-wrap" class="forms-selector-wrap" style="display: none;">
-        <div class="forms-selector-header">
-          <span class="forms-selector-title">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 3px;"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="7" y1="8" x2="17" y2="8"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="12" y2="16"></line></svg>Sector / Formulario activo:
-          </span>
-          <button id="btn-pick-form-click" class="btn-subtle" title="Apuntar con el cursor a un formulario o sector específico">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 3px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>Apuntar sector
-          </button>
-        </div>
-        <select id="page-forms-select" class="select-input forms-select-dropdown"></select>
+        <button id="btn-pick-form-click" class="btn btn-secondary" title="Apuntar con el cursor a un formulario o sector específico">
+          <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+          <span id="pick-form-btn-text">Apuntar formulario</span>
+        </button>
       </div>
 
       <!-- Empty state when no field selected -->
       <div id="field-empty-state" class="empty-notice">
-        <p>Añade campos haciendo clic en <strong>"Añadir campo"</strong> o presiona <strong>"Detectar formularios"</strong> para cargar todos los campos de texto, números y fechas de una vez.</p>
+        <p>Añade campos haciendo clic en <strong>"Añadir campo"</strong>, presiona <strong>"Detectar formulario"</strong> o haz clic en <strong>"Apuntar formulario"</strong> para cargar los campos a evaluar.</p>
       </div>
 
       <!-- Selected fields chips container -->
@@ -69,18 +60,30 @@
         <!-- Injected via JavaScript -->
       </div>
 
-      <!-- Linked Save Button Subsection (Supports Multi-Form Buttons) -->
+      <!-- Linked Save Button Subsection (Single Form Save Button) -->
       <div id="save-button-box" class="save-button-box" style="display: none;">
         <div class="save-button-header">
           <span class="save-button-title">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Botones de Guardar / Enviar:
+            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Botón de Guardar / Enviar:
           </span>
         </div>
         <p id="save-buttons-desc" class="sub-desc" style="font-size: 10px; margin-bottom: 6px;">
-          Cada formulario utiliza su respectivo botón al auditar. Puedes inspeccionar o modificar el botón de cada uno:
+          Botón que se activará para enviar y validar el formulario:
         </p>
-        <div id="save-forms-list" class="save-forms-list">
-          <!-- Dynamically populated by renderSaveButtonsList() -->
+        <div class="save-form-row" id="single-save-button-row">
+          <div class="save-form-row-body">
+            <span id="save-btn-pill" class="pill pill-idle" title="No asignado">
+              Auto / No asignado
+            </span>
+            <div class="save-form-actions">
+              <button id="btn-inspect-save" class="btn-sm btn-subtle" title="Resaltar botón en la página" disabled style="display:none;">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="3"></circle></svg>Ver
+              </button>
+              <button id="btn-change-save" class="btn-sm btn-outline" title="Seleccionar botón haciendo clic en la página">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg><span id="change-save-btn-text">Cambiar botón</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

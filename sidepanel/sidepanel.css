@@ -413,46 +413,6 @@ h2 {
   color: #f87171;
 }
 
-.field-chip-form-select {
-  background: #0f172a;
-  border: 1px solid #475569;
-  color: #93c5fd;
-  font-size: 9px;
-  font-weight: 600;
-  border-radius: 3px;
-  padding: 1px 4px;
-  cursor: pointer;
-  max-width: 120px;
-  outline: none;
-  transition: border-color var(--transition-fast);
-}
-
-.field-chip-form-select:hover {
-  border-color: var(--primary);
-}
-
-.btn-add-save-form {
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px dashed rgba(59, 130, 246, 0.35);
-  color: #93c5fd;
-  font-size: 11px;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: all var(--transition-fast);
-  width: 100%;
-}
-
-.btn-add-save-form:hover {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: var(--primary);
-  color: #ffffff;
-}
-
 /* Save Button Subsection */
 .save-button-box {
   background: rgba(30, 41, 59, 0.8);
@@ -488,12 +448,7 @@ h2 {
   gap: 6px;
 }
 
-/* Multi-Form Save Buttons List */
-.save-forms-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+/* Single-Form Save Button Row */
 
 .save-form-row {
   display: flex;
@@ -517,30 +472,6 @@ h2 {
   background: rgba(30, 58, 138, 0.25);
 }
 
-.save-form-row-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.save-form-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: #f1f5f9;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.save-form-count {
-  font-size: 9px;
-  color: var(--text-muted);
-  font-weight: normal;
-}
 
 .save-form-row-body {
   display: flex;
