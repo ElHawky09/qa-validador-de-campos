@@ -71,8 +71,50 @@ body {
 }
 
 .logo-icon {
-  font-size: 22px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 6px;
 }
+
+/* Modern Minimalist Vector Icons (SVG) */
+.ui-icon {
+  display: inline-block;
+  vertical-align: middle;
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+  stroke: currentColor;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.ui-icon-xs { width: 11px; height: 11px; stroke-width: 2.2; }
+.ui-icon-sm { width: 13px; height: 13px; }
+.ui-icon-lg { width: 16px; height: 16px; }
+.ui-icon-xl { width: 20px; height: 20px; }
+
+/* Status Micro-dots */
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot-success { background-color: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
+.status-dot-info { background-color: #3b82f6; box-shadow: 0 0 6px rgba(59, 130, 246, 0.6); }
+.status-dot-warning { background-color: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.6); }
+.status-dot-danger { background-color: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
+.status-dot-purple { background-color: #a855f7; box-shadow: 0 0 6px rgba(168, 85, 247, 0.6); }
 
 h1 {
   font-size: 16px;
@@ -1150,7 +1192,9 @@ textarea:focus-visible,
 }
 
 .depth-btn-icon {
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 

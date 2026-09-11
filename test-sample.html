@@ -181,18 +181,18 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>🧪 Formulario de Prueba - Validación con Acción de Guardar</h1>
+      <h1>Formulario de Prueba - Validación con Acción de Guardar</h1>
       <p>Diseñado para probar la detección de restricciones tanto <strong>en el campo</strong> como <strong>al presionar Guardar</strong>.</p>
     </div>
 
     <div class="info-banner">
-      💡 <strong>Cómo probar el caso reportado:</strong><br>
-      Prueba el <strong>Campo #1 (Identificación / Teléfono)</strong>. Este campo te permite teclear o pegar 15 dígitos sin recortar, pero cuando presionas <strong>"Guardar"</strong>, el formulario rechaza el guardado porque tiene un límite máximo de 10 dígitos. La extensión detectará ahora: <code>🟢 Restringido al Guardar</code>.
+      <strong>Guía de verificación:</strong><br>
+      Prueba el <strong>Campo #1 (Identificación / Teléfono)</strong>. Este campo te permite teclear o pegar 15 dígitos sin recortar, pero cuando presionas <strong>"Guardar"</strong>, el formulario rechaza el guardado porque tiene un límite máximo de 10 dígitos. La extensión detectará el estado: <code>Restringido al Guardar</code>.
     </div>
 
     <!-- Formulario 1: Datos Personales y Cuenta -->
     <div class="form-module-card" style="margin-bottom: 30px; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fafbfc;">
-      <h2 style="font-size: 16px; margin-bottom: 12px; color: #1e3a8a;">📋 Formulario 1: Datos Personales y Cuenta</h2>
+      <h2 style="font-size: 16px; margin-bottom: 12px; color: #1e3a8a;">Formulario 1: Datos Personales y Cuenta</h2>
       <div id="global-error-banner-1" class="error-banner" style="display:none; background:#fef2f2; border:1px solid #f87171; color:#b91c1c; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
       <div id="global-success-banner-1" class="success-banner" style="display:none; background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
 
@@ -202,7 +202,7 @@
           <label for="input-identificacion">1. Identificación / Teléfono (Permite escribir, pero BLOQUEA AL GUARDAR si tiene más de 10 dígitos)</label>
           <p class="sub-desc">No tiene atributo maxlength en el HTML. Acepta 15 dígitos al escribir, pero falla al presionar Guardar.</p>
           <input type="text" id="input-identificacion" name="identificacion" placeholder="Ej: 5512345678">
-          <span class="error-text" id="error-identificacion">⚠️ Error al Guardar: La identificación no puede exceder los 10 dígitos.</span>
+          <span class="error-text" id="error-identificacion">Error al Guardar: La identificación no puede exceder los 10 dígitos.</span>
         </div>
 
         <!-- 2. Campo obligatorio (rellenado de hermanos previene falsos rechazos) -->
@@ -210,14 +210,14 @@
           <label for="input-nombre">2. Nombre del Cliente (Campo Obligatorio - maxlength="20")</label>
           <p class="sub-desc">Es obligatorio. Al probar otros campos, la extensión lo rellena automáticamente.</p>
           <input type="text" id="input-nombre" name="nombre" maxlength="20" placeholder="Nombre completo" required>
-          <span class="error-text" id="error-nombre">⚠️ Error al Guardar: El nombre del cliente es obligatorio.</span>
+          <span class="error-text" id="error-nombre">Error al Guardar: El nombre del cliente es obligatorio.</span>
         </div>
 
         <!-- 3. Campo numérico con validación al guardar -->
         <div class="form-group" id="group-edad">
           <label for="input-edad">3. Edad (Rechaza al Guardar si es menor de 18 o mayor de 99)</label>
           <input type="number" id="input-edad" name="edad" placeholder="Edad entre 18 y 99">
-          <span class="error-text" id="error-edad">⚠️ Error al Guardar: La edad debe ser entre 18 y 99 años.</span>
+          <span class="error-text" id="error-edad">Error al Guardar: La edad debe ser entre 18 y 99 años.</span>
         </div>
 
         <!-- 4. Campo Desplegable de Tipo de Cuenta (Obligatorio) -->
@@ -229,7 +229,7 @@
             <option value="corporativa">Cuenta Corporativa</option>
             <option value="freelance">Cuenta Profesional / Freelance</option>
           </select>
-          <span class="error-text" id="error-tipo-cuenta">⚠️ Error al Guardar: Debe seleccionar un tipo de cuenta.</span>
+          <span class="error-text" id="error-tipo-cuenta">Error al Guardar: Debe seleccionar un tipo de cuenta.</span>
         </div>
 
         <!-- 5. Términos y Condiciones (Checkbox Obligatorio) -->
@@ -238,19 +238,19 @@
           <label for="check-terminos" style="margin-bottom: 0; font-weight: normal; cursor: pointer;">
             Acepto los términos y condiciones del servicio (Obligatorio)
           </label>
-          <span class="error-text" id="error-terminos" style="margin-left: 10px;">⚠️ Debe aceptar los términos.</span>
+          <span class="error-text" id="error-terminos" style="margin-left: 10px;">Debe aceptar los términos.</span>
         </div>
 
         <!-- Botón de Envío Formulario 1 -->
         <button type="submit" id="btn-guardar-personales" class="btn-submit">
-          💾 Guardar Datos Personales
+          Guardar Datos Personales
         </button>
       </form>
     </div>
 
     <!-- Formulario 2: Dirección y Entrega -->
     <div class="form-module-card" style="padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fafbfc;">
-      <h2 style="font-size: 16px; margin-bottom: 12px; color: #1e3a8a;">📦 Formulario 2: Dirección y Envío</h2>
+      <h2 style="font-size: 16px; margin-bottom: 12px; color: #1e3a8a;">Formulario 2: Dirección y Envío</h2>
       <div id="global-error-banner-2" class="error-banner" style="display:none; background:#fef2f2; border:1px solid #f87171; color:#b91c1c; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
       <div id="global-success-banner-2" class="success-banner" style="display:none; background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
 
@@ -259,21 +259,21 @@
         <div class="form-group" id="group-direccion">
           <label for="input-direccion">4. Calle y Número (Obligatorio)</label>
           <input type="text" id="input-direccion" name="direccion" placeholder="Ej: Av. Juárez 456" required>
-          <span class="error-text" id="error-direccion">⚠️ Error al Guardar: La dirección es obligatoria.</span>
+          <span class="error-text" id="error-direccion">Error al Guardar: La dirección es obligatoria.</span>
         </div>
 
         <!-- 5. Código Postal (Debe tener 5 dígitos exactos) -->
         <div class="form-group" id="group-cp">
           <label for="input-cp">5. Código Postal (Valida 5 dígitos al guardar)</label>
           <input type="text" id="input-cp" name="codigo_postal" placeholder="Ej: 28001">
-          <span class="error-text" id="error-cp">⚠️ Error al Guardar: El código postal debe ser de 5 dígitos numéricos.</span>
+          <span class="error-text" id="error-cp">Error al Guardar: El código postal debe ser de 5 dígitos numéricos.</span>
         </div>
 
         <!-- 6. Campo de Fecha con validación al guardar -->
         <div class="form-group" id="group-fecha">
           <label for="input-fecha">6. Fecha de Entrega Deseada</label>
           <input type="date" id="input-fecha" name="fecha_entrega">
-          <span class="error-text" id="error-fecha">⚠️ Error al Guardar: La fecha no puede ser anterior a 2024.</span>
+          <span class="error-text" id="error-fecha">Error al Guardar: La fecha no puede ser anterior a 2024.</span>
         </div>
 
         <!-- 7. Campo de Comentarios Libres (Sin ninguna restricción) -->
@@ -284,7 +284,7 @@
 
         <!-- Botón de Envío Formulario 2 -->
         <button type="submit" id="btn-guardar-envio" class="btn-submit" style="background:#059669;">
-          📦 Guardar Dirección y Envío
+          Guardar Dirección y Envío
         </button>
       </form>
     </div>
@@ -292,11 +292,11 @@
     <!-- Formulario 3: Módulo Desplegable de Clientes (Se cierra al guardar) -->
     <div class="form-module-card" style="margin-top: 30px; padding: 20px; border: 2px dashed #8b5cf6; border-radius: 8px; background: #faf5ff;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <h2 style="font-size: 16px; color: #6b21a8;">👥 Módulo de Clientes (Desplegable / Se cierra al Guardar)</h2>
+        <h2 style="font-size: 16px; color: #6b21a8;">Módulo de Clientes (Desplegable / Se cierra al Guardar)</h2>
         <span style="font-size: 11px; background: #f3e8ff; color: #7e22ce; padding: 3px 8px; border-radius: 999px; font-weight: 700;">Simulación Caso Real</span>
       </div>
       <p class="sub-desc" style="margin-bottom: 14px; color: #7c3aed;">
-        Haz clic en la tarjeta del cliente o en el botón <strong>"✏️ Editar"</strong> para abrir el formulario desplegable. Al presionar <strong>"Guardar"</strong>, el formulario se cierra automáticamente.
+        Haz clic en la tarjeta del cliente o en el botón <strong>"Editar"</strong> para abrir el formulario desplegable. Al presionar <strong>"Guardar"</strong>, el formulario se cierra automáticamente.
       </p>
 
       <!-- Lista de clientes interactiva -->
@@ -307,7 +307,7 @@
             <div style="font-size: 12px; color: #64748b;">ID: CLI-1092 • Tel: 5598765432 • Estado: Activo</div>
           </div>
           <button type="button" id="btn-editar-cliente-carlos" class="btn-editar-cliente" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">
-            ✏️ Editar
+            Editar
           </button>
         </div>
       </div>
@@ -315,8 +315,8 @@
       <!-- Cajón / Formulario Desplegable (Hidden by default or closes on save) -->
       <div id="customer-drawer" style="display: none; background: white; border: 2px solid #8b5cf6; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(139, 92, 246, 0.15); margin-top: 10px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border-bottom: 1px solid #f3e8ff; padding-bottom: 8px;">
-          <h3 style="font-size: 14px; color: #6b21a8; font-weight: 700;">📝 Editar Información de Carlos Mendoza</h3>
-          <button type="button" id="btn-cerrar-drawer" style="background: transparent; border: none; font-size: 16px; cursor: pointer; color: #9333ea;">✕</button>
+          <h3 style="font-size: 14px; color: #6b21a8; font-weight: 700;">Editar Información de Carlos Mendoza</h3>
+          <button type="button" id="btn-cerrar-drawer" style="background: transparent; border: none; font-size: 18px; line-height: 1; cursor: pointer; color: #9333ea;">&times;</button>
         </div>
 
         <div id="global-error-banner-3" class="error-banner" style="display:none; background:#fef2f2; border:1px solid #f87171; color:#b91c1c; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
@@ -326,14 +326,14 @@
           <div class="form-group" id="group-cliente-nombre">
             <label for="input-cliente-nombre">Nombre del Cliente (Obligatorio)</label>
             <input type="text" id="input-cliente-nombre" name="cliente_nombre" value="Carlos Mendoza" required>
-            <span class="error-text" id="error-cliente-nombre">⚠️ Error al Guardar: El nombre es obligatorio.</span>
+            <span class="error-text" id="error-cliente-nombre">Error al Guardar: El nombre es obligatorio.</span>
           </div>
 
           <div class="form-group" id="group-cliente-telefono">
             <label for="input-cliente-telefono">Teléfono de Contacto (Máx. 10 dígitos al guardar)</label>
             <p class="sub-desc">No tiene maxlength en HTML. Falla si tiene más de 10 dígitos al guardar.</p>
             <input type="text" id="input-cliente-telefono" name="cliente_telefono" value="5598765432" placeholder="10 dígitos">
-            <span class="error-text" id="error-cliente-telefono">⚠️ Error al Guardar: El teléfono no puede exceder 10 dígitos.</span>
+            <span class="error-text" id="error-cliente-telefono">Error al Guardar: El teléfono no puede exceder 10 dígitos.</span>
           </div>
 
           <div class="form-group" id="group-cliente-cargo">
@@ -342,7 +342,7 @@
           </div>
 
           <button type="submit" id="btn-guardar-cliente" class="btn-submit" style="background: #7c3aed;">
-            💾 Guardar Cambios de Cliente
+            Guardar Cambios de Cliente
           </button>
         </form>
       </div>
@@ -382,7 +382,7 @@
       // Validación de Nombre obligatorio
       if (!nombreVal) {
         groupNombre.classList.add('has-error');
-        errBanner1.innerText = '❌ Error al Guardar: El Nombre del Cliente es obligatorio.';
+        errBanner1.innerText = 'Error al Guardar: El Nombre del Cliente es obligatorio.';
         errBanner1.style.display = 'block';
         return false;
       }
@@ -390,7 +390,7 @@
       // Validación de Tipo de Cuenta obligatorio
       if (inputTipoCuenta && !tipoCuentaVal) {
         groupTipoCuenta.classList.add('has-error');
-        errBanner1.innerText = '❌ Error al Guardar: Debe seleccionar un Tipo de Cuenta.';
+        errBanner1.innerText = 'Error al Guardar: Debe seleccionar un Tipo de Cuenta.';
         errBanner1.style.display = 'block';
         return false;
       }
@@ -398,7 +398,7 @@
       // Validación de límite de 10 dígitos en identificación
       if (idVal.length > 10) {
         groupIdentificacion.classList.add('has-error');
-        errBanner1.innerText = '❌ Error al Guardar: La identificación tiene ' + idVal.length + ' caracteres y excede el límite máximo de 10 dígitos.';
+        errBanner1.innerText = 'Error al Guardar: La identificación tiene ' + idVal.length + ' caracteres y excede el límite máximo de 10 dígitos.';
         errBanner1.style.display = 'block';
         return false;
       }
@@ -410,12 +410,12 @@
 
       if (checkTerminos && !checkTerminos.checked) {
         if (groupTerminos) groupTerminos.classList.add('has-error');
-        errBanner1.innerText = '❌ Error al Guardar: Debe aceptar los términos y condiciones.';
+        errBanner1.innerText = 'Error al Guardar: Debe aceptar los términos y condiciones.';
         errBanner1.style.display = 'block';
         return false;
       }
 
-      succBanner1.innerText = '✅ ¡Datos Personales guardados con éxito!';
+      succBanner1.innerText = '¡Datos Personales guardados con éxito!';
       succBanner1.style.display = 'block';
       return true;
     });
@@ -447,26 +447,26 @@
 
       if (!dirVal) {
         groupDir.classList.add('has-error');
-        errBanner2.innerText = '❌ Error al Guardar: La dirección es obligatoria.';
+        errBanner2.innerText = 'Error al Guardar: La dirección es obligatoria.';
         errBanner2.style.display = 'block';
         return false;
       }
 
       if (cpVal && (!/^\d{5}$/.test(cpVal))) {
         groupCp.classList.add('has-error');
-        errBanner2.innerText = '❌ Error al Guardar: El código postal debe ser numérico de 5 dígitos.';
+        errBanner2.innerText = 'Error al Guardar: El código postal debe ser numérico de 5 dígitos.';
         errBanner2.style.display = 'block';
         return false;
       }
 
       if (fechaVal && fechaVal < '2024-01-01') {
         groupFecha.classList.add('has-error');
-        errBanner2.innerText = '❌ Error al Guardar: La fecha de entrega no puede ser anterior a 2024.';
+        errBanner2.innerText = 'Error al Guardar: La fecha de entrega no puede ser anterior a 2024.';
         errBanner2.style.display = 'block';
         return false;
       }
 
-      succBanner2.innerText = '✅ ¡Dirección y Envío guardados con éxito!';
+      succBanner2.innerText = '¡Dirección y Envío guardados con éxito!';
       succBanner2.style.display = 'block';
       return true;
     });
@@ -515,19 +515,19 @@
 
       if (!nomVal) {
         groupNombre.classList.add('has-error');
-        errBanner3.innerText = '❌ Error al Guardar: El nombre es obligatorio.';
+        errBanner3.innerText = 'Error al Guardar: El nombre es obligatorio.';
         errBanner3.style.display = 'block';
         return false;
       }
 
       if (telVal.length > 10) {
         groupTel.classList.add('has-error');
-        errBanner3.innerText = '❌ Error al Guardar: El teléfono excede los 10 dígitos permitidos.';
+        errBanner3.innerText = 'Error al Guardar: El teléfono excede los 10 dígitos permitidos.';
         errBanner3.style.display = 'block';
         return false;
       }
 
-      succBanner3.innerText = '✅ ¡Cliente guardado con éxito!';
+      succBanner3.innerText = '¡Cliente guardado con éxito!';
       succBanner3.style.display = 'block';
 
       // CIERRA AUTOMÁTICAMENTE EL CAJÓN TRAS GUARDAR (Comportamiento real)

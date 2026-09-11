@@ -28,15 +28,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   const TIER_DESCRIPTIONS = {
-    simple: '🟢 Simple (~10 pruebas rápidas)',
-    normal: '🔵 Normal (~23 pruebas estándar)',
-    advanced: '🟣 Avanzado (~34 pruebas de calidad)',
-    total: '⚡ Total (~41 pruebas exhaustivas)'
+    simple: 'Simple (~10 pruebas rápidas)',
+    normal: 'Normal (~23 pruebas estándar)',
+    advanced: 'Avanzado (~34 pruebas de calidad)',
+    total: 'Total (~41 pruebas exhaustivas)'
   };
 
   // Default Test Suites with Depth Tiers (simple, normal, advanced, total)
   const defaultSuites = [
-    // 📝 TEXTO Y LONGITUD
+    // TEXTO Y LONGITUD
     {
       id: 'txt_normal',
       category: 'text',
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       isInvalidCase: false
     },
 
-    // 😀 EMOJIS & UNICODE
+    // UNICODE & SÍMBOLOS
     {
       id: 'emo_standard',
       category: 'emoji',
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       isInvalidCase: false
     },
 
-    // 🔢 NÚMEROS
+    // NÚMEROS
     {
       id: 'num_positive',
       category: 'number',
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       isInvalidCase: false
     },
 
-    // 📅 FECHAS
+    // FECHAS
     {
       id: 'date_valid',
       category: 'date',
@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       isInvalidCase: true
     },
 
-    // 🛡️ SEGURIDAD E INYECCIÓN
+    // SEGURIDAD E INYECCIÓN
     {
       id: 'sec_script',
       category: 'security',
@@ -602,7 +602,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div style="display: flex; align-items: center; gap: 4px;">
           ${!p.isCustom ? `<span class="tier-pill tier-${p.tier || 'normal'}">${p.tier === 'simple' ? 'Simple' : (p.tier === 'normal' ? 'Normal' : (p.tier === 'advanced' ? 'Avanzado' : 'Total'))}</span>` : ''}
           <span class="payload-tag">${p.category}</span>
-          ${p.isCustom ? `<button class="btn-subtle btn-delete-custom" data-id="${p.id}" title="Eliminar input">✕</button>` : ''}
+          ${p.isCustom ? `<button class="btn-subtle btn-delete-custom" data-id="${p.id}" title="Eliminar input">&times;</button>` : ''}
         </div>
       `;
 
@@ -739,8 +739,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span class="field-chip-name" title="${escapeHtml(field.label)}">${escapeHtml(field.label)}</span>
         </div>
         <div class="field-chip-actions">
-          <button class="btn-subtle btn-inspect-field" data-index="${index}" title="Resaltar en página">📍</button>
-          <button class="field-chip-remove" data-index="${index}" title="Quitar campo">✕</button>
+          <button class="btn-subtle btn-inspect-field" data-index="${index}" title="Resaltar en página"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg></button>
+          <button class="field-chip-remove" data-index="${index}" title="Quitar campo">&times;</button>
         </div>
       `;
       selectedFieldsList.appendChild(chip);
@@ -797,7 +797,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         </label>
         <span class="sibling-filler-name" title="${escapeHtml(field.label)}">${escapeHtml(field.label)}</span>
         <input type="text" class="sibling-filler-input" data-index="${index}" value="${escapeHtml(currentVal)}" title="Valor válido asignado para cuando se prueben otros campos">
-        <button class="btn-subtle btn-random-filler" data-index="${index}" title="Generar nuevo valor aleatorio acorde a las reglas">🎲</button>
+        <button class="btn-subtle btn-random-filler" data-index="${index}" title="Generar nuevo valor aleatorio acorde a las reglas"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg></button>
       `;
       siblingFillersList.appendChild(item);
     });
@@ -846,7 +846,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderReopenSteps() {
     if (!reopenStepsList) return;
     if (reopenSteps.length === 0) {
-      reopenStepsList.innerHTML = '<div class="sub-desc" style="font-style: italic; font-size: 10px; padding: 4px 0;">Aún no has añadido pasos. Haz clic en "➕ Apuntar paso de clic" para seleccionar la tarjeta del cliente o el botón editar.</div>';
+      reopenStepsList.innerHTML = '<div class="sub-desc" style="font-style: italic; font-size: 10px; padding: 4px 0;">Aún no has añadido pasos. Haz clic en "Apuntar paso de clic" para seleccionar la tarjeta del cliente o el botón editar.</div>';
       return;
     }
 
@@ -860,8 +860,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span class="reopen-step-name" title="${escapeHtml(step.text || step.selector)}">${escapeHtml(step.text || step.selector)}</span>
         </div>
         <div style="display: flex; align-items: center; gap: 4px;">
-          <button class="btn-subtle btn-inspect-step" data-index="${idx}" title="Resaltar elemento en página">📍</button>
-          <button class="btn-subtle btn-remove-step" data-index="${idx}" title="Eliminar paso" style="color: #f87171;">✕</button>
+          <button class="btn-subtle btn-inspect-step" data-index="${idx}" title="Resaltar elemento en página"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg></button>
+          <button class="btn-subtle btn-remove-step" data-index="${idx}" title="Eliminar paso" style="color: #f87171;">&times;</button>
         </div>
       `;
       reopenStepsList.appendChild(chip);
@@ -922,7 +922,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       btnAddReopenStep.innerText = 'Cancelar (ESC)';
       btnAddReopenStep.classList.add('btn-outline');
     } else {
-      btnAddReopenStep.innerText = '➕ Apuntar paso de clic';
+      btnAddReopenStep.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Apuntar paso de clic';
       btnAddReopenStep.classList.remove('btn-outline');
     }
   }
@@ -930,7 +930,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (btnTestReopen) {
     btnTestReopen.addEventListener('click', async () => {
       if (reopenSteps.length === 0) {
-        alert('Por favor añade al menos un paso de clic con "➕ Apuntar paso de clic" antes de probar.');
+        alert('Por favor añade al menos un paso de clic con "Apuntar paso de clic" antes de probar.');
         return;
       }
       const tab = await getActiveTab();
@@ -946,14 +946,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           steps: reopenSteps,
           waitMs: 450
         });
-        btnTestReopen.innerText = '✅ ¡Abierto!';
+        btnTestReopen.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> ¡Abierto!';
         setTimeout(() => {
-          btnTestReopen.innerText = '🧪 Probar apertura';
+          btnTestReopen.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Probar apertura';
           btnTestReopen.disabled = false;
         }, 1500);
       } catch (err) {
         console.warn('Error testing reopen:', err);
-        btnTestReopen.innerText = '❌ Error';
+        btnTestReopen.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg> Error';
         btnTestReopen.disabled = false;
       }
     });
@@ -1076,12 +1076,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (formItem.formIndex === 'all') {
       currentSaveButton = null;
       if (saveBtnStatusPill) {
-        saveBtnStatusPill.innerText = '⚡ Auto (por cada formulario)';
+        saveBtnStatusPill.innerText = 'Auto (por cada formulario)';
         saveBtnStatusPill.className = 'pill pill-save';
       }
       if (saveBtnPickedDetail) {
         saveBtnPickedDetail.style.display = 'block';
-        saveBtnPickedDetail.innerHTML = `<span>⚡ <strong>Multi-formulario:</strong> El botón de guardar se detecta y presiona acorde al formulario de cada campo.</span>`;
+        saveBtnPickedDetail.innerHTML = `<span><strong>Multi-formulario:</strong> El botón de guardar se detecta y presiona acorde al formulario de cada campo.</span>`;
       }
     } else if (formItem.saveButton) {
       handleSaveButtonSelected(formItem.saveButton, true);
@@ -1127,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       btnPickFormClick.innerText = 'Cancelar (ESC)';
       btnPickFormClick.classList.add('btn-outline');
     } else {
-      btnPickFormClick.innerText = '🎯 Apuntar sector';
+      btnPickFormClick.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg> Apuntar sector';
       btnPickFormClick.classList.remove('btn-outline');
     }
   }
@@ -1169,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } catch (e) {
       console.warn('Error auto-detecting forms:', e);
-      btnAutoDetectForm.innerHTML = '<span class="btn-icon-symbol">⚡</span> Detectar formularios';
+      btnAutoDetectForm.innerHTML = '<svg class="ui-icon ui-icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="11" y2="17"></line></svg> Detectar formularios';
       alert('Asegúrate de que la página tenga formularios con campos de entrada.');
     }
   });
@@ -1184,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isPickingButtonActive) {
       chrome.tabs.sendMessage(tab.id, { action: 'CANCEL_PICKING' });
       isPickingButtonActive = false;
-      btnPickSaveBtn.innerText = '🔘 Cambiar botón en página';
+      btnPickSaveBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg> Cambiar botón';
     } else {
       chrome.tabs.sendMessage(tab.id, { action: 'START_PICKING_BUTTON' });
       isPickingButtonActive = true;
@@ -1239,7 +1239,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } else if (message.action === 'SAVE_BUTTON_SELECTED') {
       isPickingButtonActive = false;
-      btnPickSaveBtn.innerText = '🔘 Cambiar botón';
+      btnPickSaveBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg> Cambiar botón';
       handleSaveButtonSelected(message.data);
     } else if (message.action === 'REOPEN_STEP_PICKED') {
       setReopenStepPickingState(false);
@@ -1252,7 +1252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       setFormPickingState(false);
       setReopenStepPickingState(false);
       isPickingButtonActive = false;
-      btnPickSaveBtn.innerText = '🔘 Cambiar botón en página';
+      btnPickSaveBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg> Cambiar botón';
     }
   });
 
@@ -1403,7 +1403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           testItem: task.testItem,
           input: task.testItem.payload,
           status: 'error',
-          badgeText: '⚠️ Error de Ejecución',
+          badgeText: 'Error de Ejecución',
           badgeClass: 'res-error',
           detail: `Fallo de comunicación: ${errMsg || 'Pestaña inaccesible'}`,
           recommendation: 'Verificar que la pestaña esté activa y no haya navegado a otra URL.'
@@ -1413,7 +1413,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateKPICounters();
 
         if (isTabFatal) {
-          progressLabel.innerText = '❌ Pestaña cerrada o desconectada. Pruebas detenidas.';
+          progressLabel.innerText = 'Pestaña cerrada o desconectada. Pruebas detenidas.';
           selectedFieldsList.querySelectorAll('.field-chip-item').forEach(c => c.classList.remove('field-chip-active'));
           btnRunTests.disabled = false;
           btnPickField.disabled = false;
@@ -1469,10 +1469,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         testItem: testItem,
         input: payload,
         status: 'error',
-        badgeText: '⚠️ Formulario Cerrado',
+        badgeText: 'Formulario Cerrado',
         badgeClass: 'res-error',
         detail: 'El formulario o modal se cerró tras la acción de guardar anterior y el campo ya no estuvo accesible en pantalla.',
-        recommendation: 'Activa la opción "🚪 Auto re-abrir formulario antes de cada prueba" en el paso 1 y graba los clics (ej. Clic en Cliente -> Clic en Editar) para que la herramienta reabra el formulario automáticamente.'
+        recommendation: 'Activa la opción "Auto re-abrir formulario antes de cada prueba" en el paso 1 y graba los clics (ej. Clic en Cliente -> Clic en Editar) para que la herramienta reabra el formulario automáticamente.'
       };
     }
 
@@ -1484,7 +1484,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         testItem: testItem,
         input: payload,
         status: 'error',
-        badgeText: '⚠️ Error de Ejecución',
+        badgeText: 'Error de Ejecución',
         badgeClass: 'res-error',
         detail: `Fallo durante la prueba: ${res?.message || res?.error || 'Sin respuesta de la pestaña'}.`,
         recommendation: 'Verifica que el campo permanezca visible y la página no se haya recargado.'
@@ -1496,7 +1496,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const payLen = payload.length;
 
     let status = 'conforme'; // 'restricted_save' | 'restricted_field' | 'truncated' | 'conforme' | 'risk' | 'error'
-    let badgeText = '🔵 Conforme (Guardado)';
+    let badgeText = 'Conforme (Guardado)';
     let badgeClass = 'res-conforme';
     let detail = '';
     let recommendation = '';
@@ -1509,7 +1509,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. TRUNCATED IN FIELD (maxlength)
     if (resLen < payLen && payLen > 1) {
       status = 'truncated';
-      badgeText = '🟡 Truncado en Campo';
+      badgeText = 'Truncado en Campo';
       badgeClass = 'res-truncated';
       detail = `El input de ${payLen} caracteres se recortó automáticamente a ${resLen} caracteres antes de guardar.`;
       if (field.maxLength && field.maxLength === resLen) {
@@ -1522,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. REJECTED DIRECTLY BY FIELD (cleared input, e.g. non-digits in number)
     else if (resVal === '' && payload !== '' && payload.trim() !== '') {
       status = 'restricted_field';
-      badgeText = '🟢 Restringido en Campo';
+      badgeText = 'Restringido en Campo';
       badgeClass = 'res-restricted-field';
       detail = 'El campo rechazó por completo el valor, impidiendo la escritura o limpiándolo inmediatamente.';
       if (testItem.category === 'number') {
@@ -1534,7 +1534,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. EMOJIS STRIPPED IN FIELD
     else if (testItem.category === 'emoji' && resVal !== payload && resLen < payLen) {
       status = 'restricted_field';
-      badgeText = '🟢 Restringido en Campo';
+      badgeText = 'Restringido en Campo';
       badgeClass = 'res-restricted-field';
       detail = `Los emojis o símbolos fueron filtrados o eliminados del campo automáticamente. (Recibido: "${resVal.slice(0, 15)}...").`;
       recommendation = 'Comportamiento esperado si el campo prohíbe caracteres especiales. Si se esperan nombres internacionales, verificar soporte UTF-8.';
@@ -1542,7 +1542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 4. BLOCKED UPON SAVE / SUBMIT
     else if (triggerSave && saveBlocked) {
       status = 'restricted_save';
-      badgeText = '🟢 Restringido al Guardar';
+      badgeText = 'Restringido al Guardar';
       badgeClass = 'res-restricted-save';
       detail = `El campo aceptó ${resLen} caracteres inicialmente, pero al presionar Guardar el sitio bloqueó la acción y mostró: "${saveErrorMessage}".`;
       
@@ -1559,7 +1559,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 5. CLIENT-SIDE HTML5 ERROR OR VISIBLE DOM ERROR (WITHOUT SAVE)
     else if (hasHTML5Error || (res.postInputErrors && res.postInputErrors.length > 0)) {
       status = 'restricted_field';
-      badgeText = '🟢 Restringido en Campo';
+      badgeText = 'Restringido en Campo';
       badgeClass = 'res-restricted-field';
       const msgList = [];
       if (res.validationMessage) msgList.push(`HTML5: "${res.validationMessage}"`);
@@ -1572,7 +1572,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Distinguish between genuine risk vs normal expected test
       if (testItem.isInvalidCase) {
         status = 'risk';
-        badgeText = '🔴 Riesgo: Sin Restricción';
+        badgeText = 'Riesgo: Sin Restricción';
         badgeClass = 'res-risk';
         detail = triggerSave 
           ? `¡Atención! El sitio no solo aceptó ${resLen} caracteres en el campo, sino que además permitió pulsar Guardar sin disparar ningún error ni advertencia.`
@@ -1581,7 +1581,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         // Normal, benign, valid test input
         status = 'conforme';
-        badgeText = triggerSave ? '🔵 Conforme (Guardado)' : '🔵 Conforme (Aceptado)';
+        badgeText = triggerSave ? 'Conforme (Guardado)' : 'Conforme (Aceptado)';
         badgeClass = 'res-conforme';
         detail = `Valor válido aceptado y guardado correctamente por el formulario (${resLen} caracteres).`;
         recommendation = 'Comportamiento estándar y conforme según las reglas de negocio del formulario.';
@@ -1774,7 +1774,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    let md = `## 📋 Reporte de Validación Multi-Campo Web\n\n`;
+    let md = `## Reporte de Validación Multi-Campo Web\n\n`;
     md += `**Campos auditados:** ${selectedFields.map(f => f.label).join(', ')}\n`;
     md += `**Botón Guardar:** ${currentSaveButton ? currentSaveButton.text : 'Envío nativo'}\n`;
     md += `**Fecha:** ${new Date().toLocaleString()}\n\n`;
@@ -1891,7 +1891,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <strong>Fecha:</strong> ${new Date().toLocaleString()}
             </div>
           </div>
-          <button onclick="window.print()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">🖨️ Imprimir / Guardar PDF</button>
+          <button onclick="window.print()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 13px;">Imprimir / Guardar PDF</button>
         </div>
 
         <div class="kpis">

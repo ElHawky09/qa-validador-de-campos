@@ -520,7 +520,7 @@
       detected.unshift({
         formIndex: 'all',
         id: 'all_forms_combined',
-        title: `🌐 Todos los formularios combinados (${allUniqueFields.length} campos)`,
+        title: `Todos los formularios combinados (${allUniqueFields.length} campos)`,
         fields: allUniqueFields,
         fieldsCount: allUniqueFields.length,
         saveButton: detected[0]?.saveButton || null
@@ -557,24 +557,31 @@
       document.body.appendChild(bannerEl);
     }
 
+    const icons = {
+      button: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>',
+      form: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="11" y2="17"></line></svg>',
+      reopen_step: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>',
+      field: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 6px;"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>'
+    };
+
     if (type === 'button') {
       bannerEl.innerHTML = `
-        <span>🔘 <strong>QA Validator:</strong> Haz clic en el botón de <strong>Guardar / Enviar</strong></span>
+        <span>${icons.button}<strong>QA Validator:</strong> Haz clic en el botón de <strong>Guardar / Enviar</strong></span>
         <kbd>ESC para cancelar</kbd>
       `;
     } else if (type === 'form') {
       bannerEl.innerHTML = `
-        <span>📋 <strong>QA Validator:</strong> Haz clic en el <strong>formulario o sector</strong> que deseas auditar</span>
+        <span>${icons.form}<strong>QA Validator:</strong> Haz clic en el <strong>formulario o sector</strong> que deseas auditar</span>
         <kbd>ESC para cancelar</kbd>
       `;
     } else if (type === 'reopen_step') {
       bannerEl.innerHTML = `
-        <span>🚪 <strong>QA Validator:</strong> Haz clic en el elemento que abre el formulario (ej. <strong>Cliente</strong> o <strong>Editar</strong>)</span>
+        <span>${icons.reopen_step}<strong>QA Validator:</strong> Haz clic en el elemento que abre el formulario (ej. <strong>Cliente</strong> o <strong>Editar</strong>)</span>
         <kbd>ESC para cancelar</kbd>
       `;
     } else {
       bannerEl.innerHTML = `
-        <span>🎯 <strong>QA Validator:</strong> Haz clic en un <strong>campo</strong> (o presiona ESC para salir)</span>
+        <span>${icons.field}<strong>QA Validator:</strong> Haz clic en un <strong>campo</strong> (o presiona ESC para salir)</span>
         <kbd>ESC para cancelar</kbd>
       `;
     }

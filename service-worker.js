@@ -12,7 +12,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // Create context menu for right-clicking directly on editable fields
   chrome.contextMenus.create({
     id: 'qa_inspect_element',
-    title: '🎯 Probar este campo con QA Validator',
+    title: 'Probar este campo con QA Validator',
     contexts: ['editable']
   });
 });

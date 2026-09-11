@@ -1,81 +1,84 @@
-# 🎯 QA Form Field Validator
+# QA Form Field Validator
 
-Extensión para **Microsoft Edge**, **Brave** y **Google Chrome** diseñada para automatizar las pruebas de validación de campos web (texto, números, fechas, emojis, longitud excesiva e inyecciones), detectar restricciones del sitio y generar reportes con recomendaciones de calidad.
+Extensión para **Microsoft Edge**, **Brave** y **Google Chrome** diseñada para automatizar pruebas de validación de campos web, detección de formularios múltiples, auditoría en doble fase (campo y acción de guardado) y exportación de reportes técnicos de calidad.
 
 ---
 
-## 🚀 Cómo instalar la extensión
+## Módulos y Capacidades
 
-### En Microsoft Edge:
-1. Abre Microsoft Edge y ve a la barra de direcciones: `edge://extensions`
-2. En la barra lateral izquierda, activa el interruptor **"Modo de desarrollador"** (Developer mode).
-3. Haz clic en el botón **"Cargar extensión sin empaquetar"** (Load unpacked).
-4. Selecciona la carpeta donde se encuentra este proyecto:
+- **Multi-campo y detección automática:** Detección automática de formularios y sectores interactivos o selección asistida mediante puntero.
+- **Niveles de profundidad configurables:** 
+  - **Simple:** Verificación ágil de casos críticos (~10 pruebas).
+  - **Normal:** Cobertura estándar equilibrada (~23 pruebas).
+  - **Avanzado:** Auditoría rigurosa de calidad y seguridad (~34 pruebas).
+  - **Total:** Batería exhaustiva de validación (~41 pruebas).
+- **Auditoría de guardado en doble fase:** Prueba el comportamiento tanto a nivel de captura del campo como al activar el botón de guardado/envío, reconociendo errores de servidor, banners flotantes y mensajes nativos HTML5.
+- **Auto-recuperación para formularios desplegables:** Grabación y ejecución automática de pasos de apertura (drawers, modales y acordeones) antes de cada prueba.
+- **Valores válidos aleatorios para campos obligatorios:** Relleno inteligente de campos hermanos para evitar falsos rechazos por campos requeridos adyacentes.
+- **Suites de prueba integradas:**
+  - Texto y Longitud (límites de caracteres, cadenas extensas, recortes y espacios)
+  - Unicode y Símbolos (caracteres multi-byte, alfabetos internacionales, acentos y signos)
+  - Números (enteros, negativos, flotantes, notación científica y validación estricta)
+  - Fechas (formatos ISO, fechas no bisiestas, meses fuera de rango y fechas límite)
+  - Seguridad e Inyección (vectores XSS, etiquetas script, etiquetas de imagen y payloads SQL básicos)
+  - Personalizados (grabador local persistente de casos propios)
+- **Exportación y reportes:**
+  - Exportación a Notion (integración directa vía API)
+  - Descarga CSV para hojas de cálculo
+  - Copia de tabla formateada en Markdown
+  - Generador de informe formal imprimible en PDF
+
+---
+
+## Instalación
+
+### Microsoft Edge
+1. Navega a `edge://extensions` en la barra de direcciones.
+2. Activa el interruptor **Modo de desarrollador** en la barra lateral.
+3. Haz clic en **Cargar extensión sin empaquetar**.
+4. Selecciona el directorio raíz del repositorio:
    ```
    C:\Users\tela2\.gemini\antigravity\scratch\qa-form-validator
    ```
-5. *(Opcional)* Haz clic en el icono de extensiones (el rompecabezas) en la barra de herramientas y fija (pin) **QA Form Field Validator** para tenerlo siempre a la mano.
+5. *(Recomendado)* Fija el icono en la barra de herramientas para acceso rápido.
 
-### En Brave:
-1. Abre Brave y escribe en la barra de direcciones: `brave://extensions`
-2. En la esquina superior derecha, activa el interruptor **"Modo de desarrollador"**.
-3. Haz clic en el botón **"Cargar descomprimida"**.
-4. Selecciona la misma carpeta:
+### Brave / Google Chrome
+1. Navega a `brave://extensions` o `chrome://extensions`.
+2. Activa la casilla **Modo de desarrollador** en la esquina superior derecha.
+3. Haz clic en **Cargar descomprimida**.
+4. Selecciona el directorio raíz del repositorio:
    ```
    C:\Users\tela2\.gemini\antigravity\scratch\qa-form-validator
    ```
-5. *(Opcional)* Fija el icono en la barra de herramientas de Brave.
+5. *(Recomendado)* Fija el icono en la barra de herramientas.
 
 ---
 
-## 📋 Guía de Uso Paso a Paso
+## Flujo de Trabajo
 
-### 1. Abrir la herramienta
-- Navega a cualquier sitio web que desees probar (o abre el archivo [`test-sample.html`](test-sample.html) incluido en la carpeta para realizar una prueba inmediata).
-- Haz clic en el icono de la extensión en la barra superior. Se abrirá automáticamente el **Panel Lateral (Side Panel)** en el navegador.
-
-### 2. Seleccionar el campo web
-- En el panel, haz clic en **"🎯 Seleccionar campo en la página"**.
-- Pasa el ratón sobre la página web: verás un recuadro interactivo resaltando los campos con su etiqueta y tipo.
-- Haz clic sobre el input o textarea que desees verificar.
-- *Atajo rápido:* También puedes hacer clic derecho directamente sobre cualquier campo en la página y seleccionar **"🎯 Probar este campo con QA Validator"**.
-
-### 3. Elegir o Personalizar las Pruebas
-La herramienta detecta el tipo de campo y precarga la suite recomendada:
-- **📝 Texto & Longitud:** Cadenas de 50, 255, 1,000 y 5,000 caracteres, espacios en blanco, caracteres invisibles Zero-width.
-- **😀 Emojis & Unicode:** Emojis estándar y compuestos (ZWJ), banderas, caracteres especiales, acentos y alfabetos internacionales.
-- **🔢 Números:** Enteros, negativos, decimales, notación científica, desbordamiento de bits y texto no numérico.
-- **📅 Fechas:** 29 de febrero en años no bisiestos (2023-02-29), meses superiores a 12, días inexistentes (día 32) y fechas límite.
-- **🛡️ Inyección / Seguridad:** Inyección de `<script>`, vectores `<img>` onerror, marcado HTML y SQL básico.
-- **⚙️ Propios (Grabador de casos):** Haz clic en **"➕ Añadir Input"** para grabar y guardar tus propios valores específicos de tu negocio. Se guardan automáticamente en tu navegador.
-
-### 4. Ejecutar la Verificación Automática
-- Ajusta la velocidad si lo deseas (Normal a 150ms es ideal para ver la interacción en pantalla).
-- Pulsa **"▶️ Iniciar Verificación Automática"**.
-- La aplicación inyectará secuencialmente cada prueba, evaluará si el sitio aplicó restricciones (`maxlength`, recorte, filtrado, mensajes nativos HTML5 o alertas visuales) y restaurará el valor original del campo al terminar.
-
-### 5. Analizar el Reporte y Exportar
-La tabla de resultados te presenta:
-- **Nombre del Campo**: Etiqueta, identificador o selector del elemento.
-- **Input Probado**: Payload exacto enviado.
-- **¿Restricción?**:
-  - 🟢 **Restringido**: El sitio bloqueó, filtró o rechazó el valor inválido.
-  - 🟡 **Truncado**: El sitio cortó la longitud al límite configurado (ej. `maxlength`).
-  - 🔴 **Sin Restricción**: El sitio aceptó texto excesivo o datos anómalos sin advertencia ni filtro.
-- **Detalle del Sitio**: Qué ocurrió técnicamente en el DOM.
-- **Recomendación**: Sugerencia puntual de QA y desarrollo (por ejemplo, añadir `maxlength`, escapar caracteres HTML para evitar XSS o implementar validación estricta de fechas).
-
-**Opciones de Exportación:**
-- 📥 **Descargar CSV**: Para abrir en Microsoft Excel o Google Sheets.
-- 📋 **Copiar Markdown**: Para pegar en Jira, Azure DevOps, GitHub Issues, Trello o Slack.
-- 🖨️ **Informe Imprimible / PDF**: Genera una vista formal lista para imprimir o guardar como PDF.
+1. **Apertura:** Abre cualquier sitio web y haz clic en el icono de la barra de herramientas para desplegar el Panel Lateral (*Side Panel*).
+2. **Definición del formulario:** 
+   - Haz clic en **Detectar formularios** para mapear los inputs de la página de forma automática, o bien usa **Apuntar sector** o **Añadir campo** para selección puntual.
+   - Si el formulario se encuentra dentro de un modal o panel desplegable que se cierra tras guardar, activa la opción de apertura automática y agrega los pasos de clic correspondientes.
+3. **Configuración de campos obligatorios:**
+   - Si el formulario requiere datos específicos en campos secundarios (por ejemplo, teléfonos de 10 dígitos o campos marcados como obligatorios), define o genera valores aleatorios válidos para asegurar que la validación del campo auditado no sufra bloqueos colaterales.
+4. **Selección de pruebas:**
+   - Selecciona el nivel de profundidad deseado (*Simple*, *Normal*, *Avanzado*, *Total*) o filtra por categoría (*Texto*, *Unicode*, *Números*, *Fechas*, *Seguridad*, *Propios*).
+5. **Ejecución:**
+   - Haz clic en **Iniciar Verificación**. La extensión aplicará los casos secuencialmente registrando el estado del DOM y la respuesta de guardado.
+6. **Revisión de Resultados:**
+   - **Restringido:** El formulario bloqueó el valor inválido correctamente.
+   - **Truncado:** El valor fue recortado según el atributo o máscara configurada.
+   - **Conforme:** Entrada válida admitida y procesada correctamente.
+   - **Riesgo:** Valor anómalo o inválido admitido sin restricción ni advertencia.
+7. **Exportación:**
+   - Genera informes en Notion, Markdown, CSV o vista de impresión formal PDF.
 
 ---
 
-## 🧪 Archivo de Prueba Incluido
+## Entorno de Pruebas Incluido
 
-Para verificar el funcionamiento de inmediato, abre el archivo:
-```
-test-sample.html
-```
-Contiene 6 campos con diferentes comportamientos: límites de caracteres, campos numéricos con rangos, selectores de fecha y campos con filtrado en tiempo real mediante JavaScript.
+El repositorio incluye el archivo `test-sample.html` diseñado para comprobar de manera inmediata:
+- Validación estricta de teléfonos de 10 dígitos y campos obligatorios secundarios.
+- Formularios múltiples en la misma página.
+- Formularios en paneles desplegables (*drawers*) que se cierran al guardar.
