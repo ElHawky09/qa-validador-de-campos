@@ -549,8 +549,12 @@
     };
   }
 
+  function escapeHtml(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   // UI overlay elements for the picker
-  function createPickerUI(type) {
+  function createPickerUI(type, extraLabel = '') {
     if (!bannerEl) {
       bannerEl = document.createElement('div');
       bannerEl.id = 'qa-picker-banner';
@@ -565,8 +569,9 @@
     };
 
     if (type === 'button') {
+      const targetTxt = extraLabel ? ` para <strong>${escapeHtml(extraLabel)}</strong>` : '';
       bannerEl.innerHTML = `
-        <span>${icons.button}<strong>QA Validator:</strong> Haz clic en el botón de <strong>Guardar / Enviar</strong></span>
+        <span>${icons.button}<strong>QA Validator:</strong> Haz clic en el botón de <strong>Guardar / Enviar</strong>${targetTxt}</span>
         <kbd>ESC para cancelar</kbd>
       `;
     } else if (type === 'form') {
@@ -609,7 +614,7 @@
     }
   }
 
-  function startPicking(type = 'field') {
+  function startPicking(type = 'field', extraLabel = '') {
     stopPicking();
     if (type === 'button') {
       isPickingSaveButton = true;
@@ -620,7 +625,7 @@
     } else {
       isPickingField = true;
     }
-    createPickerUI(type);
+    createPickerUI(type, extraLabel);
 
     document.addEventListener('mouseover', onMouseOver, true);
     document.addEventListener('mouseout', onMouseOut, true);
@@ -1135,20 +1140,25 @@
 
         // Dynamically resolve the save button for THIS field's form/container
         let btnToClick = null;
-        const localBtn = autoDetectSaveButton(el);
-        if (localBtn && isElementVisible(localBtn)) {
-          btnToClick = localBtn;
+
+        // 1. Explicit save button assigned from sidepanel (per-form or field)
+        const targetBtnMeta = options.saveButton || options.fieldInfo?.saveButton;
+        if (targetBtnMeta) {
+          const resolvedBtn = resolveFieldElement(targetBtnMeta) || resolveElementByStep(targetBtnMeta);
+          if (resolvedBtn && isElementVisible(resolvedBtn)) {
+            btnToClick = resolvedBtn;
+          }
         }
 
-        if (!btnToClick && options.fieldInfo?.saveButton?.selector) {
-          try {
-            const btnCandidate = document.querySelector(options.fieldInfo.saveButton.selector);
-            if (btnCandidate && isElementVisible(btnCandidate)) {
-              btnToClick = btnCandidate;
-            }
-          } catch (e) {}
+        // 2. Local button auto-detected inside the field's container
+        if (!btnToClick) {
+          const localBtn = autoDetectSaveButton(el);
+          if (localBtn && isElementVisible(localBtn)) {
+            btnToClick = localBtn;
+          }
         }
 
+        // 3. Fallback to globally selected button
         if (!btnToClick && saveButtonElement && isElementVisible(saveButtonElement)) {
           btnToClick = saveButtonElement;
         }
@@ -1258,7 +1268,7 @@
     }
 
     if (message.action === 'START_PICKING_BUTTON') {
-      startPicking('button');
+      startPicking('button', message.formTitle || '');
       sendResponse({ status: 'BUTTON_PICKING_STARTED' });
       return false;
     }
@@ -1418,9 +1428,19 @@
     }
 
     if (message.action === 'HIGHLIGHT_SAVE_BUTTON') {
-      if (saveButtonElement) {
-        saveButtonElement.classList.add('qa-picker-selected-highlight');
-        setTimeout(() => saveButtonElement?.classList.remove('qa-picker-selected-highlight'), 1200);
+      let btn = null;
+      if (message.saveButtonInfo) {
+        btn = resolveFieldElement(message.saveButtonInfo) || resolveElementByStep(message.saveButtonInfo);
+      }
+      if (!btn && saveButtonElement) {
+        btn = saveButtonElement;
+      }
+      if (btn) {
+        try {
+          btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch {}
+        btn.classList.add('qa-picker-selected-highlight');
+        setTimeout(() => btn?.classList.remove('qa-picker-selected-highlight'), 1400);
       }
       sendResponse({ status: 'HIGHLIGHTED' });
       return false;

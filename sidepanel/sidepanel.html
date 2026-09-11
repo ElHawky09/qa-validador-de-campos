@@ -69,21 +69,18 @@
         <!-- Injected via JavaScript -->
       </div>
 
-      <!-- Linked Save Button Subsection -->
+      <!-- Linked Save Button Subsection (Supports Multi-Form Buttons) -->
       <div id="save-button-box" class="save-button-box" style="display: none;">
         <div class="save-button-header">
           <span class="save-button-title">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Botón Guardar / Enviar:
+            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>Botones de Guardar / Enviar:
           </span>
-          <span id="save-btn-status" class="pill pill-save">Auto-detectando...</span>
         </div>
-        <div class="save-button-actions">
-          <button id="btn-pick-save-btn" class="btn-sm btn-outline">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 3px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>Cambiar botón en página
-          </button>
-          <button id="btn-highlight-save-btn" class="btn-sm btn-subtle" style="display: none;">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 3px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>Ver botón
-          </button>
+        <p id="save-buttons-desc" class="sub-desc" style="font-size: 10px; margin-bottom: 6px;">
+          Cada formulario utiliza su respectivo botón al auditar. Puedes inspeccionar o modificar el botón de cada uno:
+        </p>
+        <div id="save-forms-list" class="save-forms-list">
+          <!-- Dynamically populated by renderSaveButtonsList() -->
         </div>
       </div>
 

@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let customPayloads = [];
   let testResults = [];
   let currentDepthTier = 'normal';
+  let activePickingFormId = null;
 
   const TIER_HIERARCHY = {
     simple: 1,
@@ -430,9 +431,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Save Button Section DOM
   const saveButtonBox = document.getElementById('save-button-box');
-  const saveBtnStatus = document.getElementById('save-btn-status');
-  const btnPickSaveBtn = document.getElementById('btn-pick-save-btn');
-  const btnHighlightSaveBtn = document.getElementById('btn-highlight-save-btn');
+  const saveFormsList = document.getElementById('save-forms-list');
 
   // Sibling Fillers DOM
   const siblingFillersBox = document.getElementById('sibling-fillers-box');
@@ -767,6 +766,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateSelectedCount();
     updateFilterFieldSelect();
     renderSiblingFillers();
+    renderSaveButtonsList();
   }
 
   // Render Sibling Fillers for Required/Auxiliary Fields
@@ -1075,21 +1075,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     selectedFields = [...formItem.fields];
     if (formItem.formIndex === 'all') {
       currentSaveButton = null;
-      if (saveBtnStatusPill) {
-        saveBtnStatusPill.innerText = 'Auto (por cada formulario)';
-        saveBtnStatusPill.className = 'pill pill-save';
-      }
-      if (saveBtnPickedDetail) {
-        saveBtnPickedDetail.style.display = 'block';
-        saveBtnPickedDetail.innerHTML = `<span><strong>Multi-formulario:</strong> El botón de guardar se detecta y presiona acorde al formulario de cada campo.</span>`;
-      }
-    } else if (formItem.saveButton) {
-      handleSaveButtonSelected(formItem.saveButton, true);
     } else {
-      currentSaveButton = null;
-      updateSaveButtonStatusUI(null);
+      currentSaveButton = formItem.saveButton || null;
     }
+
     renderSelectedFields();
+    renderSaveButtonsList();
     if (pageFormsSelect) {
       pageFormsSelect.value = String(index);
     }
@@ -1174,34 +1165,199 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Pick Save Button
-  btnPickSaveBtn.addEventListener('click', async () => {
-    const tab = await getActiveTab();
-    if (!tab?.id) return;
-    activeTabId = tab.id;
-    await ensureContentScriptInjected(tab.id);
-
-    if (isPickingButtonActive) {
-      chrome.tabs.sendMessage(tab.id, { action: 'CANCEL_PICKING' });
-      isPickingButtonActive = false;
-      btnPickSaveBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg> Cambiar botón';
-    } else {
-      chrome.tabs.sendMessage(tab.id, { action: 'START_PICKING_BUTTON' });
-      isPickingButtonActive = true;
-      btnPickSaveBtn.innerText = 'Cancelar (ESC)';
+  // Multi-Form and Single-Form Save Buttons Logic
+  function setButtonPickingState(active) {
+    isPickingButtonActive = active;
+    if (!active) {
+      activePickingFormId = null;
     }
-  });
+    renderSaveButtonsList();
+  }
 
-  btnHighlightSaveBtn.addEventListener('click', async () => {
-    if (!activeTabId) return;
-    chrome.tabs.sendMessage(activeTabId, { action: 'HIGHLIGHT_SAVE_BUTTON' });
-  });
+  function handleSaveButtonSelected(btnData, isAuto = false, targetFormId = null) {
+    const targetKey = targetFormId !== null ? targetFormId : activePickingFormId;
 
-  function handleSaveButtonSelected(btnData, isAuto = false) {
-    currentSaveButton = btnData;
-    saveBtnStatus.innerText = `${isAuto ? 'Auto: ' : ''}"${btnData.text}"`;
-    saveBtnStatus.className = 'pill pill-save';
-    btnHighlightSaveBtn.style.display = 'inline-flex';
+    if (targetKey && targetKey !== 'general' && detectedPageForms.length > 0) {
+      const targetForm = detectedPageForms.find(f => (f.id && f.id === targetKey) || String(f.formIndex) === targetKey);
+      if (targetForm) {
+        targetForm.saveButton = btnData;
+        // Sync with all fields associated with this form
+        selectedFields.forEach(field => {
+          if (field.formSelector === targetForm.selector || targetForm.fields?.some(tf => tf.selector === field.selector)) {
+            field.saveButton = btnData;
+          }
+        });
+        // If this form is currently selected, also update currentSaveButton
+        const currentSelectVal = pageFormsSelect ? pageFormsSelect.value : '0';
+        if (detectedPageForms[currentSelectVal] === targetForm) {
+          currentSaveButton = btnData;
+        }
+      }
+    } else {
+      currentSaveButton = btnData;
+      // If there is an active single form in dropdown, assign to it as well
+      const currentSelectVal = pageFormsSelect ? pageFormsSelect.value : '0';
+      const activeForm = detectedPageForms[currentSelectVal];
+      if (activeForm && activeForm.formIndex !== 'all') {
+        activeForm.saveButton = btnData;
+      }
+      // Assign to all currently selected fields
+      selectedFields.forEach(f => {
+        f.saveButton = btnData;
+      });
+    }
+
+    renderSaveButtonsList();
+  }
+
+  function renderSaveButtonsList() {
+    if (!saveButtonBox || !saveFormsList) return;
+
+    if (selectedFields.length === 0) {
+      saveButtonBox.style.display = 'none';
+      saveFormsList.innerHTML = '';
+      return;
+    }
+
+    saveButtonBox.style.display = 'block';
+    saveFormsList.innerHTML = '';
+
+    const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+    const currentSelectVal = pageFormsSelect ? pageFormsSelect.value : '0';
+    const isAllSelected = detectedPageForms[currentSelectVal]?.formIndex === 'all';
+
+    let formsToShow = [];
+    if (nonAllForms.length > 0) {
+      if (isAllSelected) {
+        formsToShow = nonAllForms;
+      } else {
+        const currentForm = detectedPageForms[currentSelectVal];
+        formsToShow = currentForm ? [currentForm] : nonAllForms;
+      }
+    }
+
+    if (formsToShow.length === 0) {
+      // Manual field picking or single container fallback
+      const row = document.createElement('div');
+      const isPickingThis = activePickingFormId === 'general';
+      row.className = `save-form-row ${isPickingThis ? 'picking-active' : ''}`;
+      const btnText = currentSaveButton ? (currentSaveButton.text || currentSaveButton.value || 'Botón Guardar') : 'Auto / No asignado';
+      const isConfigured = !!currentSaveButton;
+
+      row.innerHTML = `
+        <div class="save-form-row-header">
+          <span class="save-form-name">
+            <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="11" y2="17"></line></svg>
+            Formulario Activo
+          </span>
+          <span class="save-form-count">${selectedFields.length} campos</span>
+        </div>
+        <div class="save-form-row-body">
+          <span class="pill ${isConfigured ? 'pill-save' : 'pill-idle'}" title="${escapeHtml(btnText)}">
+            ${escapeHtml(btnText)}
+          </span>
+          <div class="save-form-actions">
+            <button class="btn-sm btn-subtle btn-inspect-save" data-target="general" ${!isConfigured ? 'disabled style="display:none;"' : ''} title="Resaltar botón en la página">
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="3"></circle></svg>Ver
+            </button>
+            <button class="btn-sm btn-outline btn-change-save" data-target="general" title="Seleccionar botón haciendo clic en la página">
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>${isPickingThis ? 'Cancelar (ESC)' : 'Cambiar botón'}
+            </button>
+          </div>
+        </div>
+      `;
+      saveFormsList.appendChild(row);
+    } else {
+      formsToShow.forEach((form, idx) => {
+        const formKey = form.id ? form.id : (form.formIndex !== undefined ? String(form.formIndex) : String(idx));
+        const isPickingThis = activePickingFormId === formKey;
+        const row = document.createElement('div');
+        row.className = `save-form-row ${isPickingThis ? 'picking-active' : ''}`;
+
+        const formSaveBtn = form.saveButton || null;
+        const btnText = formSaveBtn ? (formSaveBtn.text || formSaveBtn.value || 'Botón Guardar') : 'No asignado (Auto)';
+        const isConfigured = !!formSaveBtn;
+        const fieldCount = form.fieldsCount || (form.fields ? form.fields.length : 0);
+
+        row.innerHTML = `
+          <div class="save-form-row-header">
+            <span class="save-form-name" title="${escapeHtml(form.title)}">
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="11" y2="17"></line></svg>
+              ${escapeHtml(form.title)}
+            </span>
+            <span class="save-form-count">${fieldCount} campos</span>
+          </div>
+          <div class="save-form-row-body">
+            <span class="pill ${isConfigured ? 'pill-save' : 'pill-idle'}" title="${escapeHtml(btnText)}">
+              ${escapeHtml(btnText)}
+            </span>
+            <div class="save-form-actions">
+              <button class="btn-sm btn-subtle btn-inspect-save" data-target="${escapeHtml(formKey)}" ${!isConfigured ? 'disabled style="display:none;"' : ''} title="Resaltar botón en la página">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="3"></circle></svg>Ver
+              </button>
+              <button class="btn-sm btn-outline btn-change-save" data-target="${escapeHtml(formKey)}" title="Seleccionar botón para este formulario">
+                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>${isPickingThis ? 'Cancelar (ESC)' : 'Cambiar botón'}
+              </button>
+            </div>
+          </div>
+        `;
+        saveFormsList.appendChild(row);
+      });
+    }
+
+    // Attach inspect listeners
+    saveFormsList.querySelectorAll('.btn-inspect-save').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget.dataset.target;
+        let saveBtnData = null;
+        if (target === 'general') {
+          saveBtnData = currentSaveButton;
+        } else {
+          const form = detectedPageForms.find(f => (f.id && f.id === target) || String(f.formIndex) === target);
+          saveBtnData = form ? form.saveButton : currentSaveButton;
+        }
+
+        const tab = await getActiveTab();
+        if (tab?.id && saveBtnData) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'HIGHLIGHT_SAVE_BUTTON',
+            saveButtonInfo: saveBtnData
+          });
+        }
+      });
+    });
+
+    // Attach change button listeners
+    saveFormsList.querySelectorAll('.btn-change-save').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget.dataset.target;
+        let formTitle = '';
+        if (target !== 'general') {
+          const form = detectedPageForms.find(f => (f.id && f.id === target) || String(f.formIndex) === target);
+          if (form) formTitle = form.title || '';
+        }
+
+        if (isPickingButtonActive && activePickingFormId === target) {
+          setButtonPickingState(false);
+          const tab = await getActiveTab();
+          if (tab?.id) {
+            chrome.tabs.sendMessage(tab.id, { action: 'CANCEL_PICKING' });
+          }
+        } else {
+          activePickingFormId = target;
+          setButtonPickingState(true);
+          const tab = await getActiveTab();
+          if (tab?.id) {
+            activeTabId = tab.id;
+            await ensureContentScriptInjected(tab.id);
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'START_PICKING_BUTTON',
+              formTitle: formTitle
+            });
+          }
+        }
+      });
+    });
   }
 
   // Receive message from content script
@@ -1220,7 +1376,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         selectedFields = [...formData.fields];
         if (formData.saveButton) {
-          handleSaveButtonSelected(formData.saveButton, true);
+          handleSaveButtonSelected(formData.saveButton, true, formData.id || 'general');
         }
         renderSelectedFields();
 
@@ -1234,13 +1390,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           updatePageFormsDropdown();
           if (pageFormsSelect) pageFormsSelect.value = String(existsIdx);
         }
+        renderSaveButtonsList();
       } else {
         alert('El sector seleccionado no contiene campos de formulario válidos.');
       }
     } else if (message.action === 'SAVE_BUTTON_SELECTED') {
-      isPickingButtonActive = false;
-      btnPickSaveBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg> Cambiar botón';
-      handleSaveButtonSelected(message.data);
+      const targetFormId = activePickingFormId;
+      setButtonPickingState(false);
+      handleSaveButtonSelected(message.data, false, targetFormId);
     } else if (message.action === 'REOPEN_STEP_PICKED') {
       setReopenStepPickingState(false);
       if (message.data) {
@@ -1251,8 +1408,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       setFieldPickingState(false);
       setFormPickingState(false);
       setReopenStepPickingState(false);
-      isPickingButtonActive = false;
-      btnPickSaveBtn.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg> Cambiar botón';
+      setButtonPickingState(false);
     }
   });
 
@@ -1329,7 +1485,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnRunTests.disabled = true;
     btnPickField.disabled = true;
     btnAutoDetectForm.disabled = true;
-    btnPickSaveBtn.disabled = true;
+    if (saveFormsList) saveFormsList.querySelectorAll('button').forEach(b => b.disabled = true);
     runBtnText.innerText = 'Ejecutando pruebas...';
     progressContainer.style.display = 'flex';
     resultsCard.style.display = 'block';
@@ -1370,11 +1526,22 @@ document.addEventListener('DOMContentLoaded', async () => {
           value: (f.fillerValue !== undefined ? f.fillerValue : f.suggestedFillerValue) || 'Dato Válido QA'
         })) : [];
 
+        // Dynamically resolve save button for the task's field / form
+        let fieldSaveButton = task.field.saveButton || null;
+        if (!fieldSaveButton && detectedPageForms.length > 0) {
+          const matchedForm = detectedPageForms.find(df => df.selector && df.selector === task.field.formSelector);
+          if (matchedForm && matchedForm.saveButton) {
+            fieldSaveButton = matchedForm.saveButton;
+          }
+        }
+        const targetSaveButton = fieldSaveButton || currentSaveButton || null;
+
         const res = await chrome.tabs.sendMessage(activeTabId, {
           action: 'RUN_SINGLE_PAYLOAD',
           fieldInfo: task.field,
           payload: task.testItem.payload,
           triggerSave: triggerSave,
+          saveButton: targetSaveButton,
           submitWaitMs: submitWaitMs,
           siblingFillers: siblingFillers,
           reopenConfig: {
@@ -1418,7 +1585,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           btnRunTests.disabled = false;
           btnPickField.disabled = false;
           btnAutoDetectForm.disabled = false;
-          btnPickSaveBtn.disabled = false;
+          if (saveFormsList) saveFormsList.querySelectorAll('button').forEach(b => b.disabled = false);
           runBtnText.innerText = `Reanudar Verificación (${selectedFields.length} campos)`;
           alert('Se perdió la conexión con la página web bajo prueba. El ciclo de verificación ha sido detenido.');
           return;
@@ -1449,7 +1616,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnRunTests.disabled = false;
     btnPickField.disabled = false;
     btnAutoDetectForm.disabled = false;
-    btnPickSaveBtn.disabled = false;
+    if (saveFormsList) saveFormsList.querySelectorAll('button').forEach(b => b.disabled = false);
     runBtnText.innerText = `Volver a Iniciar (${selectedFields.length} campos)`;
     setTimeout(() => {
       progressContainer.style.display = 'none';
@@ -1776,7 +1943,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let md = `## Reporte de Validación Multi-Campo Web\n\n`;
     md += `**Campos auditados:** ${selectedFields.map(f => f.label).join(', ')}\n`;
-    md += `**Botón Guardar:** ${currentSaveButton ? currentSaveButton.text : 'Envío nativo'}\n`;
+    if (detectedPageForms.length > 1) {
+      const nonAll = detectedPageForms.filter(f => f.formIndex !== 'all');
+      const formButtons = nonAll.map(f => `${f.title}: ${f.saveButton ? f.saveButton.text : 'Envío nativo'}`).join(' | ');
+      md += `**Botones Guardar:** ${formButtons}\n`;
+    } else {
+      md += `**Botón Guardar:** ${currentSaveButton ? currentSaveButton.text : 'Envío nativo'}\n`;
+    }
     md += `**Fecha:** ${new Date().toLocaleString()}\n\n`;
     md += `| Campo | Tipo | Input / Prueba | Resultado | Detalle Observado | Recomendación |\n`;
     md += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
