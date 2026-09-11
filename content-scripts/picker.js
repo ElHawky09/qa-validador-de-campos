@@ -249,6 +249,35 @@
     return path;
   }
 
+  // Helper: check if element is semantically a URL or link field
+  function isUrlField(el) {
+    if (!el || !(el instanceof HTMLElement)) return false;
+    const tag = el.tagName.toLowerCase();
+    const type = (el.getAttribute('type') || (tag === 'textarea' ? 'textarea' : 'text')).toLowerCase();
+    if (type === 'url') return true;
+
+    const name = (el.name || '').toLowerCase();
+    const id = (el.id || '').toLowerCase();
+    const placeholder = (el.getAttribute('placeholder') || '').toLowerCase();
+    const label = getElementLabel(el).toLowerCase();
+    const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+    const allText = `${name} ${id} ${placeholder} ${label} ${ariaLabel}`;
+
+    return /\b(url|link|enlace|sitio|website|web|endpoint|slug|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(allText);
+  }
+
+  // Helper: check if element is a slug or route path
+  function isSlugField(el) {
+    if (!el || !(el instanceof HTMLElement)) return false;
+    const name = (el.name || '').toLowerCase();
+    const id = (el.id || '').toLowerCase();
+    const placeholder = (el.getAttribute('placeholder') || '').toLowerCase();
+    const label = getElementLabel(el).toLowerCase();
+    const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+    const allText = `${name} ${id} ${placeholder} ${label} ${ariaLabel}`;
+    return /\b(slug|ruta|path)\b/i.test(allText);
+  }
+
   // Smart generator of compliant dummy data for required/sibling fields
   function generateSmartDummyValue(el) {
     if (!el) return 'Dato Válido QA';
@@ -272,6 +301,14 @@
       if (options.length > 1) return options[1].value;
       if (options.length > 0) return options[0].value;
       return '';
+    }
+
+    // 0.1. URL / Link / Slug fields (Strictly lowercase valid dummy value!)
+    if (isUrlField(el)) {
+      if (isSlugField(el)) {
+        return 'recurso-qa-valido';
+      }
+      return 'https://qa.ejemplo.com/recurso-valido';
     }
 
     // 1. Phone / 10-digit number constraint (the exact user scenario!)
@@ -388,6 +425,7 @@
     return {
       tag: el.tagName.toLowerCase(),
       type: (el.getAttribute('type') || (el.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text')).toLowerCase(),
+      isUrlField: isUrlField(el),
       id: el.id || '',
       name: el.name || '',
       placeholder: el.getAttribute('placeholder') || '',
