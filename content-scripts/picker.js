@@ -889,7 +889,16 @@
           const opt = Array.from(el.options).find(o => o.text.trim() === String(val).trim());
           if (opt) el.value = opt.value;
         }
+      } else if (el.isContentEditable) {
+        el.focus();
+        el.innerText = val;
+        el.textContent = val;
       } else {
+        // Reset React's internal value tracker to ensure onChange triggers
+        const tracker = el._valueTracker;
+        if (tracker) {
+          tracker.setValue('');
+        }
         const proto = el instanceof HTMLTextAreaElement 
           ? HTMLTextAreaElement.prototype 
           : (el instanceof HTMLInputElement ? HTMLInputElement.prototype : HTMLElement.prototype);
@@ -1100,6 +1109,8 @@
         el.dispatchEvent(new Event('focus', { bubbles: true }));
       } catch (e) {}
 
+      // Clear field first to eliminate residual values from prior tests (e.g. zero-width or large payloads)
+      setFieldValueSafely(el, '');
       setFieldValueSafely(el, payload);
       try {
         el.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
@@ -1107,7 +1118,7 @@
 
       await new Promise((r) => setTimeout(r, 60));
 
-      const resultingValue = el.value !== undefined ? el.value : (el.innerText || '');
+      const resultingValue = el.value !== undefined ? el.value : (el.isContentEditable ? (el.innerText || el.textContent || '') : '');
       const resultingLength = resultingValue.length;
       const payloadLength = payload.length;
 
