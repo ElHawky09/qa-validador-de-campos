@@ -2073,25 +2073,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let rowsHtml = '';
     testResults.forEach(r => {
-      let badgeStyle = 'color: #0284c7; font-weight: bold;';
-      if (r.status === 'restricted_save' || r.status === 'restricted_field') badgeStyle = 'color: #15803d; font-weight: bold;';
-      else if (r.status === 'truncated') badgeStyle = 'color: #b45309; font-weight: bold;';
-      else if (r.status === 'warning') badgeStyle = 'color: #d97706; font-weight: bold;';
-      else if (r.status === 'risk') badgeStyle = 'color: #b91c1c; font-weight: bold;';
-
+      const badgeCls = r.badgeClass || 'res-conforme';
       rowsHtml += `
         <tr>
-          <td style="padding: 8px; border: 1px solid #e2e8f0;">
-            <strong>${escapeHtml(r.fieldName)}</strong><br>
-            <span style="font-size: 11px; color: #64748b;">(${escapeHtml(r.fieldType)})</span>
+          <td class="col-field">
+            <strong>${escapeHtml(r.fieldName)}</strong>
+            <div class="field-sub">${escapeHtml(r.fieldType)}</div>
           </td>
-          <td style="padding: 8px; border: 1px solid #e2e8f0;">
-            <strong>${escapeHtml(r.testItem.name)}</strong><br>
-            <code style="background: #f1f5f9; padding: 2px 4px; font-size: 11px; word-break: break-all;">${escapeHtml(r.input.slice(0, 60))}</code>
+          <td class="col-test">
+            <div class="test-name">${escapeHtml(r.testItem.name)}</div>
+            <code class="payload-code">${escapeHtml(r.input.length > 70 ? r.input.slice(0, 67) + '...' : r.input)}</code>
           </td>
-          <td style="padding: 8px; border: 1px solid #e2e8f0; ${badgeStyle}">${escapeHtml(r.badgeText)}</td>
-          <td style="padding: 8px; border: 1px solid #e2e8f0; font-size: 12px;">${escapeHtml(r.detail)}</td>
-          <td style="padding: 8px; border: 1px solid #e2e8f0; font-size: 12px; color: #1d4ed8;">${escapeHtml(r.recommendation)}</td>
+          <td class="col-status">
+            <span class="res-badge ${badgeCls}">${escapeHtml(r.badgeText)}</span>
+          </td>
+          <td class="col-detail">${escapeHtml(r.detail)}</td>
+          <td class="col-rec">${escapeHtml(r.recommendation)}</td>
         </tr>
       `;
     });
@@ -2099,66 +2096,419 @@ document.addEventListener('DOMContentLoaded', async () => {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <!DOCTYPE html>
-      <html>
+      <html lang="es">
       <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Informe de Validación QA Multi-Campo</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #0f172a; line-height: 1.5; }
-          h1 { font-size: 20px; margin-bottom: 4px; color: #1e293b; }
-          .meta { font-size: 13px; color: #64748b; margin-bottom: 20px; }
-          .kpis { display: flex; gap: 12px; margin-bottom: 20px; }
-          .kpi { border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; text-align: center; }
-          .kpi-val { font-size: 18px; font-weight: bold; }
-          table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-          th { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
-          @media print { button { display: none !important; } }
+          :root {
+            --bg-page: #0f172a;
+            --bg-card: #1e293b;
+            --bg-hover: #273549;
+            --border: #334155;
+            --text-main: #f8fafc;
+            --text-sub: #cbd5e1;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+          }
+
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 28px 24px;
+          }
+
+          .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+          }
+
+          .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            gap: 16px;
+          }
+
+          h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 6px;
+          }
+
+          .meta {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.6;
+          }
+          .meta strong { color: var(--text-sub); }
+
+          .btn-print {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 18px;
+            background: var(--primary);
+            color: #ffffff;
+            border: 1px solid #60a5fa;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: background 0.15s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+            white-space: nowrap;
+          }
+          .btn-print:hover {
+            background: var(--primary-hover);
+          }
+          .btn-print svg {
+            width: 15px;
+            height: 15px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+          }
+
+          .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+          }
+
+          .kpi {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 14px 16px;
+            border-radius: 8px;
+            text-align: center;
+          }
+          .kpi-val {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            color: var(--text-main);
+          }
+          .kpi-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+          }
+
+          .kpi-restricted {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: rgba(16, 185, 129, 0.08);
+          }
+          .kpi-restricted .kpi-val { color: #34d399; }
+
+          .kpi-conforme {
+            border-color: rgba(2, 132, 199, 0.4);
+            background: rgba(2, 132, 199, 0.08);
+          }
+          .kpi-conforme .kpi-val { color: #38bdf8; }
+
+          .kpi-risk {
+            border-color: rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.08);
+          }
+          .kpi-risk .kpi-val { color: #f87171; }
+
+          .table-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            text-align: left;
+          }
+
+          thead {
+            background: rgba(15, 23, 42, 0.85);
+          }
+
+          th {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+          }
+
+          td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+            color: var(--text-sub);
+            line-height: 1.45;
+          }
+
+          tr:last-child td {
+            border-bottom: none;
+          }
+
+          tbody tr:hover {
+            background: var(--bg-hover);
+          }
+
+          .col-field strong { color: var(--text-main); font-size: 12px; }
+          .field-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+          .test-name { font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
+          
+          .payload-code {
+            display: inline-block;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: #93c5fd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 11px;
+            word-break: break-all;
+            max-width: 280px;
+          }
+
+          .col-rec {
+            color: #60a5fa;
+            font-size: 11px;
+          }
+
+          .res-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+          }
+
+          .res-conforme {
+            background: rgba(2, 132, 199, 0.2);
+            color: #38bdf8;
+            border: 1px solid rgba(2, 132, 199, 0.4);
+          }
+          .res-restricted-save {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.5);
+          }
+          .res-restricted-field {
+            background: rgba(5, 150, 105, 0.2);
+            color: #6ee7b7;
+            border: 1px solid rgba(5, 150, 105, 0.5);
+          }
+          .res-truncated, .res-logic, .res-format {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.45);
+          }
+          .res-integrity {
+            background: rgba(249, 115, 22, 0.2);
+            color: #fb923c;
+            border: 1px solid rgba(249, 115, 22, 0.45);
+          }
+          .res-capacity {
+            background: rgba(225, 29, 72, 0.2);
+            color: #fb7185;
+            border: 1px solid rgba(225, 29, 72, 0.45);
+          }
+          .res-risk {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+          }
+          .res-error {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.4);
+          }
+
+          /* PRINT MEDIA: PURE WHITE CLEAN THEME FOR PRINT / PDF DOWNLOAD */
+          @media print {
+            body {
+              background: #ffffff !important;
+              color: #0f172a !important;
+              padding: 0 !important;
+            }
+            .report-container {
+              max-width: 100% !important;
+            }
+            .no-print, .btn-print {
+              display: none !important;
+            }
+            .report-header {
+              border-bottom: 2px solid #cbd5e1 !important;
+              margin-bottom: 16px !important;
+              padding-bottom: 12px !important;
+            }
+            h1 {
+              color: #0f172a !important;
+              font-size: 18px !important;
+            }
+            .meta {
+              color: #475569 !important;
+              font-size: 11px !important;
+            }
+            .meta strong {
+              color: #0f172a !important;
+            }
+            .kpis {
+              gap: 8px !important;
+              margin-bottom: 16px !important;
+            }
+            .kpi {
+              background: #ffffff !important;
+              border: 1px solid #cbd5e1 !important;
+              padding: 8px 12px !important;
+            }
+            .kpi-val {
+              color: #0f172a !important;
+              font-size: 18px !important;
+            }
+            .kpi-desc {
+              color: #475569 !important;
+            }
+            .kpi-restricted .kpi-val { color: #15803d !important; }
+            .kpi-conforme .kpi-val { color: #0284c7 !important; }
+            .kpi-risk .kpi-val { color: #b91c1c !important; }
+            .table-wrap {
+              border: 1px solid #cbd5e1 !important;
+              box-shadow: none !important;
+              background: #ffffff !important;
+            }
+            thead {
+              background: #f8fafc !important;
+            }
+            th {
+              background: #f8fafc !important;
+              border-bottom: 1px solid #cbd5e1 !important;
+              color: #334155 !important;
+              font-size: 10px !important;
+            }
+            td {
+              border-bottom: 1px solid #e2e8f0 !important;
+              color: #1e293b !important;
+              font-size: 11px !important;
+              padding: 8px 10px !important;
+            }
+            .col-field strong { color: #0f172a !important; }
+            .test-name { color: #0f172a !important; }
+            .payload-code {
+              background: #f8fafc !important;
+              border: 1px solid #cbd5e1 !important;
+              color: #1e293b !important;
+            }
+            .col-rec {
+              color: #1d4ed8 !important;
+            }
+            .res-badge {
+              border: 1px solid #94a3b8 !important;
+            }
+            .res-conforme {
+              background: #f0f9ff !important;
+              color: #0369a1 !important;
+              border-color: #7dd3fc !important;
+            }
+            .res-restricted-save, .res-restricted-field {
+              background: #f0fdf4 !important;
+              color: #15803d !important;
+              border-color: #86efac !important;
+            }
+            .res-truncated, .res-logic, .res-format {
+              background: #fffbeb !important;
+              color: #b45309 !important;
+              border-color: #fde68a !important;
+            }
+            .res-integrity {
+              background: #fff7ed !important;
+              color: #c2410c !important;
+              border-color: #fed7aa !important;
+            }
+            .res-capacity, .res-risk {
+              background: #fef2f2 !important;
+              color: #b91c1c !important;
+              border-color: #fca5a5 !important;
+            }
+            .res-error {
+              background: #faf5ff !important;
+              color: #7e22ce !important;
+              border-color: #d8b4fe !important;
+            }
+          }
         </style>
       </head>
       <body>
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <div>
-            <h1>Informe de Auditoría Multi-Campo (Con Verificación de Guardado)</h1>
-            <div class="meta">
-              <strong>Campos:</strong> ${escapeHtml(selectedFields.map(f => f.label).join(', '))} &bull; 
-              <strong>Fecha:</strong> ${new Date().toLocaleString()}
+        <div class="report-container">
+          <div class="report-header">
+            <div>
+              <h1>Informe de Auditoría Multi-Campo</h1>
+              <div class="meta">
+                <strong>Campos auditados:</strong> ${escapeHtml(selectedFields.map(f => f.label).join(', '))}<br>
+                <strong>Fecha de generación:</strong> ${new Date().toLocaleString()}
+              </div>
+            </div>
+            <button onclick="window.print()" class="btn-print no-print">
+              <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              Imprimir / Guardar PDF
+            </button>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi">
+              <div class="kpi-val">${total}</div>
+              <div class="kpi-desc">Total Pruebas</div>
+            </div>
+            <div class="kpi kpi-restricted">
+              <div class="kpi-val">${restricted}</div>
+              <div class="kpi-desc">Restringidas</div>
+            </div>
+            <div class="kpi kpi-conforme">
+              <div class="kpi-val">${conforme}</div>
+              <div class="kpi-desc">Conformes</div>
+            </div>
+            <div class="kpi kpi-risk">
+              <div class="kpi-val">${risk}</div>
+              <div class="kpi-desc">Con Riesgo / Observación</div>
             </div>
           </div>
-          <button onclick="window.print()" style="padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 13px;">Imprimir / Guardar PDF</button>
-        </div>
 
-        <div class="kpis">
-          <div class="kpi">
-            <div class="kpi-val">${total}</div>
-            <div>Total Pruebas</div>
-          </div>
-          <div class="kpi" style="border-color: #86efac; background: #f0fdf4;">
-            <div class="kpi-val" style="color: #15803d;">${restricted}</div>
-            <div>Restringidas</div>
-          </div>
-          <div class="kpi" style="border-color: #7dd3fc; background: #f0f9ff;">
-            <div class="kpi-val" style="color: #0284c7;">${conforme}</div>
-            <div>Conformes</div>
-          </div>
-          <div class="kpi" style="border-color: #fca5a5; background: #fef2f2;">
-            <div class="kpi-val" style="color: #b91c1c;">${risk}</div>
-            <div>Con Riesgo</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Campo</th>
+                  <th>Prueba / Input</th>
+                  <th>Resultado</th>
+                  <th>Detalle del Sitio</th>
+                  <th>Recomendación Técnica</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
           </div>
         </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Campo</th>
-              <th>Prueba / Input</th>
-              <th>Resultado</th>
-              <th>Detalle del Sitio</th>
-              <th>Recomendación Técnica</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
       </body>
       </html>
     `);
