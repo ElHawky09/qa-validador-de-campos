@@ -29,10 +29,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   const TIER_DESCRIPTIONS = {
-    simple: 'Simple (~10 pruebas rápidas)',
-    normal: 'Normal (~23 pruebas estándar)',
-    advanced: 'Avanzado (~34 pruebas de calidad)',
-    total: 'Total (~41 pruebas exhaustivas)'
+    simple: 'Simple (~13 pruebas rápidas)',
+    normal: 'Normal (~29 pruebas estándar)',
+    advanced: 'Avanzado (~43 pruebas de calidad)',
+    total: 'Total (~51 pruebas exhaustivas)'
   };
 
   // Default Test Suites with Depth Tiers (simple, normal, advanced, total)
@@ -413,6 +413,97 @@ document.addEventListener('DOMContentLoaded', async () => {
       name: 'Null byte (%00)',
       payload: 'archivo.pdf\u0000.exe',
       desc: 'Inyección de terminador de cadena en C/sistemas operativos',
+      isInvalidCase: true
+    },
+    // PRUEBAS DE URL Y ENLACES
+    {
+      id: 'url_valid_https',
+      category: 'url',
+      tier: 'simple',
+      name: 'URL HTTPS válida estándar',
+      payload: 'https://qa.ejemplo.com/recurso-valido',
+      desc: 'Formato canónico completo con esquema seguro, host y ruta',
+      isInvalidCase: false
+    },
+    {
+      id: 'url_missing_scheme',
+      category: 'url',
+      tier: 'simple',
+      name: 'URL sin protocolo (falta https://)',
+      payload: 'www.ejemplo.com/recurso',
+      desc: 'Verificar si el sistema auto-completa o rechaza URLs sin protocolo',
+      isInvalidCase: true
+    },
+    {
+      id: 'url_xss_javascript',
+      category: 'url',
+      tier: 'simple',
+      name: 'Esquema peligroso javascript: (XSS)',
+      payload: 'javascript:alert("XSS")',
+      desc: 'Inyección de pseudoprotocolo para ejecución de script en enlaces',
+      isInvalidCase: true
+    },
+    {
+      id: 'url_valid_query',
+      category: 'url',
+      tier: 'normal',
+      name: 'URL con query parameters y puerto',
+      payload: 'https://api.ejemplo.com:8080/v1/items?id=123&status=ok',
+      desc: 'Estructura URL avanzada con puerto explícito y parámetros GET',
+      isInvalidCase: false
+    },
+    {
+      id: 'url_unencoded_spaces',
+      category: 'url',
+      tier: 'normal',
+      name: 'URL con espacios no codificados',
+      payload: 'https://ejemplo.com/ruta con espacios',
+      desc: 'Violación RFC 3986 por falta de percent-encoding (%20)',
+      isInvalidCase: true
+    },
+    {
+      id: 'url_invalid_domain',
+      category: 'url',
+      tier: 'normal',
+      name: 'Dominio/Host malformado con puntos dobles',
+      payload: 'https://dominio..ejemplo.com/item',
+      desc: 'Hostname inválido según sintaxis RFC 1123',
+      isInvalidCase: true
+    },
+    {
+      id: 'url_protocol_relative',
+      category: 'url',
+      tier: 'advanced',
+      name: 'URL relativa de protocolo (//ejemplo.com)',
+      payload: '//ejemplo.com/recurso',
+      desc: 'Verificar si acepta o resuelve enlaces dependientes de protocolo',
+      isInvalidCase: true
+    },
+    {
+      id: 'url_internal_ssrf',
+      category: 'url',
+      tier: 'advanced',
+      name: 'Host local / Intranet (Riesgo SSRF)',
+      payload: 'http://127.0.0.1:8080/admin',
+      desc: 'Destino a interfaz loopback o infraestructura interna no restringida',
+      isInvalidCase: true
+    },
+    {
+      id: 'url_data_scheme',
+      category: 'url',
+      tier: 'advanced',
+      name: 'Esquema data: con HTML/script',
+      payload: 'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
+      desc: 'Esquema URI peligroso capaz de generar contexto de ejecución arbitrario',
+      isInvalidCase: true
+    },
+    {
+      id: 'url_excessive_length',
+      category: 'url',
+      tier: 'total',
+      name: 'URL extremadamente larga (>2000 chars)',
+      payload: 'https://ejemplo.com/' + 'a'.repeat(2000),
+      desc: 'Verificar tolerancia a límites de URI en navegadores y servidores (2048)',
       isInvalidCase: true
     }
   ];
@@ -834,7 +925,15 @@ document.addEventListener('DOMContentLoaded', async () => {
               renderSiblingFillers();
             }
           } catch {
-            f.fillerValue = 'Dato ' + Math.floor(1000 + Math.random() * 9000);
+            const isUrl = !!f.isUrlField || f.type === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|slug|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
+            const isSlug = /\bslug\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
+            if (isSlug) {
+              f.fillerValue = 'recurso-qa-valido-' + Math.floor(100 + Math.random() * 900);
+            } else if (isUrl) {
+              f.fillerValue = 'https://qa.ejemplo.com/recurso-' + Math.floor(100 + Math.random() * 900);
+            } else {
+              f.fillerValue = 'Dato ' + Math.floor(1000 + Math.random() * 9000);
+            }
             renderSiblingFillers();
           }
         }
@@ -1451,7 +1550,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const fType = (field.type || 'text').toLowerCase();
       let applicable = [];
 
-      if (fType === 'number') {
+      const isUrl = !!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|slug|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+
+      if (isUrl) {
+        applicable = selectedPayloads.filter(p => p.category === 'url' || p.id === 'sec_null_byte' || p.id === 'sec_script' || p.id === 'txt_spaces' || p.id === 'txt_only_spaces');
+      } else if (fType === 'number') {
         applicable = selectedPayloads.filter(p => p.category === 'number' || p.id === 'sec_null_byte');
       } else if (fType === 'date' || fType === 'datetime-local' || fType === 'month') {
         applicable = selectedPayloads.filter(p => p.category === 'date');
@@ -1719,6 +1822,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         recommendation = 'El validador del formulario o servidor rechazó la fecha inválida al guardar. Recomendación: Asegurar que el calendario no permita seleccionar fechas inexistentes.';
       } else if (testItem.category === 'number') {
         recommendation = 'El sitio validó el límite o tipo numérico al enviar. Recomendación: Bloquear teclas no numéricas directamente en el evento keydown.';
+      } else if (testItem.category === 'url') {
+        recommendation = 'El sitio validó la sintaxis o esquema de la URL al enviar. Recomendación UX: Proporcionar validación en tiempo real en el evento blur para advertir al usuario sobre protocolos faltantes o caracteres inválidos.';
       } else {
         recommendation = 'El servidor o formulario contiene validación de negocio activa al enviar. Se recomienda sincronizar la validación en tiempo real.';
       }
@@ -1794,6 +1899,48 @@ document.addEventListener('DOMContentLoaded', async () => {
           badgeClass = 'res-format';
           detail = `El campo numérico aceptó el valor '${payload}' sin forzar formato numérico ni validar límites.`;
           recommendation = 'Configurar el atributo type="number" o regex de validación numérica, y validar estrictamente en el backend.';
+        } else if (testItem.id === 'url_missing_scheme') {
+          status = 'warning';
+          badgeText = 'Defecto de Formato (Sin Protocolo)';
+          badgeClass = 'res-format';
+          detail = `Se ingresó la URL '${payload}' sin especificar protocolo (http:// o https://). El sitio la aceptó y guardó directamente.`;
+          recommendation = 'Exigir protocolo obligatorio en frontend/backend (ej. https://) o anteponerlo automáticamente antes de guardar para evitar enlaces relativos rotos en la interfaz.';
+        } else if (testItem.id === 'url_unencoded_spaces') {
+          status = 'warning';
+          badgeText = 'Defecto de Sintaxis (RFC 3986)';
+          badgeClass = 'res-format';
+          detail = `El campo aceptó la dirección '${payload}' con espacios en blanco sin codificar, violando la especificación estándar de URIs RFC 3986.`;
+          recommendation = 'Rechazar URLs con espacios o aplicar percent-encoding (%20) automático antes de procesar o almacenar el recurso.';
+        } else if (testItem.id === 'url_invalid_domain') {
+          status = 'warning';
+          badgeText = 'Hostname Malformado';
+          badgeClass = 'res-format';
+          detail = `El formulario aceptó la dirección '${payload}' con un nombre de host inválido (etiquetas vacías o puntos consecutivos).`;
+          recommendation = 'Validar la estructura del hostname mediante el constructor estándar URL o expresiones regulares basadas en RFC 1123.';
+        } else if (testItem.id === 'url_xss_javascript' || testItem.id === 'url_data_scheme') {
+          status = 'risk';
+          badgeText = 'Riesgo de Seguridad (Esquema Peligroso)';
+          badgeClass = 'res-risk';
+          detail = `El campo aceptó el esquema no seguro ('${payload.slice(0, 20)}...'). Si este enlace es renderizado en una etiqueta <a> o iframe sin filtrado, puede provocar ejecución de scripts (XSS).`;
+          recommendation = 'Implementar una lista blanca estricta de esquemas permitidos (únicamente http: y https:) y rechazar explícitamente esquemas como javascript:, data:, vbscript: o file:.';
+        } else if (testItem.id === 'url_protocol_relative') {
+          status = 'warning';
+          badgeText = 'URL Relativa de Protocolo';
+          badgeClass = 'res-format';
+          detail = `El campo aceptó la sintaxis dependiente de protocolo ('${payload}'). Dependiendo del contexto, puede heredar esquemas inesperados o conectar a destinos imprevistos.`;
+          recommendation = 'Normalizar la URL forzando esquema explícito seguro https://.';
+        } else if (testItem.id === 'url_internal_ssrf') {
+          status = 'warning';
+          badgeText = 'Riesgo Potencial SSRF (Host Interno)';
+          badgeClass = 'res-capacity';
+          detail = `El formulario aceptó una dirección dirigida a la interfaz loopback local o red privada ('${payload}'). Si el backend consulta o descarga recursos de esta URL, existe riesgo de Server-Side Request Forgery (SSRF).`;
+          recommendation = 'Si el servidor realiza peticiones fetch/webhook hacia las URLs guardadas, validar y bloquear resolución a IPs locales (127.0.0.1, localhost) y rangos privados RFC 1918.';
+        } else if (testItem.id === 'url_excessive_length') {
+          status = 'risk';
+          badgeText = 'Riesgo de Capacidad (URL Extensa)';
+          badgeClass = 'res-capacity';
+          detail = `El campo aceptó una URL extensa de ${resLen} caracteres sin aplicar límite razonable de longitud.`;
+          recommendation = 'Definir atributo maxlength="2048" en el campo HTML y validar en backend el límite estándar de navegadores y servidores web.';
         } else {
           status = 'risk';
           badgeText = 'Riesgo: Sin Restricción';
