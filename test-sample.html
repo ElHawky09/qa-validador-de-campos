@@ -232,6 +232,22 @@
           <span class="error-text" id="error-tipo-cuenta">Error al Guardar: Debe seleccionar un tipo de cuenta.</span>
         </div>
 
+        <!-- 5. Campo Semántico de URL / Sitio Web -->
+        <div class="form-group" id="group-sitio-web">
+          <label for="input-sitio-web">5. Sitio Web / Portafolio (URL)</label>
+          <p class="sub-desc">Detectado semánticamente como URL. Relleno automático en minúsculas y validación de protocolo/seguridad.</p>
+          <input type="text" id="input-sitio-web" name="sitio_web" placeholder="https://mi-empresa.com">
+          <span class="error-text" id="error-sitio-web">Error al Guardar: Ingrese una URL válida con protocolo https://.</span>
+        </div>
+
+        <!-- 6. Campo Semántico de Slug / Enlace Personalizado -->
+        <div class="form-group" id="group-slug">
+          <label for="input-slug">6. Slug Personalizado (Identificador de Enlace)</label>
+          <p class="sub-desc">Autocompletado con slug limpio estrictamente en minúsculas.</p>
+          <input type="text" id="input-slug" name="slug_usuario" placeholder="usuario-qa-pro">
+          <span class="error-text" id="error-slug">Error al Guardar: El slug solo permite minúsculas y guiones.</span>
+        </div>
+
         <!-- 5. Términos y Condiciones (Checkbox Obligatorio) -->
         <div class="form-group" id="group-terminos" style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
           <input type="checkbox" id="check-terminos" name="terminos" required style="width: auto; cursor: pointer;">
@@ -401,6 +417,34 @@
         errBanner1.innerText = 'Error al Guardar: La identificación tiene ' + idVal.length + ' caracteres y excede el límite máximo de 10 dígitos.';
         errBanner1.style.display = 'block';
         return false;
+      }
+
+      // Validación de Sitio Web (URL)
+      const inputSitioWeb = document.getElementById('input-sitio-web');
+      const groupSitioWeb = document.getElementById('group-sitio-web');
+      if (groupSitioWeb) groupSitioWeb.classList.remove('has-error');
+      if (inputSitioWeb && inputSitioWeb.value.trim() !== '') {
+        const urlVal = inputSitioWeb.value.trim();
+        if (!urlVal.startsWith('https://') || urlVal.includes(' ') || urlVal.startsWith('javascript:')) {
+          if (groupSitioWeb) groupSitioWeb.classList.add('has-error');
+          errBanner1.innerText = 'Error al Guardar: El sitio web debe comenzar con https:// y no contener espacios ni esquemas inseguros.';
+          errBanner1.style.display = 'block';
+          return false;
+        }
+      }
+
+      // Validación de Slug Personalizado
+      const inputSlug = document.getElementById('input-slug');
+      const groupSlug = document.getElementById('group-slug');
+      if (groupSlug) groupSlug.classList.remove('has-error');
+      if (inputSlug && inputSlug.value.trim() !== '') {
+        const slugVal = inputSlug.value.trim();
+        if (!/^[a-z0-9-]+$/.test(slugVal)) {
+          if (groupSlug) groupSlug.classList.add('has-error');
+          errBanner1.innerText = 'Error al Guardar: El slug solo permite letras minúsculas, números y guiones.';
+          errBanner1.style.display = 'block';
+          return false;
+        }
       }
 
       // Validación de Términos y Condiciones obligatorio
