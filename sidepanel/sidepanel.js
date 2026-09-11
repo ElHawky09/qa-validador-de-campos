@@ -819,14 +819,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     fieldsCountBadge.className = 'badge badge-active';
     fieldsCountBadge.innerText = `${selectedFields.length} campo${selectedFields.length > 1 ? 's' : ''}`;
 
+    const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+    const hasMultipleForms = nonAllForms.length > 1;
+
     selectedFieldsList.innerHTML = '';
     selectedFields.forEach((field, index) => {
       const chip = document.createElement('div');
       chip.className = 'field-chip-item';
+
+      let formSelectHtml = '';
+      if (hasMultipleForms) {
+        formSelectHtml = `
+          <select class="field-form-select" data-index="${index}" title="Formulario asignado a este campo">
+            ${nonAllForms.map(f => {
+              const isSel = (field.formId && field.formId === f.id) ||
+                            (field.formIndex !== undefined && String(field.formIndex) === String(f.formIndex)) ||
+                            (f.selector && field.formSelector === f.selector);
+              const name = f.title.length > 15 ? f.title.slice(0, 15) + '…' : f.title;
+              return `<option value="${escapeHtml(f.id || String(f.formIndex))}" ${isSel ? 'selected' : ''}>${escapeHtml(name)}</option>`;
+            }).join('')}
+          </select>
+        `;
+      }
+
       chip.innerHTML = `
         <div class="field-chip-info">
           <span class="field-chip-type">${escapeHtml(field.type)}</span>
           <span class="field-chip-name" title="${escapeHtml(field.label)}">${escapeHtml(field.label)}</span>
+          ${formSelectHtml}
         </div>
         <div class="field-chip-actions">
           <button class="btn-subtle btn-inspect-field" data-index="${index}" title="Resaltar en página"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg></button>
@@ -834,6 +854,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       `;
       selectedFieldsList.appendChild(chip);
+    });
+
+    selectedFieldsList.querySelectorAll('.field-form-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        const targetVal = e.target.value;
+        const targetForm = nonAllForms.find(f => (f.id && f.id === targetVal) || String(f.formIndex) === targetVal);
+        if (selectedFields[idx] && targetForm) {
+          selectedFields[idx].formId = targetForm.id;
+          selectedFields[idx].formIndex = targetForm.formIndex;
+          selectedFields[idx].formTitle = targetForm.title;
+          selectedFields[idx].formSelector = targetForm.selector || selectedFields[idx].formSelector;
+          selectedFields[idx].saveButton = targetForm.saveButton || null;
+          renderSelectedFields();
+          renderSaveButtonsList();
+        }
+      });
     });
 
     selectedFieldsList.querySelectorAll('.btn-inspect-field').forEach(btn => {
@@ -850,6 +887,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.currentTarget.dataset.index, 10);
         selectedFields.splice(idx, 1);
+        syncAllFormsCombined();
         renderSelectedFields();
       });
     });
@@ -1058,6 +1096,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  function syncAllFormsCombined() {
+    const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+    if (nonAllForms.length > 1) {
+      let allEntry = detectedPageForms.find(f => f.formIndex === 'all');
+      if (!allEntry) {
+        allEntry = {
+          formIndex: 'all',
+          id: 'all_forms_combined',
+          title: `Todos los formularios combinados (${selectedFields.length} campos)`,
+          fields: selectedFields,
+          fieldsCount: selectedFields.length,
+          saveButton: null
+        };
+        detectedPageForms.unshift(allEntry);
+      } else {
+        allEntry.fields = selectedFields;
+        allEntry.fieldsCount = selectedFields.length;
+        allEntry.title = `Todos los formularios combinados (${selectedFields.length} campos)`;
+      }
+      updatePageFormsDropdown();
+      if (formsSelectorWrap) formsSelectorWrap.style.display = 'flex';
+    } else {
+      detectedPageForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+      if (formsSelectorWrap) formsSelectorWrap.style.display = 'none';
+    }
+  }
+
   function addField(fieldData) {
     // Avoid duplicate selection
     const exists = selectedFields.some(f => 
@@ -1070,7 +1135,65 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (fieldData.fillerValue === undefined) {
         fieldData.fillerValue = fieldData.suggestedFillerValue || 'Dato Válido QA';
       }
+
+      // Ensure form identity
+      const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+      let matchedForm = null;
+
+      if (fieldData.formId && fieldData.formId !== 'form_1') {
+        matchedForm = nonAllForms.find(df => 
+          (df.id && df.id === fieldData.formId) ||
+          (fieldData.formSelector && df.selector === fieldData.formSelector) ||
+          (fieldData.formTitle && df.title === fieldData.formTitle)
+        );
+      } else if (fieldData.formSelector) {
+        matchedForm = nonAllForms.find(df => df.selector && df.selector === fieldData.formSelector);
+      } else if (nonAllForms.length === 1) {
+        matchedForm = nonAllForms[0];
+      }
+
+      if (!matchedForm) {
+        const newIdx = nonAllForms.length + 1;
+        const newFormId = fieldData.formId || `form_${newIdx}`;
+        const newFormTitle = fieldData.formTitle && fieldData.formTitle !== 'Formulario Principal' 
+          ? fieldData.formTitle 
+          : `Formulario #${newIdx}`;
+
+        matchedForm = {
+          formIndex: newIdx,
+          id: newFormId,
+          title: newFormTitle,
+          selector: fieldData.formSelector || null,
+          fields: [fieldData],
+          fieldsCount: 1,
+          saveButton: fieldData.saveButton || fieldData.autoSaveButton || null,
+          isManual: true
+        };
+        detectedPageForms.push(matchedForm);
+      } else {
+        if (!matchedForm.fields) matchedForm.fields = [];
+        if (!matchedForm.fields.some(f => f.selector === fieldData.selector)) {
+          matchedForm.fields.push(fieldData);
+        }
+        matchedForm.fieldsCount = matchedForm.fields.length;
+        if (matchedForm.saveButton && !fieldData.saveButton) {
+          fieldData.saveButton = matchedForm.saveButton;
+        } else if (!matchedForm.saveButton && (fieldData.saveButton || fieldData.autoSaveButton)) {
+          matchedForm.saveButton = fieldData.saveButton || fieldData.autoSaveButton;
+        }
+      }
+
+      // Stamp field with form info
+      fieldData.formId = matchedForm.id;
+      fieldData.formIndex = matchedForm.formIndex;
+      fieldData.formTitle = matchedForm.title;
+      fieldData.formSelector = matchedForm.selector || fieldData.formSelector;
+      if (matchedForm.saveButton) {
+        fieldData.saveButton = matchedForm.saveButton;
+      }
+
       selectedFields.push(fieldData);
+      syncAllFormsCombined();
     } else {
       // Visual feedback that the field is already in the list
       const existingIdx = selectedFields.findIndex(f => 
@@ -1085,11 +1208,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           setTimeout(() => chips[existingIdx]?.classList.remove('field-chip-active'), 1200);
         }
       }
-    }
-
-    if (fieldData.autoSaveButton) {
-      fieldData.saveButton = fieldData.autoSaveButton;
-      handleSaveButtonSelected(fieldData.autoSaveButton, true, fieldData.formId || fieldData.formSelector || 'general');
     }
 
     renderSelectedFields();
@@ -1277,6 +1395,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   function handleSaveButtonSelected(btnData, isAuto = false, targetFormId = null) {
     const targetKey = targetFormId !== null ? targetFormId : activePickingFormId;
 
+    if (targetKey === 'new_manual_form') {
+      const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+      const nextIdx = nonAllForms.length + 1;
+      const newFormId = `manual_form_${Date.now()}`;
+      const newForm = {
+        formIndex: nextIdx,
+        id: newFormId,
+        title: `Formulario #${nextIdx}`,
+        selector: null,
+        fields: [],
+        fieldsCount: 0,
+        saveButton: btnData,
+        isManual: true
+      };
+      detectedPageForms.push(newForm);
+      syncAllFormsCombined();
+      renderSelectedFields();
+      renderSaveButtonsList();
+      return;
+    }
+
     if (targetKey && targetKey !== 'general' && detectedPageForms.length > 0) {
       const targetForm = detectedPageForms.find(f => (f.id && f.id === targetKey) || String(f.formIndex) === targetKey || f.selector === targetKey);
       if (targetForm) {
@@ -1310,16 +1449,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } else {
       currentSaveButton = btnData;
-      // If there is an active single form in dropdown, assign to it as well
-      const currentSelectVal = pageFormsSelect ? pageFormsSelect.value : '0';
-      const activeForm = detectedPageForms[currentSelectVal];
-      if (activeForm && activeForm.formIndex !== 'all') {
-        activeForm.saveButton = btnData;
-        if (activeForm.fields) activeForm.fields.forEach(f => { f.saveButton = btnData; });
-      }
-      // Assign to all currently selected fields only if there is a single form on the page
+      // If there is an active single form in dropdown or detectedPageForms, assign to it as well
       const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
-      if (nonAllForms.length <= 1) {
+      if (nonAllForms.length === 1) {
+        nonAllForms[0].saveButton = btnData;
+        if (nonAllForms[0].fields) nonAllForms[0].fields.forEach(f => { f.saveButton = btnData; });
+        selectedFields.forEach(f => {
+          f.saveButton = btnData;
+        });
+      } else if (nonAllForms.length === 0) {
         selectedFields.forEach(f => {
           f.saveButton = btnData;
         });
@@ -1341,88 +1479,97 @@ document.addEventListener('DOMContentLoaded', async () => {
     saveButtonBox.style.display = 'block';
     saveFormsList.innerHTML = '';
 
-    const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
-    const currentSelectVal = pageFormsSelect ? pageFormsSelect.value : '0';
-    const isAllSelected = detectedPageForms[currentSelectVal]?.formIndex === 'all';
-
-    let formsToShow = [];
-    if (nonAllForms.length > 0) {
-      if (isAllSelected) {
-        formsToShow = nonAllForms;
-      } else {
-        const currentForm = detectedPageForms[currentSelectVal];
-        formsToShow = currentForm ? [currentForm] : nonAllForms;
-      }
+    // Ensure at least one form exists in detectedPageForms if fields are selected
+    let nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+    if (nonAllForms.length === 0) {
+      const primaryForm = {
+        formIndex: 1,
+        id: selectedFields[0]?.formId || 'form_1',
+        title: selectedFields[0]?.formTitle || 'Formulario #1',
+        selector: selectedFields[0]?.formSelector || null,
+        fields: [...selectedFields],
+        fieldsCount: selectedFields.length,
+        saveButton: currentSaveButton || selectedFields[0]?.saveButton || null,
+        isManual: true
+      };
+      detectedPageForms.push(primaryForm);
+      nonAllForms = [primaryForm];
     }
 
-    if (formsToShow.length === 0) {
-      // Manual field picking or single container fallback
+    const currentSelectVal = pageFormsSelect ? pageFormsSelect.value : '0';
+    const isAllSelected = detectedPageForms[currentSelectVal]?.formIndex === 'all' || !pageFormsSelect || pageFormsSelect.value === '0';
+
+    let formsToShow = [];
+    if (isAllSelected) {
+      formsToShow = nonAllForms;
+    } else {
+      const currentForm = detectedPageForms[currentSelectVal];
+      formsToShow = currentForm ? [currentForm] : nonAllForms;
+    }
+
+    formsToShow.forEach((form, idx) => {
+      const formKey = form.id ? form.id : (form.formIndex !== undefined ? String(form.formIndex) : String(idx));
+      const isPickingThis = activePickingFormId === formKey;
       const row = document.createElement('div');
-      const isPickingThis = activePickingFormId === 'general';
       row.className = `save-form-row ${isPickingThis ? 'picking-active' : ''}`;
-      const btnText = currentSaveButton ? (currentSaveButton.text || currentSaveButton.value || 'Botón Guardar') : 'Auto / No asignado';
-      const isConfigured = !!currentSaveButton;
+
+      const formSaveBtn = form.saveButton || null;
+      const btnText = formSaveBtn ? (formSaveBtn.text || formSaveBtn.value || 'Botón Guardar') : 'No asignado (Auto)';
+      const isConfigured = !!formSaveBtn;
+
+      // Dynamically count fields matching this form
+      const fieldCount = selectedFields.filter(fld => 
+        (fld.formId && fld.formId === form.id) ||
+        (fld.formIndex !== undefined && String(fld.formIndex) === String(form.formIndex)) ||
+        (form.selector && fld.formSelector === form.selector) ||
+        (form.fields && form.fields.some(ff => ff.selector === fld.selector || ff.id === fld.id))
+      ).length;
+
+      const canDelete = nonAllForms.length > 1;
 
       row.innerHTML = `
         <div class="save-form-row-header">
-          <span class="save-form-name">
+          <span class="save-form-name" title="${escapeHtml(form.title)}">
             <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="11" y2="17"></line></svg>
-            Formulario Activo
+            ${escapeHtml(form.title)}
           </span>
-          <span class="save-form-count">${selectedFields.length} campos</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="save-form-count">${fieldCount} campo${fieldCount !== 1 ? 's' : ''}</span>
+            ${canDelete ? `
+              <button class="btn-subtle btn-delete-form" data-target="${escapeHtml(formKey)}" title="Eliminar este grupo de formulario" style="color: #f87171; padding: 1px 4px; font-size: 11px; line-height: 1;">
+                &times;
+              </button>
+            ` : ''}
+          </div>
         </div>
         <div class="save-form-row-body">
           <span class="pill ${isConfigured ? 'pill-save' : 'pill-idle'}" title="${escapeHtml(btnText)}">
             ${escapeHtml(btnText)}
           </span>
           <div class="save-form-actions">
-            <button class="btn-sm btn-subtle btn-inspect-save" data-target="general" ${!isConfigured ? 'disabled style="display:none;"' : ''} title="Resaltar botón en la página">
+            <button class="btn-sm btn-subtle btn-inspect-save" data-target="${escapeHtml(formKey)}" ${!isConfigured ? 'disabled style="display:none;"' : ''} title="Resaltar botón en la página">
               <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="3"></circle></svg>Ver
             </button>
-            <button class="btn-sm btn-outline btn-change-save" data-target="general" title="Seleccionar botón haciendo clic en la página">
+            <button class="btn-sm btn-outline btn-change-save" data-target="${escapeHtml(formKey)}" title="Seleccionar botón para este formulario">
               <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>${isPickingThis ? 'Cancelar (ESC)' : 'Cambiar botón'}
             </button>
           </div>
         </div>
       `;
       saveFormsList.appendChild(row);
-    } else {
-      formsToShow.forEach((form, idx) => {
-        const formKey = form.id ? form.id : (form.formIndex !== undefined ? String(form.formIndex) : String(idx));
-        const isPickingThis = activePickingFormId === formKey;
-        const row = document.createElement('div');
-        row.className = `save-form-row ${isPickingThis ? 'picking-active' : ''}`;
+    });
 
-        const formSaveBtn = form.saveButton || null;
-        const btnText = formSaveBtn ? (formSaveBtn.text || formSaveBtn.value || 'Botón Guardar') : 'No asignado (Auto)';
-        const isConfigured = !!formSaveBtn;
-        const fieldCount = form.fieldsCount || (form.fields ? form.fields.length : 0);
-
-        row.innerHTML = `
-          <div class="save-form-row-header">
-            <span class="save-form-name" title="${escapeHtml(form.title)}">
-              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="11" y2="17"></line></svg>
-              ${escapeHtml(form.title)}
-            </span>
-            <span class="save-form-count">${fieldCount} campos</span>
-          </div>
-          <div class="save-form-row-body">
-            <span class="pill ${isConfigured ? 'pill-save' : 'pill-idle'}" title="${escapeHtml(btnText)}">
-              ${escapeHtml(btnText)}
-            </span>
-            <div class="save-form-actions">
-              <button class="btn-sm btn-subtle btn-inspect-save" data-target="${escapeHtml(formKey)}" ${!isConfigured ? 'disabled style="display:none;"' : ''} title="Resaltar botón en la página">
-                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="3"></circle></svg>Ver
-              </button>
-              <button class="btn-sm btn-outline btn-change-save" data-target="${escapeHtml(formKey)}" title="Seleccionar botón para este formulario">
-                <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>${isPickingThis ? 'Cancelar (ESC)' : 'Cambiar botón'}
-              </button>
-            </div>
-          </div>
-        `;
-        saveFormsList.appendChild(row);
-      });
-    }
+    // Action button to add another save button / form group manually
+    const isPickingNew = activePickingFormId === 'new_manual_form';
+    const addBtnRow = document.createElement('div');
+    addBtnRow.style.marginTop = '4px';
+    addBtnRow.innerHTML = `
+      <button id="btn-add-manual-save-form" class="btn-add-save-form ${isPickingNew ? 'btn-primary' : ''}">
+        <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>${isPickingNew ? 'Haz clic en el nuevo botón en la página (ESC para cancelar)' : 'Añadir botón para otro formulario'}</span>
+      </button>
+    `;
+    saveFormsList.appendChild(addBtnRow);
 
     // Attach inspect listeners
     saveFormsList.querySelectorAll('.btn-inspect-save').forEach(btn => {
@@ -1474,6 +1621,63 @@ document.addEventListener('DOMContentLoaded', async () => {
               formTitle: formTitle
             });
           }
+        }
+      });
+    });
+
+    // Attach add manual save form button listener
+    const addBtn = saveFormsList.querySelector('#btn-add-manual-save-form');
+    if (addBtn) {
+      addBtn.addEventListener('click', async () => {
+        if (isPickingButtonActive && activePickingFormId === 'new_manual_form') {
+          setButtonPickingState(false);
+          const tab = await getActiveTab();
+          if (tab?.id) {
+            chrome.tabs.sendMessage(tab.id, { action: 'CANCEL_PICKING' });
+          }
+        } else {
+          activePickingFormId = 'new_manual_form';
+          setButtonPickingState(true);
+          const tab = await getActiveTab();
+          if (tab?.id) {
+            activeTabId = tab.id;
+            await ensureContentScriptInjected(tab.id);
+            const nextIdx = detectedPageForms.filter(f => f.formIndex !== 'all').length + 1;
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'START_PICKING_BUTTON',
+              formTitle: `Formulario #${nextIdx}`
+            });
+          }
+        }
+      });
+    }
+
+    // Attach delete form button listener
+    saveFormsList.querySelectorAll('.btn-delete-form').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget.dataset.target;
+        const nonAllForms = detectedPageForms.filter(f => f.formIndex !== 'all');
+        if (nonAllForms.length <= 1) return;
+        const formIdx = detectedPageForms.findIndex(f => (f.id && f.id === target) || String(f.formIndex) === target);
+        if (formIdx !== -1) {
+          const removedForm = detectedPageForms[formIdx];
+          detectedPageForms.splice(formIdx, 1);
+          // Reassign any fields that belonged to this form to the first available form
+          const firstForm = detectedPageForms.find(f => f.formIndex !== 'all');
+          if (firstForm) {
+            selectedFields.forEach(fld => {
+              if (fld.formId === removedForm.id || String(fld.formIndex) === String(removedForm.formIndex)) {
+                fld.formId = firstForm.id;
+                fld.formIndex = firstForm.formIndex;
+                fld.formTitle = firstForm.title;
+                fld.formSelector = firstForm.selector || fld.formSelector;
+                fld.saveButton = firstForm.saveButton || null;
+              }
+            });
+          }
+          syncAllFormsCombined();
+          renderSelectedFields();
+          renderSaveButtonsList();
         }
       });
     });

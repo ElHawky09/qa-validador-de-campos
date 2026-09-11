@@ -494,45 +494,6 @@
     return null;
   }
 
-  // Extract comprehensive element metadata
-  function getElementMetadata(el, allowHidden = false) {
-    const parentForm = el.form || el.closest('form, [role="form"], .modal, .card, .section');
-    const formSaveBtn = autoDetectSaveButton(el, allowHidden);
-    return {
-      tag: el.tagName.toLowerCase(),
-      type: (el.getAttribute('type') || (el.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text')).toLowerCase(),
-      isUrlField: isUrlField(el),
-      id: el.id || '',
-      name: el.name || '',
-      placeholder: el.getAttribute('placeholder') || '',
-      label: getElementLabel(el),
-      maxLength: el.maxLength >= 0 ? el.maxLength : null,
-      minLength: el.minLength >= 0 ? el.minLength : null,
-      min: el.getAttribute('min') || null,
-      max: el.getAttribute('max') || null,
-      step: el.getAttribute('step') || null,
-      pattern: el.getAttribute('pattern') || null,
-      required: !!el.required || el.getAttribute('aria-required') === 'true',
-      suggestedFillerValue: generateSmartDummyValue(el),
-      initialValue: el.value !== undefined ? el.value : el.innerText,
-      selector: getUniqueSelector(el),
-      formSelector: parentForm ? getUniqueSelector(parentForm) : null,
-      saveButton: formSaveBtn ? getButtonMetadata(formSaveBtn) : null
-    };
-  }
-
-  function getButtonMetadata(el) {
-    if (!el) return null;
-    const text = el.innerText?.trim() || el.value || el.getAttribute('aria-label') || 'Botón';
-    return {
-      text: text.slice(0, 30),
-      tag: el.tagName.toLowerCase(),
-      id: el.id || '',
-      type: el.getAttribute('type') || 'submit',
-      selector: getUniqueSelector(el)
-    };
-  }
-
   // Extract human-readable title for a form or container
   function getFormTitle(formEl, index = 1) {
     if (!formEl) return `Formulario #${index}`;
@@ -560,6 +521,50 @@
     }
 
     return `Formulario #${index}`;
+  }
+
+  // Extract comprehensive element metadata
+  function getElementMetadata(el, allowHidden = false) {
+    const parentForm = el.form || el.closest('form, [role="form"], .modal, .card, .section');
+    const formSaveBtn = autoDetectSaveButton(el, allowHidden);
+    const formId = parentForm ? (parentForm.id || getUniqueSelector(parentForm)) : 'form_1';
+    const formTitle = parentForm ? getFormTitle(parentForm) : 'Formulario Principal';
+    const formSelector = parentForm ? getUniqueSelector(parentForm) : null;
+    return {
+      tag: el.tagName.toLowerCase(),
+      type: (el.getAttribute('type') || (el.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text')).toLowerCase(),
+      isUrlField: isUrlField(el),
+      id: el.id || '',
+      name: el.name || '',
+      placeholder: el.getAttribute('placeholder') || '',
+      label: getElementLabel(el),
+      maxLength: el.maxLength >= 0 ? el.maxLength : null,
+      minLength: el.minLength >= 0 ? el.minLength : null,
+      min: el.getAttribute('min') || null,
+      max: el.getAttribute('max') || null,
+      step: el.getAttribute('step') || null,
+      pattern: el.getAttribute('pattern') || null,
+      required: !!el.required || el.getAttribute('aria-required') === 'true',
+      suggestedFillerValue: generateSmartDummyValue(el),
+      initialValue: el.value !== undefined ? el.value : el.innerText,
+      selector: getUniqueSelector(el),
+      formId: formId,
+      formTitle: formTitle,
+      formSelector: formSelector,
+      saveButton: formSaveBtn ? getButtonMetadata(formSaveBtn) : null
+    };
+  }
+
+  function getButtonMetadata(el) {
+    if (!el) return null;
+    const text = el.innerText?.trim() || el.value || el.getAttribute('aria-label') || 'Botón';
+    return {
+      text: text.slice(0, 30),
+      tag: el.tagName.toLowerCase(),
+      id: el.id || '',
+      type: el.getAttribute('type') || 'submit',
+      selector: getUniqueSelector(el)
+    };
   }
 
   // Scan and discover ALL forms and form modules across the page
