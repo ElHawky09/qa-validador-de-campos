@@ -1738,13 +1738,71 @@ document.addEventListener('DOMContentLoaded', async () => {
     else {
       // Distinguish between genuine risk vs normal expected test
       if (testItem.isInvalidCase) {
-        status = 'risk';
-        badgeText = 'Riesgo: Sin Restricción';
-        badgeClass = 'res-risk';
-        detail = triggerSave 
-          ? `¡Atención! El sitio no solo aceptó ${resLen} caracteres en el campo, sino que además permitió pulsar Guardar sin disparar ningún error ni advertencia.`
-          : `Aceptó ${resLen} caracteres anómalos en el campo sin recortar ni validar.`;
-        recommendation = 'Crítico: El formulario no cuenta con validación para este caso ni en el campo ni al guardar. Es necesario implementar validación obligatoria.';
+        // Detailed domain-specific evaluation
+        if (testItem.id === 'txt_only_spaces' || (typeof payload === 'string' && payload.length > 0 && payload.trim() === '')) {
+          status = 'warning';
+          badgeText = 'Defecto de Formato (Espacios)';
+          badgeClass = 'res-logic';
+          detail = `Se ingresó una cadena compuesta únicamente por espacios en blanco (${payLen} caracteres). El formulario permitió guardarla sin recortar ni requerir texto visible, generando registros vacíos o invisibles.`;
+          recommendation = 'Aplicar .trim() obligatorio en frontend y backend antes de evaluar minLength > 0 para impedir el almacenamiento de registros vacíos.';
+        } else if (testItem.id === 'txt_zero_width' || (typeof payload === 'string' && /[\u200B-\u200D\uFEFF]/.test(payload))) {
+          status = 'warning';
+          badgeText = 'Riesgo de Integridad (Spoofing)';
+          badgeClass = 'res-integrity';
+          detail = `El campo aceptó ${resLen} caracteres incluyendo caracteres invisibles de control Unicode (\\u200B-\\u200D, \\uFEFF). Esto puede facilitar la suplantación visual de identidad o evasión de filtros.`;
+          recommendation = 'Filtrar caracteres de control y formato Unicode (rangos \\u200B-\\u200D, \\uFEFF) mediante expresión regular o normalización previa al almacenamiento.';
+        } else if (testItem.id === 'txt_15_digits' || (typeof payload === 'string' && /^\d{10,}$/.test(payload) && field.type !== 'number' && field.type !== 'tel')) {
+          status = 'warning';
+          badgeText = 'Regla de Negocio (Formato)';
+          badgeClass = 'res-format';
+          detail = `Se ingresó una cadena de ${payLen} dígitos numéricos ('${payload}'). El formulario la aceptó en un campo textual sin verificar regla alfabética ni restricción de tipo de dato.`;
+          recommendation = 'Validar formato con expresión regular que restrinja dígitos y exija caracteres alfabéticos para nombres personales o campos lingüísticos.';
+        } else if (testItem.id === 'txt_1000' || testItem.id === 'txt_5000' || payLen >= 1000) {
+          status = 'risk';
+          badgeText = 'Riesgo de Capacidad (DoS / Búfer)';
+          badgeClass = 'res-capacity';
+          detail = `El formulario aceptó y guardó una carga extensa de ${resLen} caracteres sin aplicar límite maxlength ni validación de longitud máxima en frontend o backend.`;
+          recommendation = 'Definir atributo maxlength en HTML y restringir rígidamente en el backend (ej. máximo 100-150 caracteres para nombres o datos breves) para mitigar desbordamientos y denegación de servicio.';
+        } else if (testItem.id === 'sec_script' || testItem.id === 'sec_img_onerror' || testItem.id === 'sec_html_tags' || (testItem.category === 'security' && /<[a-z][\s\S]*>/i.test(payload))) {
+          status = 'risk';
+          badgeText = 'Falta de Filtrado (Riesgo XSS)';
+          badgeClass = 'res-risk';
+          const sample = payload.length > 32 ? payload.slice(0, 30) + '...' : payload;
+          detail = `El campo guardó sintaxis HTML/JavaScript ('${sample}') sin validación de lista blanca (allowlist). Nota técnica: La aceptación en el input no implica XSS ejecutable automático; el riesgo real surge si la aplicación renderiza este contenido en el navegador sin escapado contextual (output encoding).`;
+          recommendation = 'Validar caracteres permitidos en el input mediante lista blanca (allowlist) y garantizar sanitización y escapado HTML context-aware al renderizar los datos en el navegador.';
+        } else if (testItem.id === 'sec_sql_basic' || (testItem.category === 'security' && /('|--|\bOR\b|\bAND\b)/i.test(payload))) {
+          status = 'risk';
+          badgeText = 'Falta de Filtrado (Sintaxis SQL)';
+          badgeClass = 'res-risk';
+          detail = `El formulario aceptó caracteres de sintaxis SQL ('${payload}'). Nota técnica: Aceptar sintaxis SQL en la entrada no implica inyección ejecutable por sí sola; el riesgo existe únicamente si la capa de persistencia concatena sentencias sin consultas preparadas.`;
+          recommendation = 'Implementar sentencias preparadas (parameterized queries) o uso estricto de ORM en backend; restringir caracteres de sintaxis SQL innecesarios en la capa de entrada.';
+        } else if (testItem.id === 'sec_null_byte' || (typeof payload === 'string' && payload.includes('\u0000'))) {
+          status = 'risk';
+          badgeText = 'Falta de Filtrado (Null Byte)';
+          badgeClass = 'res-risk';
+          detail = `El campo aceptó el carácter de terminación nula (\\0). Aunque JavaScript maneja cadenas con terminador nulo, puede truncar cadenas al interactuar con librerías nativas C/C++ o rutas del sistema de archivos en el backend.`;
+          recommendation = 'Rechazar o filtrar caracteres de control ASCII (código 0 / \\0) en la capa de validación de entrada antes de procesar o persistir.';
+        } else if (testItem.category === 'date') {
+          status = 'warning';
+          badgeText = 'Fecha Inválida Aceptada';
+          badgeClass = 'res-format';
+          detail = `El formulario permitió ingresar y guardar la fecha '${payload}', la cual no corresponde a un día o mes válido en el calendario o se encuentra fuera del rango de negocio.`;
+          recommendation = 'Utilizar un control nativo con tipo date o implementar validación estricta de calendario (año bisiesto, 28-31 días, meses 1-12) en frontend y backend.';
+        } else if (testItem.category === 'number') {
+          status = 'warning';
+          badgeText = 'Dato No Numérico Aceptado';
+          badgeClass = 'res-format';
+          detail = `El campo numérico aceptó el valor '${payload}' sin forzar formato numérico ni validar límites.`;
+          recommendation = 'Configurar el atributo type="number" o regex de validación numérica, y validar estrictamente en el backend.';
+        } else {
+          status = 'risk';
+          badgeText = 'Riesgo: Sin Restricción';
+          badgeClass = 'res-risk';
+          detail = triggerSave 
+            ? `El formulario guardó ${resLen} caracteres anómalos ('${payload.slice(0, 25)}...') sin disparar alertas ni validaciones.`
+            : `Aceptó ${resLen} caracteres anómalos en el campo sin recortar ni validar.`;
+          recommendation = 'Definir reglas de validación en frontend y backend para delimitar los valores permitidos según las especificaciones del campo.';
+        }
       } else {
         // Normal, benign, valid test input
         status = 'conforme';
@@ -1817,7 +1875,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const total = testResults.length;
     const restricted = testResults.filter(r => r.status === 'restricted_save' || r.status === 'restricted_field').length;
     const conforme = testResults.filter(r => r.status === 'conforme').length;
-    const risk = testResults.filter(r => r.status === 'risk').length;
+    const risk = testResults.filter(r => r.status === 'risk' || r.status === 'warning').length;
 
     kpiTotal.innerText = total;
     kpiRestricted.innerText = restricted;
@@ -1852,7 +1910,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         (activeFilter === 'restricted' && (status === 'restricted_save' || status === 'restricted_field')) ||
         (activeFilter === 'conforme' && status === 'conforme') ||
         (activeFilter === 'truncated' && status === 'truncated') ||
-        (activeFilter === 'risk' && status === 'risk');
+        (activeFilter === 'risk' && (status === 'risk' || status === 'warning'));
 
       const matchesField = 
         activeFieldFilter === 'all' || 
@@ -2011,13 +2069,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const total = testResults.length;
     const restricted = testResults.filter(r => r.status === 'restricted_save' || r.status === 'restricted_field').length;
     const conforme = testResults.filter(r => r.status === 'conforme').length;
-    const risk = testResults.filter(r => r.status === 'risk').length;
+    const risk = testResults.filter(r => r.status === 'risk' || r.status === 'warning').length;
 
     let rowsHtml = '';
     testResults.forEach(r => {
       let badgeStyle = 'color: #0284c7; font-weight: bold;';
       if (r.status === 'restricted_save' || r.status === 'restricted_field') badgeStyle = 'color: #15803d; font-weight: bold;';
       else if (r.status === 'truncated') badgeStyle = 'color: #b45309; font-weight: bold;';
+      else if (r.status === 'warning') badgeStyle = 'color: #d97706; font-weight: bold;';
       else if (r.status === 'risk') badgeStyle = 'color: #b91c1c; font-weight: bold;';
 
       rowsHtml += `
