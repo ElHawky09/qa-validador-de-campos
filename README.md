@@ -66,11 +66,14 @@ Extensión para **Microsoft Edge**, **Brave** y **Google Chrome** diseñada para
    - Selecciona el nivel de profundidad deseado (*Simple*, *Normal*, *Avanzado*, *Total*) o filtra por categoría (*Texto*, *Unicode*, *Números*, *Fechas*, *Seguridad*, *Propios*).
 5. **Ejecución:**
    - Haz clic en **Iniciar Verificación**. La extensión aplicará los casos secuencialmente registrando el estado del DOM y la respuesta de guardado.
-6. **Revisión de Resultados:**
-   - **Restringido:** El formulario bloqueó el valor inválido correctamente.
-   - **Truncado:** El valor fue recortado según el atributo o máscara configurada.
-   - **Conforme:** Entrada válida admitida y procesada correctamente.
-   - **Riesgo:** Valor anómalo o inválido admitido sin restricción ni advertencia.
+6. **Revisión de Resultados y Diagnóstico Técnico:**
+   - **Restringido:** El formulario bloqueó el valor anómalo correctamente (directamente en el campo o al presionar guardar).
+   - **Truncado:** El valor fue recortado según el atributo `maxlength` o máscara en frontend.
+   - **Conforme:** Entrada válida admitida y procesada según el flujo esperado.
+   - **Defecto de Formato / Lógica:** Anomalía de calidad de datos o regla de negocio (ej. solo espacios en blanco o dígitos en nombres personales), sin falsos positivos de severidad crítica.
+   - **Riesgo de Integridad (Spoofing):** Detección de caracteres invisibles o de control Unicode (zero-width) susceptibles de suplantación visual o evasión de filtros.
+   - **Riesgo de Capacidad (DoS / Búfer):** Aceptación de volúmenes excesivos de caracteres sin límite de longitud ni `maxlength`.
+   - **Falta de Filtrado (Riesgo XSS / Sintaxis SQL):** Ausencia de validación por lista blanca (*allowlist*) en el input, detallando la distinción entre almacenamiento en entrada y riesgo real en tiempo de ejecución (renderizado sin escapado contextual para XSS o concatenación directa sin consultas parametrizadas para SQLi).
 7. **Exportación:**
    - Genera informes en Notion, Markdown, CSV o vista de impresión formal PDF.
 
