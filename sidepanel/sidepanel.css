@@ -914,6 +914,28 @@ h2 {
   border: 1px solid rgba(239, 68, 68, 0.5);
 }
 
+/* Business logic and data quality format defects (amber/yellow) */
+.res-logic,
+.res-format {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+/* Integrity and visual spoofing defects (orange) */
+.res-integrity {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.45);
+}
+
+/* Capacity and DoS risks (crimson) */
+.res-capacity {
+  background: rgba(225, 29, 72, 0.2);
+  color: #fb7185;
+  border: 1px solid rgba(225, 29, 72, 0.45);
+}
+
 .res-error {
   background: rgba(168, 85, 247, 0.15);
   color: #c084fc;
