@@ -166,6 +166,64 @@
     return null;
   }
 
+  // Resolve a save button element from its metadata, scoping search to the field's form/container
+  // This avoids the problem of resolveFieldElement falling back to targetElement (a random field)
+  // and resolveElementByStep finding the first global button with the same text.
+  function resolveSaveButton(btnMeta, fieldEl) {
+    if (!btnMeta) return null;
+
+    // 1. Try by id (IDs are globally unique)
+    if (btnMeta.id) {
+      const byId = document.getElementById(btnMeta.id);
+      if (byId) return byId;
+    }
+
+    // 2. Try by unique CSS selector
+    if (btnMeta.selector) {
+      try {
+        const bySel = document.querySelector(btnMeta.selector);
+        if (bySel) return bySel;
+      } catch (e) {
+        console.warn('Save button selector error:', e);
+      }
+    }
+
+    // 3. If resolution by id/selector failed, search by text SCOPED to the field's form
+    if (btnMeta.text && fieldEl) {
+      const fieldForm = fieldEl.form || fieldEl.closest('form, [role="form"], .form-module-card, .modal, .card, .section');
+      if (fieldForm) {
+        const textTrim = btnMeta.text.trim().toLowerCase();
+        const candidates = Array.from(fieldForm.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"]'));
+        // Exact match inside the form
+        const exactInForm = candidates.find(c => {
+          const cText = (c.innerText || c.value || c.getAttribute('aria-label') || '').trim().toLowerCase();
+          return cText === textTrim && isElementVisible(c);
+        });
+        if (exactInForm) return exactInForm;
+        // Partial match inside the form
+        const partialInForm = candidates.find(c => {
+          const cText = (c.innerText || c.value || c.getAttribute('aria-label') || '').trim().toLowerCase();
+          return cText.length < 60 && (cText.includes(textTrim) || textTrim.includes(cText)) && isElementVisible(c);
+        });
+        if (partialInForm) return partialInForm;
+      }
+    }
+
+    // 4. Global fallback by text (only if scoped search failed)
+    if (btnMeta.text) {
+      const textTrim = btnMeta.text.trim().toLowerCase();
+      const interactives = Array.from(document.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"]'));
+      const exactBtn = interactives.find(c => {
+        const cText = (c.innerText || c.value || c.getAttribute('aria-label') || '').trim().toLowerCase();
+        return cText === textTrim && isElementVisible(c);
+      });
+      if (exactBtn) return exactBtn;
+    }
+
+    return null;
+  }
+
+
   // Execute sequence of clicks to reopen a collapsible / modal form
   async function executeReopenSequence(steps, waitBetweenMs = 400) {
     if (!Array.isArray(steps) || steps.length === 0) return true;
@@ -1238,28 +1296,69 @@
         let btnToClick = null;
 
         // 1. Explicit save button assigned from sidepanel (per-form or field)
+        //    Use resolveSaveButton which is scoped to the field's form and does NOT
+        //    fall back to targetElement or global first-match by text.
         const targetBtnMeta = options.saveButton || options.fieldInfo?.saveButton;
         if (targetBtnMeta) {
-          const resolvedBtn = resolveFieldElement(targetBtnMeta) || resolveElementByStep(targetBtnMeta);
+          const resolvedBtn = resolveSaveButton(targetBtnMeta, el);
           if (resolvedBtn && isElementVisible(resolvedBtn)) {
             btnToClick = resolvedBtn;
           }
         }
 
-        // 2. Local button auto-detected inside the field's container
+        // 1b. If explicit button failed but we know the field's detected form container (formSelector),
+        //     search for the button INSIDE that specific container. This is critical for SPAs that
+        //     don't use <form> tags but wrap fields in generic divs/cards/sections.
+        if (!btnToClick && options.fieldInfo?.formSelector) {
+          try {
+            const formContainer = document.querySelector(options.fieldInfo.formSelector);
+            if (formContainer) {
+              // Look for submit/save buttons strictly within this detected form container
+              const explicitSubmit = formContainer.querySelector('button[type="submit"], input[type="submit"]');
+              if (explicitSubmit && isElementVisible(explicitSubmit)) {
+                btnToClick = explicitSubmit;
+              }
+              if (!btnToClick) {
+                const btns = Array.from(formContainer.querySelectorAll('button, input[type="button"], a.btn, [role="button"]'));
+                for (const btn of btns) {
+                  if (!isElementVisible(btn)) continue;
+                  const text = (btn.innerText || btn.value || '').toLowerCase();
+                  if (/guardar|save|enviar|submit|actualizar|update|crear|create|aceptar|confirmar|continuar/.test(text)) {
+                    btnToClick = btn;
+                    break;
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('formSelector-scoped button search error:', e);
+          }
+        }
+
+        // 2. Local button auto-detected inside the field's own form/container
+        //    Use allowHidden=true so we find buttons in tabs/drawers that were not visible at scan time
         if (!btnToClick) {
-          const localBtn = autoDetectSaveButton(el);
+          const localBtn = autoDetectSaveButton(el, true);
           if (localBtn && isElementVisible(localBtn)) {
             btnToClick = localBtn;
           }
         }
 
-        // 3. Fallback to globally selected button ONLY IF it belongs to the same form or container
+        // 3. Fallback to globally selected button ONLY IF it belongs to the SAME form or container
+        //    as the target field. If they belong to different forms, skip entirely.
         if (!btnToClick && saveButtonElement && isElementVisible(saveButtonElement)) {
-          const fieldForm = el.form || el.closest('form, [role="form"], .form-module-card, .modal, .card, .section');
-          const btnForm = saveButtonElement.form || saveButtonElement.closest('form, [role="form"], .form-module-card, .modal, .card, .section');
-          if (!fieldForm || !btnForm || fieldForm === btnForm) {
+          const fieldForm = el.form || el.closest('form, [role="form"]');
+          const btnForm = saveButtonElement.form || saveButtonElement.closest('form, [role="form"]');
+          // Only use global button if both are in the same <form> or both lack a <form>
+          if (fieldForm && btnForm && fieldForm === btnForm) {
             btnToClick = saveButtonElement;
+          } else if (!fieldForm && !btnForm) {
+            // Neither is in a <form>, check broader containers
+            const fieldContainer = el.closest('.form-module-card, .modal, .card, .section');
+            const btnContainer = saveButtonElement.closest('.form-module-card, .modal, .card, .section');
+            if (fieldContainer && btnContainer && fieldContainer === btnContainer) {
+              btnToClick = saveButtonElement;
+            }
           }
         }
 
