@@ -262,71 +262,136 @@
     <section id="results-card" class="card" style="display: none;">
       <div class="card-header">
         <h2>4. Reporte de Resultados</h2>
-        <button id="btn-clear-results" class="btn-subtle" title="Limpiar reporte">Limpiar</button>
-      </div>
-
-      <!-- Summary KPI Counters -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-num" id="kpi-total">0</div>
-          <div class="kpi-desc">Total Pruebas</div>
-        </div>
-        <div class="kpi-card kpi-success">
-          <div class="kpi-num" id="kpi-restricted">0</div>
-          <div class="kpi-desc"><span class="status-dot status-dot-success" style="margin-right: 3px;"></span>Restringidas</div>
-        </div>
-        <div class="kpi-card kpi-conforme">
-          <div class="kpi-num" id="kpi-conforme">0</div>
-          <div class="kpi-desc"><span class="status-dot status-dot-info" style="margin-right: 3px;"></span>Conformes</div>
-        </div>
-        <div class="kpi-card kpi-danger">
-          <div class="kpi-num" id="kpi-risk">0</div>
-          <div class="kpi-desc"><span class="status-dot status-dot-danger" style="margin-right: 3px;"></span>Con Riesgo</div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="view-toggle-group" role="tablist" aria-label="Modo de vista de resultados">
+            <button id="btn-view-table" class="view-toggle-btn active" role="tab" aria-selected="true" title="Ver tabla detallada de resultados">
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="4" cy="6" r="1.5"></circle><circle cx="4" cy="12" r="1.5"></circle><circle cx="4" cy="18" r="1.5"></circle></svg>
+              <span>Tabla</span>
+            </button>
+            <button id="btn-view-dashboard" class="view-toggle-btn" role="tab" aria-selected="false" title="Ver dashboard de riesgos estructurado">
+              <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+              <span>Dashboard</span>
+            </button>
+          </div>
+          <button id="btn-clear-results" class="btn-subtle" title="Limpiar reporte">Limpiar</button>
         </div>
       </div>
 
-      <!-- Filter results bar -->
-      <div class="results-filter-bar">
-        <div class="filter-group">
-          <span>Estado:</span>
-          <button class="filter-chip active" data-filter="all">Todos</button>
-          <button class="filter-chip" data-filter="restricted"><span class="status-dot status-dot-success" style="margin-right: 4px;"></span>Restringidos</button>
-          <button class="filter-chip" data-filter="conforme"><span class="status-dot status-dot-info" style="margin-right: 4px;"></span>Conformes</button>
-          <button class="filter-chip" data-filter="truncated"><span class="status-dot status-dot-warning" style="margin-right: 4px;"></span>Truncados</button>
-          <button class="filter-chip" data-filter="risk"><span class="status-dot status-dot-danger" style="margin-right: 4px;"></span>Con Riesgo</button>
+      <!-- Table View Container -->
+      <div id="table-view-container">
+        <!-- Summary KPI Counters -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-num" id="kpi-total">0</div>
+            <div class="kpi-desc">Total Pruebas</div>
+          </div>
+          <div class="kpi-card kpi-success">
+            <div class="kpi-num" id="kpi-restricted">0</div>
+            <div class="kpi-desc"><span class="status-dot status-dot-success" style="margin-right: 3px;"></span>Restringidas</div>
+          </div>
+          <div class="kpi-card kpi-conforme">
+            <div class="kpi-num" id="kpi-conforme">0</div>
+            <div class="kpi-desc"><span class="status-dot status-dot-info" style="margin-right: 3px;"></span>Conformes</div>
+          </div>
+          <div class="kpi-card kpi-danger">
+            <div class="kpi-num" id="kpi-risk">0</div>
+            <div class="kpi-desc"><span class="status-dot status-dot-danger" style="margin-right: 3px;"></span>Con Riesgo</div>
+          </div>
         </div>
 
-        <div class="filter-group">
-          <label for="filter-field-select" class="sub-label">Campo:</label>
-          <select id="filter-field-select" class="select-input" style="padding: 2px 6px; font-size: 10px;">
-            <option value="all">Todos los campos</option>
-          </select>
+        <!-- Filter results bar -->
+        <div class="results-filter-bar">
+          <div class="filter-group">
+            <span>Estado:</span>
+            <button class="filter-chip active" data-filter="all">Todos</button>
+            <button class="filter-chip" data-filter="restricted"><span class="status-dot status-dot-success" style="margin-right: 4px;"></span>Restringidos</button>
+            <button class="filter-chip" data-filter="conforme"><span class="status-dot status-dot-info" style="margin-right: 4px;"></span>Conformes</button>
+            <button class="filter-chip" data-filter="truncated"><span class="status-dot status-dot-warning" style="margin-right: 4px;"></span>Truncados</button>
+            <button class="filter-chip" data-filter="risk"><span class="status-dot status-dot-danger" style="margin-right: 4px;"></span>Con Riesgo</button>
+          </div>
+
+          <div class="filter-group">
+            <label for="filter-field-select" class="sub-label">Campo:</label>
+            <select id="filter-field-select" class="select-input" style="padding: 2px 6px; font-size: 10px;">
+              <option value="all">Todos los campos</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="table-responsive">
+          <table id="results-table" class="report-table">
+            <caption class="sr-only">Resultados detallados de auditoría de campos</caption>
+            <thead>
+              <tr>
+                <th scope="col">Nombre del Campo</th>
+                <th scope="col">Input Probado</th>
+                <th scope="col">Resultado</th>
+                <th scope="col">Detalle del Sitio</th>
+                <th scope="col">Recomendación</th>
+              </tr>
+            </thead>
+            <tbody id="results-tbody">
+              <!-- Populated via JavaScript -->
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Results Table -->
-      <div class="table-responsive">
-        <table id="results-table" class="report-table">
-          <caption class="sr-only">Resultados detallados de auditoría de campos</caption>
-          <thead>
-            <tr>
-              <th scope="col">Nombre del Campo</th>
-              <th scope="col">Input Probado</th>
-              <th scope="col">Resultado</th>
-              <th scope="col">Detalle del Sitio</th>
-              <th scope="col">Recomendación</th>
-            </tr>
-          </thead>
-          <tbody id="results-tbody">
-            <!-- Populated via JavaScript -->
-          </tbody>
-        </table>
+      <!-- Dashboard View Container (Structured by Risk Type) -->
+      <div id="dashboard-view-container" style="display: none;">
+        <!-- Global Risk Score Banner -->
+        <div class="dashboard-health-card">
+          <div class="health-header">
+            <span class="health-title">
+              <svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              Diagnóstico de Robustez del Formulario
+            </span>
+            <span id="dashboard-risk-level-badge" class="badge badge-idle">Calculando...</span>
+          </div>
+          <div class="health-body">
+            <div class="health-score-circle">
+              <span id="dashboard-score-val" class="score-number">--%</span>
+              <span class="score-label">Robustez</span>
+            </div>
+            <div class="health-summary-text">
+              <p id="dashboard-summary-msg">Inicia las pruebas para ver el análisis de riesgo estructurado.</p>
+              <div class="health-mini-stats">
+                <span id="stat-critical-count" class="mini-tag tag-critical">0 Críticos</span>
+                <span id="stat-high-count" class="mini-tag tag-high">0 Altos</span>
+                <span id="stat-medium-count" class="mini-tag tag-medium">0 Medios</span>
+                <span id="stat-safe-count" class="mini-tag tag-safe">0 Seguros</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Multi-segment Risk Distribution Progress Bar -->
+          <div class="risk-distribution-box">
+            <div class="distribution-header">
+              <span class="sub-label">Distribución de Pruebas por Severidad:</span>
+            </div>
+            <div id="dashboard-dist-bar" class="risk-distribution-bar" role="progressbar" aria-label="Distribución proporcional de riesgos">
+              <div class="dist-seg seg-critical" style="width: 0%;" title="Seguridad (Crítico)"></div>
+              <div class="dist-seg seg-high" style="width: 0%;" title="Capacidad DoS (Alto)"></div>
+              <div class="dist-seg seg-medium" style="width: 0%;" title="Integridad / Formato (Medio)"></div>
+              <div class="dist-seg seg-safe" style="width: 0%;" title="Conforme (Seguro)"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Structured Risk Categories Accordion List -->
+        <div id="dashboard-risk-groups" class="dashboard-risk-groups">
+          <!-- Populated dynamically via renderDashboardView() -->
+        </div>
       </div>
 
-      <!-- Export Toolbar (With Notion-ready button) -->
+      <!-- Export Toolbar (With Dashboard and Notion buttons) -->
       <div class="export-toolbar">
-        <div class="export-label">Exportar / Copiar:</div>
+        <div class="export-label">Exportar / Visualizar:</div>
         <div class="export-buttons">
+          <button id="btn-open-dashboard" class="btn btn-primary btn-sm" title="Abrir dashboard ejecutivo interactivo en pestaña completa">
+            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>Abrir Dashboard
+          </button>
           <button id="btn-copy-notion" class="btn btn-notion btn-sm" title="Copia la tabla en formato enriquecido para pegar directamente en Notion con Ctrl+V">
             <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path><path d="M15 9h6"></path><path d="M15 15h6"></path></svg>Copiar para Notion
           </button>
