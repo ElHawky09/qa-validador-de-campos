@@ -2050,6 +2050,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         dashboardRiskLevelBadge.className = 'badge badge-idle';
         dashboardRiskLevelBadge.innerText = 'Sin pruebas';
       }
+      const spDistCrit = document.getElementById('sp-dist-crit-val');
+      const spDistHigh = document.getElementById('sp-dist-high-val');
+      const spDistMed = document.getElementById('sp-dist-med-val');
+      const spDistSafe = document.getElementById('sp-dist-safe-val');
+      if (spDistCrit) spDistCrit.innerText = '0 (0%)';
+      if (spDistHigh) spDistHigh.innerText = '0 (0%)';
+      if (spDistMed) spDistMed.innerText = '0 (0%)';
+      if (spDistSafe) spDistSafe.innerText = '0 (0%)';
       return;
     }
 
@@ -2135,6 +2143,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (segHigh) { segHigh.style.width = `${pHigh}%`; segHigh.title = `Capacidad DoS: ${highCount} (${Math.round(pHigh)}%)`; }
       if (segMed) { segMed.style.width = `${pMed}%`; segMed.title = `Integridad/Formato: ${mediumCount} (${Math.round(pMed)}%)`; }
       if (segSafe) { segSafe.style.width = `${pSafe}%`; segSafe.title = `Conformes: ${safeCount} (${Math.round(pSafe)}%)`; }
+
+      const spDistCrit = document.getElementById('sp-dist-crit-val');
+      const spDistHigh = document.getElementById('sp-dist-high-val');
+      const spDistMed = document.getElementById('sp-dist-med-val');
+      const spDistSafe = document.getElementById('sp-dist-safe-val');
+      if (spDistCrit) spDistCrit.innerText = `${criticalCount} (${Math.round(pCrit)}%)`;
+      if (spDistHigh) spDistHigh.innerText = `${highCount} (${Math.round(pHigh)}%)`;
+      if (spDistMed) spDistMed.innerText = `${mediumCount} (${Math.round(pMed)}%)`;
+      if (spDistSafe) spDistSafe.innerText = `${safeCount} (${Math.round(pSafe)}%)`;
     }
 
     dashboardRiskGroups.innerHTML = '';

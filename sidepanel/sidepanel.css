@@ -1538,6 +1538,29 @@ textarea:focus-visible,
 .seg-medium { background: #fbbf24; }
 .seg-safe { background: #34d399; }
 
+.sidepanel-dist-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  margin-top: 6px;
+  font-size: 10px;
+}
+
+.sp-dist-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-sub);
+  background: rgba(15, 23, 42, 0.5);
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(51, 65, 85, 0.4);
+}
+
+.sp-dist-name {
+  color: var(--text-muted);
+}
+
 /* Structured Risk Category Groups */
 .dashboard-risk-groups {
   display: flex;

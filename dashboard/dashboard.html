@@ -74,23 +74,134 @@
         </div>
       </section>
 
-      <!-- Distribution Panel -->
+      <!-- Specialized Visual Risk Distribution Panel -->
       <section class="dist-panel">
         <div class="dist-header">
-          <span class="dist-title">Distribución Visual de Riesgos por Severidad</span>
+          <div class="dist-header-title-wrap">
+            <svg class="dist-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+              <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+            </svg>
+            <div>
+              <span class="dist-title">Distribución Visual de Riesgos por Severidad</span>
+              <span class="dist-desc">Proporción analítica por nivel de impacto y criticidad técnica</span>
+            </div>
+          </div>
           <span class="dist-subtitle" id="dist-health-msg">Diagnóstico general</span>
         </div>
-        <div class="dist-bar-track">
-          <div id="dist-bar-crit" class="bar-seg seg-critical" style="width: 0%;"></div>
-          <div id="dist-bar-high" class="bar-seg seg-high" style="width: 0%;"></div>
-          <div id="dist-bar-med" class="bar-seg seg-medium" style="width: 0%;"></div>
-          <div id="dist-bar-safe" class="bar-seg seg-safe" style="width: 0%;"></div>
+
+        <!-- Continuous Spectrum Flow Bar -->
+        <div class="dist-bar-track-wrap">
+          <div class="dist-bar-track">
+            <div id="dist-bar-crit" class="bar-seg seg-critical" style="width: 0%;" title="Seguridad (Crítico)"></div>
+            <div id="dist-bar-high" class="bar-seg seg-high" style="width: 0%;" title="Capacidad DoS (Alto)"></div>
+            <div id="dist-bar-med" class="bar-seg seg-medium" style="width: 0%;" title="Formato / Integridad (Medio)"></div>
+            <div id="dist-bar-safe" class="bar-seg seg-safe" style="width: 0%;" title="Conforme / Seguro"></div>
+          </div>
         </div>
-        <div class="dist-legend">
-          <div class="legend-item"><span class="legend-dot" style="background:#f87171;"></span> <span id="leg-crit-txt">Seguridad: 0% (0)</span></div>
-          <div class="legend-item"><span class="legend-dot" style="background:#fb7185;"></span> <span id="leg-high-txt">Capacidad DoS: 0% (0)</span></div>
-          <div class="legend-item"><span class="legend-dot" style="background:#fbbf24;"></span> <span id="leg-med-txt">Formato / Integridad: 0% (0)</span></div>
-          <div class="legend-item"><span class="legend-dot" style="background:#34d399;"></span> <span id="leg-safe-txt">Conforme / Seguro: 0% (0)</span></div>
+
+        <!-- Dual Specialized Visualizations: Circular Donut Chart + Detailed Severity Bars -->
+        <div class="dist-charts-grid">
+          
+          <!-- Column 1: Interactive SVG Donut Chart -->
+          <div class="chart-col-donut">
+            <div class="donut-chart-wrap">
+              <svg class="donut-svg" viewBox="0 0 200 200" width="180" height="180" role="img" aria-label="Gráfico circular de distribución de severidad">
+                <!-- Track background circle -->
+                <circle cx="100" cy="100" r="68" class="donut-bg-circle" />
+                <!-- Dynamic Segments -->
+                <circle id="donut-seg-crit" cx="100" cy="100" r="68" class="donut-slice slice-critical" />
+                <circle id="donut-seg-high" cx="100" cy="100" r="68" class="donut-slice slice-high" />
+                <circle id="donut-seg-med" cx="100" cy="100" r="68" class="donut-slice slice-medium" />
+                <circle id="donut-seg-safe" cx="100" cy="100" r="68" class="donut-slice slice-safe" />
+                <!-- Donut Center Content -->
+                <g class="donut-center-group">
+                  <text x="100" y="88" text-anchor="middle" id="donut-score-val" class="donut-text-val">0%</text>
+                  <text x="100" y="105" text-anchor="middle" id="donut-score-lbl" class="donut-text-lbl">ROBUSTEZ</text>
+                  <text x="100" y="121" text-anchor="middle" id="donut-total-tests" class="donut-text-sub">0 Pruebas</text>
+                </g>
+              </svg>
+            </div>
+            <div class="donut-legend-tags">
+              <span class="donut-tag-item"><span class="legend-dot" style="background:#ef4444;"></span> Seguridad (<span id="donut-crit-pct">0%</span>)</span>
+              <span class="donut-tag-item"><span class="legend-dot" style="background:#f43f5e;"></span> Capacidad (<span id="donut-high-pct">0%</span>)</span>
+              <span class="donut-tag-item"><span class="legend-dot" style="background:#f59e0b;"></span> Integridad (<span id="donut-med-pct">0%</span>)</span>
+              <span class="donut-tag-item"><span class="legend-dot" style="background:#10b981;"></span> Conforme (<span id="donut-safe-pct">0%</span>)</span>
+            </div>
+          </div>
+
+          <!-- Column 2: Detailed Severity Horizontal Bar Cards -->
+          <div class="chart-col-bars">
+            
+            <!-- Item 1: Seguridad (Crítico) -->
+            <div class="sev-bar-card sev-card-critical">
+              <div class="sev-card-top">
+                <div class="sev-card-meta">
+                  <span class="sev-card-badge badge-crit">Crítico</span>
+                  <span class="sev-card-title">Seguridad e Inyecciones</span>
+                </div>
+                <div class="sev-card-stat">
+                  <strong id="bar-crit-count">0 pruebas</strong> <span id="bar-crit-pct" class="sev-pct-label">(0%)</span>
+                </div>
+              </div>
+              <div class="sev-progress-track">
+                <div id="sev-fill-crit" class="sev-progress-fill fill-critical" style="width: 0%;"></div>
+              </div>
+              <div class="sev-card-desc">Falta de filtrado en entradas frente a inyecciones XSS, SQL o vectores de escape.</div>
+            </div>
+
+            <!-- Item 2: Capacidad (Alto) -->
+            <div class="sev-bar-card sev-card-high">
+              <div class="sev-card-top">
+                <div class="sev-card-meta">
+                  <span class="sev-card-badge badge-high">Alto</span>
+                  <span class="sev-card-title">Capacidad y Resistencia DoS</span>
+                </div>
+                <div class="sev-card-stat">
+                  <strong id="bar-high-count">0 pruebas</strong> <span id="bar-high-pct" class="sev-pct-label">(0%)</span>
+                </div>
+              </div>
+              <div class="sev-progress-track">
+                <div id="sev-fill-high" class="sev-progress-fill fill-high" style="width: 0%;"></div>
+              </div>
+              <div class="sev-card-desc">Admisión de sobrecarga masiva (1,000 / 5,000 caracteres) sin límite maxlength preventivo.</div>
+            </div>
+
+            <!-- Item 3: Integridad / Formato (Medio) -->
+            <div class="sev-bar-card sev-card-medium">
+              <div class="sev-card-top">
+                <div class="sev-card-meta">
+                  <span class="sev-card-badge badge-medium">Medio</span>
+                  <span class="sev-card-title">Integridad y Lógica de Negocio</span>
+                </div>
+                <div class="sev-card-stat">
+                  <strong id="bar-med-count">0 pruebas</strong> <span id="bar-med-pct" class="sev-pct-label">(0%)</span>
+                </div>
+              </div>
+              <div class="sev-progress-track">
+                <div id="sev-fill-med" class="sev-progress-fill fill-medium" style="width: 0%;"></div>
+              </div>
+              <div class="sev-card-desc">Omisión de recorte .trim(), falta de restricción alfabética o caracteres invisibles de evasión.</div>
+            </div>
+
+            <!-- Item 4: Conforme / Seguro -->
+            <div class="sev-bar-card sev-card-safe">
+              <div class="sev-card-top">
+                <div class="sev-card-meta">
+                  <span class="sev-card-badge badge-safe">Conforme</span>
+                  <span class="sev-card-title">Validaciones Efectivas y Seguras</span>
+                </div>
+                <div class="sev-card-stat">
+                  <strong id="bar-safe-count">0 pruebas</strong> <span id="bar-safe-pct" class="sev-pct-label">(0%)</span>
+                </div>
+              </div>
+              <div class="sev-progress-track">
+                <div id="sev-fill-safe" class="sev-progress-fill fill-safe" style="width: 0%;"></div>
+              </div>
+              <div class="sev-card-desc">Bloqueo activo de datos anómalos o aceptación correcta de entradas válidas esperadas.</div>
+            </div>
+
+          </div>
         </div>
       </section>
 

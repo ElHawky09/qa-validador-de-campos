@@ -189,24 +189,125 @@ function renderDashboard(data) {
   document.getElementById('kpi-safe-val').innerText = metrics.seguros || 0;
   document.getElementById('kpi-total-val').innerText = data.totalPruebas || 0;
 
-  // 3. Barra de Distribución y Leyenda
+  // 3. Distribución Visual Especializada (Barra Continua, Donut Chart y Tarjetas de Severidad)
   const p = data.porcentajes || { criticos: 0, altos: 0, medios: 0, seguros: 0 };
-  document.getElementById('dist-bar-crit').style.width = `${p.criticos}%`;
-  document.getElementById('dist-bar-high').style.width = `${p.altos}%`;
-  document.getElementById('dist-bar-med').style.width = `${p.medios}%`;
-  document.getElementById('dist-bar-safe').style.width = `${p.seguros}%`;
+  const distBarCrit = document.getElementById('dist-bar-crit');
+  const distBarHigh = document.getElementById('dist-bar-high');
+  const distBarMed = document.getElementById('dist-bar-med');
+  const distBarSafe = document.getElementById('dist-bar-safe');
+  if (distBarCrit) distBarCrit.style.width = `${p.criticos}%`;
+  if (distBarHigh) distBarHigh.style.width = `${p.altos}%`;
+  if (distBarMed) distBarMed.style.width = `${p.medios}%`;
+  if (distBarSafe) distBarSafe.style.width = `${p.seguros}%`;
 
-  document.getElementById('dist-health-msg').innerText = data.overallMessage || '';
-  document.getElementById('leg-crit-txt').innerText = `Seguridad: ${p.criticos}% (${metrics.criticos})`;
-  document.getElementById('leg-high-txt').innerText = `Capacidad DoS: ${p.altos}% (${metrics.altos})`;
-  document.getElementById('leg-med-txt').innerText = `Formato / Integridad: ${p.medios}% (${metrics.medios})`;
-  document.getElementById('leg-safe-txt').innerText = `Conforme / Seguro: ${p.seguros}% (${metrics.seguros})`;
+  const distHealthMsg = document.getElementById('dist-health-msg');
+  if (distHealthMsg) distHealthMsg.innerText = data.overallMessage || '';
+
+  renderSpecializedDistribution(metrics, p, data.totalPruebas || 0, score);
 
   // 4. Renderizar Secciones de Categorías (Acordeones)
   renderCategories(data.categorias || []);
 
   // 5. Renderizar Tabla Detallada
   renderTable(data.resultados || []);
+}
+
+// Renderizado de Gráfico Circular Donut SVG y Tarjetas de Barras de Severidad
+function renderSpecializedDistribution(metrics, p, totalTests, score) {
+  // 1. Gráfico Circular (Donut SVG)
+  const C = 2 * Math.PI * 68; // Radio 68 => circunferencia ~427.2566
+  const donutScoreVal = document.getElementById('donut-score-val');
+  const donutScoreLbl = document.getElementById('donut-score-lbl');
+  const donutTotalTests = document.getElementById('donut-total-tests');
+
+  if (donutScoreVal) {
+    donutScoreVal.textContent = `${score}%`;
+    if (score >= 80) donutScoreVal.style.fill = '#34d399';
+    else if (score >= 55) donutScoreVal.style.fill = '#fbbf24';
+    else donutScoreVal.style.fill = '#f87171';
+  }
+  if (donutTotalTests) {
+    donutTotalTests.textContent = `${totalTests} ${totalTests === 1 ? 'Prueba' : 'Pruebas'}`;
+  }
+
+  // Tags con porcentajes debajo del Donut
+  const elCritPct = document.getElementById('donut-crit-pct');
+  const elHighPct = document.getElementById('donut-high-pct');
+  const elMedPct = document.getElementById('donut-med-pct');
+  const elSafePct = document.getElementById('donut-safe-pct');
+  if (elCritPct) elCritPct.textContent = `${p.criticos}%`;
+  if (elHighPct) elHighPct.textContent = `${p.altos}%`;
+  if (elMedPct) elMedPct.textContent = `${p.medios}%`;
+  if (elSafePct) elSafePct.textContent = `${p.seguros}%`;
+
+  const segCrit = document.getElementById('donut-seg-crit');
+  const segHigh = document.getElementById('donut-seg-high');
+  const segMed = document.getElementById('donut-seg-med');
+  const segSafe = document.getElementById('donut-seg-safe');
+
+  if (!totalTests || totalTests <= 0) {
+    [segCrit, segHigh, segMed, segSafe].forEach((seg) => {
+      if (seg) {
+        seg.style.strokeDasharray = `0 ${C}`;
+        seg.style.strokeDashoffset = '0';
+      }
+    });
+  } else {
+    const lenCrit = (p.criticos / 100) * C;
+    const lenHigh = (p.altos / 100) * C;
+    const lenMed = (p.medios / 100) * C;
+    const lenSafe = (p.seguros / 100) * C;
+
+    let offset = 0;
+    if (segCrit) {
+      segCrit.style.strokeDasharray = `${lenCrit} ${C - lenCrit}`;
+      segCrit.style.strokeDashoffset = `-${offset}`;
+      offset += lenCrit;
+    }
+    if (segHigh) {
+      segHigh.style.strokeDasharray = `${lenHigh} ${C - lenHigh}`;
+      segHigh.style.strokeDashoffset = `-${offset}`;
+      offset += lenHigh;
+    }
+    if (segMed) {
+      segMed.style.strokeDasharray = `${lenMed} ${C - lenMed}`;
+      segMed.style.strokeDashoffset = `-${offset}`;
+      offset += lenMed;
+    }
+    if (segSafe) {
+      segSafe.style.strokeDasharray = `${lenSafe} ${C - lenSafe}`;
+      segSafe.style.strokeDashoffset = `-${offset}`;
+    }
+  }
+
+  // 2. Tarjetas de Barras Detalladas por Severidad
+  const elBarCritCount = document.getElementById('bar-crit-count');
+  const elBarCritPct = document.getElementById('bar-crit-pct');
+  const elSevFillCrit = document.getElementById('sev-fill-crit');
+  if (elBarCritCount) elBarCritCount.textContent = `${metrics.criticos || 0} ${metrics.criticos === 1 ? 'prueba' : 'pruebas'}`;
+  if (elBarCritPct) elBarCritPct.textContent = `(${p.criticos}%)`;
+  if (elSevFillCrit) elSevFillCrit.style.width = `${p.criticos}%`;
+
+  const elBarHighCount = document.getElementById('bar-high-count');
+  const elBarHighPct = document.getElementById('bar-high-pct');
+  const elSevFillHigh = document.getElementById('sev-fill-high');
+  if (elBarHighCount) elBarHighCount.textContent = `${metrics.altos || 0} ${metrics.altos === 1 ? 'prueba' : 'pruebas'}`;
+  if (elBarHighPct) elBarHighPct.textContent = `(${p.altos}%)`;
+  if (elSevFillHigh) elSevFillHigh.style.width = `${p.altos}%`;
+
+  const elBarMedCount = document.getElementById('bar-med-count');
+  const elBarMedPct = document.getElementById('bar-med-pct');
+  const elSevFillMed = document.getElementById('sev-fill-med');
+  if (elBarMedCount) elBarMedCount.textContent = `${metrics.medios || 0} ${metrics.medios === 1 ? 'prueba' : 'pruebas'}`;
+  if (elBarMedPct) elBarMedPct.textContent = `(${p.medios}%)`;
+  if (elSevFillMed) elSevFillMed.style.width = `${p.medios}%`;
+
+  const elBarSafeCount = document.getElementById('bar-safe-count');
+  const elBarSafePct = document.getElementById('bar-safe-pct');
+  const elSevFillSafe = document.getElementById('sev-fill-safe');
+  if (elBarSafeCount) elBarSafeCount.textContent = `${metrics.seguros || 0} ${metrics.seguros === 1 ? 'prueba' : 'pruebas'}`;
+  if (elBarSafePct) elBarSafePct.textContent = `(${p.seguros}%)`;
+  if (elSevFillSafe) elSevFillSafe.style.width = `${p.seguros}%`;
 }
 
 // Renderizado de acordeones de categorías de riesgo
