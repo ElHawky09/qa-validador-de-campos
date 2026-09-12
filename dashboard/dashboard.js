@@ -303,19 +303,57 @@ function renderCategories(categories) {
   });
 }
 
+// Metadatos para categorías de riesgo en modo tabla
+const CATEGORY_META = {
+  security: {
+    name: 'Seguridad (Crítico)',
+    pillClass: 'cat-pill-security',
+    rowClass: 'row-cat-security',
+    dotColor: '#ef4444'
+  },
+  capacity: {
+    name: 'Capacidad DoS (Alto)',
+    pillClass: 'cat-pill-capacity',
+    rowClass: 'row-cat-capacity',
+    dotColor: '#f43f5e'
+  },
+  integrity: {
+    name: 'Integridad (Medio)',
+    pillClass: 'cat-pill-integrity',
+    rowClass: 'row-cat-integrity',
+    dotColor: '#f59e0b'
+  },
+  format_logic: {
+    name: 'Lógica / Formato',
+    pillClass: 'cat-pill-logic',
+    rowClass: 'row-cat-format_logic',
+    dotColor: '#fbbf24'
+  },
+  conforme: {
+    name: 'Conforme (Seguro)',
+    pillClass: 'cat-pill-safe',
+    rowClass: 'row-cat-conforme',
+    dotColor: '#10b981'
+  }
+};
+
 // Renderizado de la tabla detallada
 function renderTable(results) {
   const tbody = document.getElementById('audit-table-body');
   tbody.innerHTML = '';
 
   if (!results || results.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Sin datos de tabla</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Sin datos de tabla</td></tr>';
     return;
   }
 
   results.forEach((r) => {
     const tr = document.createElement('tr');
-    tr.setAttribute('data-category', r.categoryKey || 'conforme');
+    const catKey = r.categoryKey || 'conforme';
+    const meta = CATEGORY_META[catKey] || CATEGORY_META.conforme;
+
+    tr.className = meta.rowClass;
+    tr.setAttribute('data-category', catKey);
     tr.setAttribute('data-field', (r.fieldName || '').toLowerCase());
     tr.setAttribute('data-test', (r.testName || '').toLowerCase());
     tr.setAttribute('data-detail', (r.detail || '').toLowerCase());
@@ -325,6 +363,12 @@ function renderTable(results) {
     const displayInput = (r.input || '').length > 65 ? (r.input.slice(0, 62) + '...') : r.input;
 
     tr.innerHTML = `
+      <td class="col-cat-risk">
+        <span class="cat-pill ${meta.pillClass}">
+          <span class="cat-pill-dot" style="background: ${meta.dotColor};"></span>
+          ${escapeHtml(meta.name)}
+        </span>
+      </td>
       <td>
         <strong style="color: #ffffff;">${escapeHtml(r.fieldName)}</strong>
         <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(r.fieldType || 'input')}</div>
@@ -351,7 +395,7 @@ function applyFiltersAndSearch() {
   const catSections = document.querySelectorAll('.cat-section');
   catSections.forEach((sec) => {
     const catKey = sec.getAttribute('data-category');
-    const categoryMatches = (activeFilter === 'all' || activeFilter === catKey);
+    const categoryMatches = (activeFilter === 'all' || activeFilter === catKey || (activeFilter === 'logic' && catKey === 'format_logic'));
 
     if (!categoryMatches) {
       sec.style.display = 'none';
@@ -393,7 +437,7 @@ function applyFiltersAndSearch() {
   const tableRows = document.querySelectorAll('#audit-table-body tr');
   tableRows.forEach((row) => {
     const catKey = row.getAttribute('data-category');
-    const categoryMatches = (activeFilter === 'all' || activeFilter === catKey);
+    const categoryMatches = (activeFilter === 'all' || activeFilter === catKey || (activeFilter === 'logic' && catKey === 'format_logic'));
 
     if (!categoryMatches) {
       row.style.display = 'none';
