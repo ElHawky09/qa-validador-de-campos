@@ -1,4 +1,4 @@
-﻿// dashboard.js - Controlador nativo del Dashboard Ejecutivo de Auditoría QA
+// dashboard.js - Controlador nativo del Dashboard Ejecutivo de Auditoría QA
 
 let currentAuditData = null;
 let activeFilter = 'all';
@@ -24,16 +24,11 @@ function initDashboard() {
   }
 }
 
-// Carga de datos desde chrome.storage.local
+// Carga de datos desde chrome.storage.local con fallback a localStorage
 function loadAuditData() {
-  if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
-    showEmptyState('El entorno de extensión de Chrome no está disponible.');
-    return;
-  }
-
-  chrome.storage.local.get(['qa_audit_dashboard_data'], (result) => {
-    if (result && result.qa_audit_dashboard_data) {
-      currentAuditData = result.qa_audit_dashboard_data;
+  function applyData(data) {
+    if (data && (data.totalPruebas !== undefined || data.resultados)) {
+      currentAuditData = data;
       renderDashboard(currentAuditData);
 
       // Comprobar si se solicitó impresión directa
@@ -43,10 +38,44 @@ function loadAuditData() {
           window.print();
         }, 500);
       }
-    } else {
-      showEmptyState();
+      return true;
     }
-  });
+    return false;
+  }
+
+  let loaded = false;
+
+  // 1. Intento primario con chrome.storage.local
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get(['qa_audit_dashboard_data'], (result) => {
+      if (result && result.qa_audit_dashboard_data) {
+        loaded = true;
+        applyData(result.qa_audit_dashboard_data);
+      } else {
+        checkLocalStorage();
+      }
+    });
+  } else {
+    checkLocalStorage();
+  }
+
+  // 2. Fallback síncrono a localStorage
+  function checkLocalStorage() {
+    if (loaded) return;
+    try {
+      const raw = localStorage.getItem('qa_audit_dashboard_data');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (applyData(parsed)) {
+          loaded = true;
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Error leyendo localStorage:', e);
+    }
+    showEmptyState();
+  }
 }
 
 function showEmptyState() {

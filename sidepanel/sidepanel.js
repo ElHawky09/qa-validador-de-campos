@@ -2278,15 +2278,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     testResults.forEach(r => {
       const cat = categorizeTestRisk(r);
-      grouped[cat].push(r);
-      if (r.status === 'conforme' || r.status === 'restricted_save' || r.status === 'restricted_field') {
-        safeCount++;
-      } else if (cat === 'security') {
+      const catKey = (cat && cat.key) ? cat.key : 'conforme';
+      if (!grouped[catKey]) {
+        grouped[catKey] = [];
+      }
+      grouped[catKey].push(r);
+
+      if (catKey === 'security') {
         criticalCount++;
-      } else if (cat === 'capacity') {
+      } else if (catKey === 'capacity') {
         highCount++;
-      } else {
+      } else if (catKey === 'integrity' || catKey === 'format_logic') {
         mediumCount++;
+      } else {
+        safeCount++;
       }
     });
 
@@ -2359,18 +2364,21 @@ document.addEventListener('DOMContentLoaded', async () => {
           recommendation: r.recommendation
         }))
       })),
-      resultados: testResults.map(r => ({
-        fieldName: r.fieldName,
-        fieldType: r.fieldType,
-        testName: r.testItem?.name || 'Prueba',
-        input: r.input,
-        badgeText: r.badgeText,
-        badgeClass: r.badgeClass,
-        status: r.status,
-        categoryKey: categorizeTestRisk(r),
-        detail: r.detail,
-        recommendation: r.recommendation
-      }))
+      resultados: testResults.map(r => {
+        const cat = categorizeTestRisk(r);
+        return {
+          fieldName: r.fieldName,
+          fieldType: r.fieldType,
+          testName: r.testItem?.name || 'Prueba',
+          input: r.input,
+          badgeText: r.badgeText,
+          badgeClass: r.badgeClass,
+          status: r.status,
+          categoryKey: (cat && cat.key) ? cat.key : 'conforme',
+          detail: r.detail,
+          recommendation: r.recommendation
+        };
+      })
     };
   }
 
@@ -2384,9 +2392,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       try {
         const auditData = getStructuredAuditData();
-        await chrome.storage.local.set({ qa_audit_dashboard_data: auditData });
-        const dashboardUrl = chrome.runtime.getURL('dashboard/dashboard.html');
-        window.open(dashboardUrl, '_blank');
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          await chrome.storage.local.set({ qa_audit_dashboard_data: auditData });
+        }
+        try {
+          localStorage.setItem('qa_audit_dashboard_data', JSON.stringify(auditData));
+        } catch (e) {}
+
+        const dashboardUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
+          ? chrome.runtime.getURL('dashboard/dashboard.html')
+          : 'dashboard/dashboard.html';
+
+        if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+          chrome.tabs.create({ url: dashboardUrl }, () => {
+            if (chrome.runtime.lastError) {
+              window.open(dashboardUrl, '_blank');
+            }
+          });
+        } else {
+          window.open(dashboardUrl, '_blank');
+        }
       } catch (err) {
         console.error('Error al abrir dashboard:', err);
         alert('Error al abrir el dashboard: ' + err.message);
@@ -2525,9 +2550,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const auditData = getStructuredAuditData();
-      await chrome.storage.local.set({ qa_audit_dashboard_data: auditData });
-      const reportUrl = chrome.runtime.getURL('dashboard/dashboard.html?autoPrint=true');
-      window.open(reportUrl, '_blank');
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        await chrome.storage.local.set({ qa_audit_dashboard_data: auditData });
+      }
+      try {
+        localStorage.setItem('qa_audit_dashboard_data', JSON.stringify(auditData));
+      } catch (e) {}
+
+      const reportUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
+        ? chrome.runtime.getURL('dashboard/dashboard.html?autoPrint=true')
+        : 'dashboard/dashboard.html?autoPrint=true';
+
+      if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+        chrome.tabs.create({ url: reportUrl }, () => {
+          if (chrome.runtime.lastError) {
+            window.open(reportUrl, '_blank');
+          }
+        });
+      } else {
+        window.open(reportUrl, '_blank');
+      }
     } catch (err) {
       console.error('Error al abrir informe:', err);
       alert('Error al abrir el informe: ' + err.message);
