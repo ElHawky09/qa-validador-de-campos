@@ -2190,10 +2190,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       dashboardRiskGroups.appendChild(card);
     });
+
+    const structuredData = getStructuredAuditData();
+    if (structuredData && typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.set({ qa_audit_dashboard_data: structuredData });
+    }
   }
 
   function resetDashboardState() {
     switchResultsView('table');
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.remove(['qa_audit_dashboard_data']);
+    }
     if (dashboardRiskGroups) dashboardRiskGroups.innerHTML = '';
     if (dashboardDistBar) {
       dashboardDistBar.querySelectorAll('.dist-seg').forEach(s => s.style.width = '0%');
@@ -2250,566 +2258,144 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnViewDashboard.addEventListener('click', () => switchResultsView('dashboard'));
   }
 
+  // Helper to extract structured audit data for the Dashboard & Storage
+  function getStructuredAuditData() {
+    if (testResults.length === 0) return null;
+
+    const total = testResults.length;
+    let criticalCount = 0;
+    let highCount = 0;
+    let mediumCount = 0;
+    let safeCount = 0;
+
+    const grouped = {
+      security: [],
+      capacity: [],
+      integrity: [],
+      format_logic: [],
+      conforme: []
+    };
+
+    testResults.forEach(r => {
+      const cat = categorizeTestRisk(r);
+      grouped[cat].push(r);
+      if (r.status === 'conforme' || r.status === 'restricted_save' || r.status === 'restricted_field') {
+        safeCount++;
+      } else if (cat === 'security') {
+        criticalCount++;
+      } else if (cat === 'capacity') {
+        highCount++;
+      } else {
+        mediumCount++;
+      }
+    });
+
+    const penalty = (criticalCount * 25) + (highCount * 15) + (mediumCount * 5);
+    const score = Math.max(0, Math.min(100, Math.round(100 - (penalty / (total || 1)) * 20)));
+
+    let overallLevel = 'Saludable';
+    let overallMessage = 'El formulario cuenta con defensas preventivas efectivas ante la mayoría de pruebas.';
+    if (criticalCount > 0) {
+      overallLevel = 'Riesgo Crítico';
+      overallMessage = 'Se detectaron fallos críticos de validación en la capa de entrada (inyección de scripts/SQL/nulos).';
+    } else if (highCount > 0) {
+      overallLevel = 'Riesgo Alto';
+      overallMessage = 'El formulario admitió entradas masivas sin maxlength preventivo ni control de longitud. Riesgo DoS.';
+    } else if (mediumCount > 0) {
+      overallLevel = 'Riesgo Moderado';
+      overallMessage = 'Se observaron inconsistencias en recorte de espacios, sintaxis o reglas de formato.';
+    }
+
+    const pCrit = total > 0 ? Number(((criticalCount / total) * 100).toFixed(1)) : 0;
+    const pHigh = total > 0 ? Number(((highCount / total) * 100).toFixed(1)) : 0;
+    const pMed = total > 0 ? Number(((mediumCount / total) * 100).toFixed(1)) : 0;
+    const pSafe = total > 0 ? Number(((safeCount / total) * 100).toFixed(1)) : 0;
+
+    const categoriesDef = [
+      { key: 'security', title: '1. Seguridad e Inyecciones', desc: 'Vectores de XSS, inyección SQL, terminación nula y esquemas ejecutables.', severity: 'CRÍTICO', color: '#f87171', borderLeft: '#f87171' },
+      { key: 'capacity', title: '2. Capacidad y Resistencia DoS', desc: 'Sobrecargas masivas de texto y URLs de longitud excesiva sin maxlength.', severity: 'ALTO', color: '#fb7185', borderLeft: '#fb7185' },
+      { key: 'integrity', title: '3. Integridad y Spoofing Unicode', desc: 'Caracteres invisibles de ancho cero, secuencias compuestas y evasión de filtros.', severity: 'MEDIO', color: '#fbbf24', borderLeft: '#fbbf24' },
+      { key: 'format_logic', title: '4. Lógica de Negocio y Formato', desc: 'Recorte de espacios, validación numérica, calendarios y sintaxis RFC.', severity: 'MEDIO', color: '#fbbf24', borderLeft: '#fbbf24' },
+      { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', desc: 'Casos rechazados con éxito por el validador, truncados por límite o datos conformes.', severity: 'SEGURO', color: '#34d399', borderLeft: '#34d399' }
+    ];
+
+    return {
+      formulario: activeFormTitle || 'Formulario Principal',
+      fecha: new Date().toISOString(),
+      fechaFormateada: new Date().toLocaleString(),
+      camposAuditados: selectedFields.map(f => ({ label: f.label, type: f.type, name: f.name })),
+      totalPruebas: total,
+      robustezScore: score,
+      overallLevel: overallLevel,
+      overallMessage: overallMessage,
+      metricas: {
+        criticos: criticalCount,
+        altos: highCount,
+        medios: mediumCount,
+        seguros: safeCount
+      },
+      porcentajes: {
+        criticos: pCrit,
+        altos: pHigh,
+        medios: pMed,
+        seguros: pSafe
+      },
+      categorias: categoriesDef.map(cat => ({
+        key: cat.key,
+        title: cat.title,
+        desc: cat.desc,
+        severity: cat.severity,
+        color: cat.color,
+        borderLeft: cat.borderLeft,
+        findings: (grouped[cat.key] || []).map(r => ({
+          fieldName: r.fieldName,
+          fieldType: r.fieldType,
+          testName: r.testItem?.name || 'Prueba',
+          input: r.input,
+          badgeText: r.badgeText,
+          badgeClass: r.badgeClass,
+          status: r.status,
+          detail: r.detail,
+          recommendation: r.recommendation
+        }))
+      })),
+      resultados: testResults.map(r => ({
+        fieldName: r.fieldName,
+        fieldType: r.fieldType,
+        testName: r.testItem?.name || 'Prueba',
+        input: r.input,
+        badgeText: r.badgeText,
+        badgeClass: r.badgeClass,
+        status: r.status,
+        categoryKey: categorizeTestRisk(r),
+        detail: r.detail,
+        recommendation: r.recommendation
+      }))
+    };
+  }
+
   // Standalone Full-Page Dashboard Window Generator
   if (btnOpenDashboard) {
-    btnOpenDashboard.addEventListener('click', () => {
+    btnOpenDashboard.addEventListener('click', async () => {
       if (testResults.length === 0) {
         alert('No hay resultados para mostrar en el Dashboard. Inicia la verificación de campos primero.');
         return;
       }
 
-      const total = testResults.length;
-      let criticalCount = 0;
-      let highCount = 0;
-      let mediumCount = 0;
-      let safeCount = 0;
-
-      const grouped = {
-        security: [],
-        capacity: [],
-        integrity: [],
-        format_logic: [],
-        conforme: []
-      };
-
-      testResults.forEach(r => {
-        const cat = categorizeTestRisk(r);
-        grouped[cat.key].push(r);
-
-        if (cat.key === 'security') criticalCount++;
-        else if (cat.key === 'capacity') highCount++;
-        else if (cat.key === 'integrity' || cat.key === 'format_logic') mediumCount++;
-        else if (cat.key === 'conforme') safeCount++;
-      });
-
-      const score = Math.max(0, Math.min(100, Math.round((safeCount / total) * 100)));
-
-      let overallLevel = 'Robusto';
-      let overallColor = '#34d399';
-      let overallBg = 'rgba(16, 185, 129, 0.15)';
-      let overallMessage = 'Todas las validaciones respondieron conforme o fueron rechazadas adecuadamente por el sistema.';
-
-      if (criticalCount > 0) {
-        overallLevel = 'Riesgo Crítico';
-        overallColor = '#f87171';
-        overallBg = 'rgba(239, 68, 68, 0.15)';
-        overallMessage = `Se identificaron <strong>${criticalCount} anomalía(s) de seguridad o inyección</strong>. Requiere remediación prioritaria en la capa de entrada y persistencia.`;
-      } else if (highCount > 0) {
-        overallLevel = 'Riesgo Alto (Capacidad)';
-        overallColor = '#fb7185';
-        overallBg = 'rgba(225, 29, 72, 0.15)';
-        overallMessage = 'El formulario admitió entradas extensas sin atributo maxlength ni validación de tamaño en backend. Riesgo de DoS.';
-      } else if (mediumCount > 0) {
-        overallLevel = 'Riesgo Moderado';
-        overallColor = '#fbbf24';
-        overallBg = 'rgba(245, 158, 11, 0.15)';
-        overallMessage = 'Se observaron inconsistencias en recorte de espacios, sintaxis o reglas de formato.';
+      const auditData = getStructuredAuditData();
+      if (auditData && typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        await chrome.storage.local.set({ qa_audit_dashboard_data: auditData });
       }
 
-      const pCrit = total > 0 ? ((criticalCount / total) * 100).toFixed(1) : '0';
-      const pHigh = total > 0 ? ((highCount / total) * 100).toFixed(1) : '0';
-      const pMed = total > 0 ? ((mediumCount / total) * 100).toFixed(1) : '0';
-      const pSafe = total > 0 ? ((safeCount / total) * 100).toFixed(1) : '0';
+      const dashboardUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
+        ? chrome.runtime.getURL('dashboard/dashboard.html')
+        : 'dashboard/dashboard.html';
 
-      const categoriesMeta = [
-        { key: 'security', title: '1. Seguridad e Inyecciones', severity: 'CRÍTICO', color: '#f87171', borderLeft: '#f87171', desc: 'Vectores de XSS, inyección SQL, terminación nula y esquemas ejecutables.' },
-        { key: 'capacity', title: '2. Capacidad y Resistencia DoS', severity: 'ALTO', color: '#fb7185', borderLeft: '#fb7185', desc: 'Sobrecargas masivas de texto y URLs de longitud excesiva sin maxlength.' },
-        { key: 'integrity', title: '3. Integridad y Spoofing Unicode', severity: 'MEDIO', color: '#fbbf24', borderLeft: '#fbbf24', desc: 'Caracteres invisibles de ancho cero, secuencias compuestas y evasión de filtros.' },
-        { key: 'format_logic', title: '4. Lógica de Negocio y Reglas de Formato', severity: 'MEDIO', color: '#fbbf24', borderLeft: '#fbbf24', desc: 'Recorte de espacios, validación numérica, calendarios y sintaxis RFC.' },
-        { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', severity: 'SEGURO', color: '#34d399', borderLeft: '#34d399', desc: 'Casos rechazados con éxito por el validador, truncados por límite o datos conformes.' }
-      ];
-
-      let categoriesHtml = '';
-      categoriesMeta.forEach(meta => {
-        const items = grouped[meta.key] || [];
-        const count = items.length;
-        if (count === 0 && meta.key !== 'conforme') return;
-
-        let findingsHtml = '';
-        if (count === 0) {
-          findingsHtml = '<div class="empty-cat-note">Sin anomalías registradas en esta categoría.</div>';
-        } else {
-          items.forEach(item => {
-            const safeInput = item.input.length > 80 ? item.input.slice(0, 77) + '...' : item.input;
-            findingsHtml += `
-              <div class="finding-card" data-category="${meta.key}" data-field="${escapeHtml(item.fieldName.toLowerCase())}" data-search="${escapeHtml((item.fieldName + ' ' + item.testItem.name + ' ' + item.input).toLowerCase())}">
-                <div class="finding-card-header">
-                  <div class="finding-title-left">
-                    <span class="field-name-title">${escapeHtml(item.fieldName)}</span>
-                    <span class="field-type-tag">${escapeHtml(item.fieldType)}</span>
-                  </div>
-                  <span class="res-badge ${item.badgeClass}">${escapeHtml(item.badgeText)}</span>
-                </div>
-                <div class="finding-payload-row">
-                  <span class="test-label">Prueba: ${escapeHtml(item.testItem.name)}</span>
-                  <code class="payload-box" title="${escapeHtml(item.input)}">${escapeHtml(safeInput)}</code>
-                </div>
-                <div class="finding-detail-text">${escapeHtml(item.detail)}</div>
-                <div class="remediation-box">
-                  <strong>💡 Recomendación Técnica:</strong> ${escapeHtml(item.recommendation)}
-                </div>
-              </div>
-            `;
-          });
-        }
-
-        categoriesHtml += `
-          <div class="cat-section" id="cat-sec-${meta.key}" data-cat-key="${meta.key}" style="border-left: 4px solid ${meta.borderLeft};">
-            <div class="cat-section-header" onclick="toggleDashboardCategory('${meta.key}')">
-              <div class="cat-header-left">
-                <h2 class="cat-header-title">${meta.title}</h2>
-                <div class="cat-header-desc">${meta.desc}</div>
-              </div>
-              <div class="cat-header-right">
-                <span class="cat-count-pill" style="color: ${meta.color}; border: 1px solid ${meta.color};">
-                  ${count} ${meta.key === 'conforme' ? 'conformes' : count === 1 ? 'incidencia' : 'incidencias'}
-                </span>
-                <span class="cat-chevron" id="chev-${meta.key}">▼</span>
-              </div>
-            </div>
-            <div class="cat-section-body" id="body-${meta.key}">
-              ${findingsHtml}
-            </div>
-          </div>
-        `;
-      });
-
-      const auditDataExport = {
-        formulario: activeFormTitle || 'Formulario Principal',
-        fecha: new Date().toISOString(),
-        totalPruebas: total,
-        robustezScore: `${score}%`,
-        metricas: {
-          criticos: criticalCount,
-          altos: highCount,
-          medios: mediumCount,
-          seguros: safeCount
-        },
-        hallazgos: testResults.map(r => ({
-          campo: r.fieldName,
-          tipoCampo: r.fieldType,
-          prueba: r.testItem.name,
-          input: r.input,
-          resultado: r.badgeText,
-          estado: r.status,
-          detalle: r.detail,
-          recomendacion: r.recommendation
-        }))
-      };
-
-      const dashWindow = window.open('', '_blank');
-      dashWindow.document.write(`
-        <!DOCTYPE html>
-        <html lang="es">
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Dashboard Ejecutivo de Riesgos QA - ${escapeHtml(activeFormTitle || 'Formulario')}</title>
-          <style>
-            :root {
-              --bg-page: #0b1120;
-              --bg-card: #1e293b;
-              --bg-card-hover: #273549;
-              --border: #334155;
-              --text-main: #f8fafc;
-              --text-sub: #cbd5e1;
-              --text-muted: #94a3b8;
-              --primary: #3b82f6;
-              --primary-hover: #2563eb;
-            }
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-              background-color: var(--bg-page);
-              color: var(--text-main);
-              line-height: 1.5;
-              padding: 24px 20px;
-            }
-            .dashboard-wrap { max-width: 1240px; margin: 0 auto; }
-            
-            /* Top Navbar */
-            .dash-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              gap: 16px;
-              margin-bottom: 24px;
-              padding-bottom: 16px;
-              border-bottom: 1px solid var(--border);
-            }
-            .dash-title { font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; margin-bottom: 4px; }
-            .dash-meta { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
-            .dash-meta strong { color: var(--text-sub); }
-            
-            .dash-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-            .btn-action {
-              display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
-              border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
-              transition: all 0.15s ease; outline: none; text-decoration: none;
-            }
-            .btn-print { background: var(--primary); color: #ffffff; border: 1px solid #60a5fa; }
-            .btn-print:hover { background: var(--primary-hover); }
-            .btn-export { background: #1e293b; color: #cbd5e1; border: 1px solid var(--border); }
-            .btn-export:hover { background: #334155; color: #ffffff; }
-
-            /* Executive KPI Summary */
-            .executive-grid {
-              display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-              gap: 12px;
-              margin-bottom: 20px;
-            }
-            .exec-card {
-              background: var(--bg-card);
-              border: 1px solid var(--border);
-              border-radius: 8px;
-              padding: 14px 16px;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-            }
-            .exec-card-header { font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.4px; }
-            .exec-card-value { font-size: 28px; font-weight: 800; color: #ffffff; margin: 4px 0; }
-            .exec-card-footer { font-size: 11px; color: var(--text-sub); }
-            
-            .card-score { border-color: ${overallBorder}; background: ${overallBg}; }
-            .card-score .exec-card-value { color: ${overallColor}; }
-            .card-critical .exec-card-value { color: #f87171; }
-            .card-high .exec-card-value { color: #fb7185; }
-            .card-medium .exec-card-value { color: #fbbf24; }
-            .card-safe .exec-card-value { color: #34d399; }
-
-            /* Risk Distribution Bar */
-            .distribution-panel {
-              background: var(--bg-card);
-              border: 1px solid var(--border);
-              border-radius: 8px;
-              padding: 14px 16px;
-              margin-bottom: 24px;
-            }
-            .dist-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--text-sub); }
-            .dist-track {
-              height: 12px;
-              border-radius: 6px;
-              background: rgba(15, 23, 42, 0.85);
-              display: flex;
-              overflow: hidden;
-              border: 1px solid var(--border);
-            }
-            .dist-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 11px; color: var(--text-muted); }
-            .legend-item { display: flex; align-items: center; gap: 5px; }
-            .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
-
-            /* Interactive Filter Toolbar */
-            .filter-toolbar {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 12px;
-              margin-bottom: 16px;
-              flex-wrap: wrap;
-            }
-            .search-box {
-              position: relative;
-              flex: 1;
-              min-width: 220px;
-              max-width: 380px;
-            }
-            .search-input {
-              width: 100%;
-              background: var(--bg-card);
-              border: 1px solid var(--border);
-              color: var(--text-main);
-              padding: 7px 12px;
-              border-radius: 6px;
-              font-size: 12px;
-              outline: none;
-            }
-            .search-input:focus { border-color: var(--primary); }
-            
-            .category-filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-            .cat-filter-btn {
-              background: var(--bg-card);
-              border: 1px solid var(--border);
-              color: var(--text-muted);
-              font-size: 11px;
-              font-weight: 600;
-              padding: 5px 10px;
-              border-radius: 6px;
-              cursor: pointer;
-              transition: all 0.15s ease;
-            }
-            .cat-filter-btn:hover { background: #334155; color: #ffffff; }
-            .cat-filter-btn.active { background: var(--primary); color: #ffffff; border-color: #60a5fa; }
-
-            /* Category Sections */
-            .cat-section {
-              background: var(--bg-card);
-              border: 1px solid var(--border);
-              border-radius: 8px;
-              margin-bottom: 14px;
-              overflow: hidden;
-            }
-            .cat-section-header {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              padding: 12px 16px;
-              cursor: pointer;
-              user-select: none;
-              background: rgba(15, 23, 42, 0.4);
-              transition: background 0.15s ease;
-            }
-            .cat-section-header:hover { background: rgba(15, 23, 42, 0.7); }
-            .cat-header-title { font-size: 14px; font-weight: 700; color: #ffffff; }
-            .cat-header-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-            .cat-header-right { display: flex; align-items: center; gap: 8px; }
-            .cat-count-pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
-            .cat-chevron { font-size: 11px; color: var(--text-muted); transition: transform 0.2s ease; }
-            .cat-section.collapsed .cat-chevron { transform: rotate(-90deg); }
-            .cat-section.collapsed .cat-section-body { display: none; }
-
-            .cat-section-body {
-              padding: 12px 16px;
-              display: flex;
-              flex-direction: column;
-              gap: 10px;
-              border-top: 1px solid var(--border);
-            }
-
-            .finding-card {
-              background: rgba(15, 23, 42, 0.65);
-              border: 1px solid var(--border);
-              border-radius: 6px;
-              padding: 10px 14px;
-              display: flex;
-              flex-direction: column;
-              gap: 6px;
-            }
-            .finding-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-            .finding-title-left { display: flex; align-items: center; gap: 8px; }
-            .field-name-title { font-size: 13px; font-weight: 700; color: #ffffff; }
-            .field-type-tag { font-size: 10px; background: rgba(59, 130, 246, 0.2); color: #93c5fd; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
-            
-            .finding-payload-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
-            .test-label { font-size: 11px; font-weight: 600; color: #e2e8f0; }
-            .payload-box {
-              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-              font-size: 11px;
-              background: #0f172a;
-              color: #93c5fd;
-              padding: 2px 6px;
-              border-radius: 4px;
-              border: 1px solid var(--border);
-              word-break: break-all;
-            }
-            .finding-detail-text { font-size: 12px; color: var(--text-sub); line-height: 1.45; }
-            .remediation-box {
-              font-size: 11px;
-              color: #93c5fd;
-              background: rgba(59, 130, 246, 0.08);
-              border: 1px solid rgba(59, 130, 246, 0.25);
-              border-radius: 4px;
-              padding: 6px 10px;
-              line-height: 1.4;
-            }
-
-            .res-badge {
-              display: inline-flex; align-items: center; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; white-space: nowrap;
-            }
-            .res-conforme { background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.4); }
-            .res-restricted-save { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); }
-            .res-restricted-field { background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border: 1px solid rgba(5, 150, 105, 0.5); }
-            .res-truncated, .res-logic, .res-format { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45); }
-            .res-integrity { background: rgba(249, 115, 22, 0.2); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.45); }
-            .res-capacity { background: rgba(225, 29, 72, 0.2); color: #fb7185; border: 1px solid rgba(225, 29, 72, 0.45); }
-            .res-risk { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); }
-            .res-error { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
-            .empty-cat-note { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 4px 0; }
-
-            /* PRINT MEDIA STYLES */
-            @media print {
-              body { background: #ffffff !important; color: #0f172a !important; padding: 0 !important; }
-              .no-print { display: none !important; }
-              .dashboard-wrap { max-width: 100% !important; }
-              .dash-header { border-bottom: 2px solid #cbd5e1 !important; margin-bottom: 14px !important; }
-              .dash-title { color: #0f172a !important; font-size: 18px !important; }
-              .dash-meta { color: #475569 !important; }
-              .exec-card { background: #ffffff !important; border: 1px solid #cbd5e1 !important; }
-              .exec-card-value { color: #0f172a !important; }
-              .card-score { background: #f8fafc !important; }
-              .distribution-panel { background: #ffffff !important; border: 1px solid #cbd5e1 !important; }
-              .cat-section { background: #ffffff !important; border: 1px solid #cbd5e1 !important; page-break-inside: avoid; }
-              .cat-section-header { background: #f8fafc !important; }
-              .cat-header-title { color: #0f172a !important; }
-              .finding-card { background: #ffffff !important; border: 1px solid #e2e8f0 !important; page-break-inside: avoid; }
-              .field-name-title { color: #0f172a !important; }
-              .test-label { color: #334155 !important; }
-              .payload-box { background: #f8fafc !important; color: #0f172a !important; border: 1px solid #cbd5e1 !important; }
-              .finding-detail-text { color: #1e293b !important; }
-              .remediation-box { background: #f0fdf4 !important; border: 1px solid #86efac !important; color: #15803d !important; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="dashboard-wrap">
-            <div class="dash-header">
-              <div>
-                <h1 class="dash-title">Dashboard de Auditoría y Riesgos QA</h1>
-                <div class="dash-meta">
-                  <strong>Formulario:</strong> ${escapeHtml(activeFormTitle || 'Formulario Principal')} &bull;
-                  <strong>Campos auditados (${selectedFields.length}):</strong> ${escapeHtml(selectedFields.map(f => f.label).join(', '))}<br>
-                  <strong>Fecha de auditoría:</strong> ${new Date().toLocaleString()} &bull;
-                  <strong>Total Pruebas Ejecutadas:</strong> ${total}
-                </div>
-              </div>
-              <div class="dash-actions no-print">
-                <button onclick="copyAuditJson()" id="btn-copy-json" class="btn-action btn-export" title="Copiar informe en formato JSON">
-                  <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                  <span id="btn-copy-json-text">Copiar JSON</span>
-                </button>
-                <button onclick="window.print()" class="btn-action btn-print" title="Imprimir informe en papel o guardar en PDF">
-                  <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                  Imprimir / PDF
-                </button>
-              </div>
-            </div>
-
-            <!-- Executive KPI Summary -->
-            <div class="executive-grid">
-              <div class="exec-card card-score">
-                <div class="exec-card-header">Índice de Robustez</div>
-                <div class="exec-card-value">${score}%</div>
-                <div class="exec-card-footer">${overallLevel}</div>
-              </div>
-              <div class="exec-card card-critical">
-                <div class="exec-card-header">Seguridad (Crítico)</div>
-                <div class="exec-card-value">${criticalCount}</div>
-                <div class="exec-card-footer">Inyecciones XSS, SQLi, \0</div>
-              </div>
-              <div class="exec-card card-high">
-                <div class="exec-card-header">Capacidad (Alto)</div>
-                <div class="exec-card-value">${highCount}</div>
-                <div class="exec-card-footer">Sobrecargas y DoS</div>
-              </div>
-              <div class="exec-card card-medium">
-                <div class="exec-card-header">Formato & Negocio</div>
-                <div class="exec-card-value">${mediumCount}</div>
-                <div class="exec-card-footer">Unicode, Espacios, Reglas</div>
-              </div>
-              <div class="exec-card card-safe">
-                <div class="exec-card-header">Defensas Conformes</div>
-                <div class="exec-card-value">${safeCount}</div>
-                <div class="exec-card-footer">Restringidas o Estándar</div>
-              </div>
-            </div>
-
-            <!-- Distribution Panel -->
-            <div class="distribution-panel">
-              <div class="dist-title-row">
-                <span>Distribución Visual de Riesgos por Severidad</span>
-                <span>${overallMessage}</span>
-              </div>
-              <div class="dist-track">
-                <div style="width: ${pCrit}%; background: #f87171;" title="Seguridad: ${criticalCount} (${pCrit}%)"></div>
-                <div style="width: ${pHigh}%; background: #fb7185;" title="Capacidad: ${highCount} (${pHigh}%)"></div>
-                <div style="width: ${pMed}%; background: #fbbf24;" title="Formato: ${mediumCount} (${pMed}%)"></div>
-                <div style="width: ${pSafe}%; background: #34d399;" title="Conforme: ${safeCount} (${pSafe}%)"></div>
-              </div>
-              <div class="dist-legend">
-                <div class="legend-item"><span class="legend-dot" style="background:#f87171;"></span> Seguridad: ${pCrit}% (${criticalCount})</div>
-                <div class="legend-item"><span class="legend-dot" style="background:#fb7185;"></span> Capacidad DoS: ${pHigh}% (${highCount})</div>
-                <div class="legend-item"><span class="legend-dot" style="background:#fbbf24;"></span> Formato / Integridad: ${pMed}% (${mediumCount})</div>
-                <div class="legend-item"><span class="legend-dot" style="background:#34d399;"></span> Conforme / Seguro: ${pSafe}% (${safeCount})</div>
-              </div>
-            </div>
-
-            <!-- Filter Toolbar -->
-            <div class="filter-toolbar no-print">
-              <div class="search-box">
-                <input type="text" id="filter-search-input" class="search-input" placeholder="🔍 Buscar por campo, prueba o texto..." oninput="applyDashboardFilter()">
-              </div>
-              <div class="category-filter-pills">
-                <button class="cat-filter-btn active" onclick="setDashboardCategoryFilter('all', this)">Todos (${total})</button>
-                <button class="cat-filter-btn" onclick="setDashboardCategoryFilter('security', this)">Seguridad (${criticalCount})</button>
-                <button class="cat-filter-btn" onclick="setDashboardCategoryFilter('capacity', this)">Capacidad (${highCount})</button>
-                <button class="cat-filter-btn" onclick="setDashboardCategoryFilter('integrity', this)">Integridad (${grouped.integrity.length})</button>
-                <button class="cat-filter-btn" onclick="setDashboardCategoryFilter('format_logic', this)">Formato (${grouped.format_logic.length})</button>
-                <button class="cat-filter-btn" onclick="setDashboardCategoryFilter('conforme', this)">Conformes (${safeCount})</button>
-              </div>
-            </div>
-
-            <!-- Structured Categories List -->
-            <div id="categories-container">
-              ${categoriesHtml}
-            </div>
-          </div>
-
-          <script>
-            window.auditPayload = ${JSON.stringify(auditDataExport)};
-            let activeCategoryFilter = 'all';
-
-            function toggleDashboardCategory(key) {
-              const sec = document.getElementById('cat-sec-' + key);
-              if (sec) sec.classList.toggle('collapsed');
-            }
-
-            function setDashboardCategoryFilter(catKey, btnEl) {
-              activeCategoryFilter = catKey;
-              document.querySelectorAll('.cat-filter-btn').forEach(b => b.classList.remove('active'));
-              if (btnEl) btnEl.classList.add('active');
-              applyDashboardFilter();
-            }
-
-            function applyDashboardFilter() {
-              const query = (document.getElementById('filter-search-input').value || '').trim().toLowerCase();
-              const sections = document.querySelectorAll('.cat-section');
-
-              sections.forEach(sec => {
-                const catKey = sec.getAttribute('data-cat-key');
-                const matchesCategory = (activeCategoryFilter === 'all' || activeCategoryFilter === catKey);
-                
-                const cards = sec.querySelectorAll('.finding-card');
-                let visibleInSec = 0;
-
-                cards.forEach(card => {
-                  const searchData = card.getAttribute('data-search') || '';
-                  const matchesSearch = !query || searchData.includes(query);
-
-                  if (matchesCategory && matchesSearch) {
-                    card.style.display = 'flex';
-                    visibleInSec++;
-                  } else {
-                    card.style.display = 'none';
-                  }
-                });
-
-                if (visibleInSec > 0 || (cards.length === 0 && matchesCategory && !query)) {
-                  sec.style.display = 'block';
-                } else {
-                  sec.style.display = 'none';
-                }
-              });
-            }
-
-            function copyAuditJson() {
-              const jsonStr = JSON.stringify(window.auditPayload, null, 2);
-              navigator.clipboard.writeText(jsonStr).then(() => {
-                const textEl = document.getElementById('btn-copy-json-text');
-                if (textEl) {
-                  const orig = textEl.innerText;
-                  textEl.innerText = '¡JSON Copiado!';
-                  setTimeout(() => textEl.innerText = orig, 1800);
-                }
-              }).catch(() => {
-                prompt('Copia manualmente:', jsonStr);
-              });
-            }
-          <\/script>
-        </body>
-        </html>
-      `);
-      dashWindow.document.close();
+      if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+        chrome.tabs.create({ url: dashboardUrl });
+      } else {
+        window.open(dashboardUrl, '_blank');
+      }
     });
   }
 
@@ -2936,459 +2522,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // 4. Printable HTML Report / PDF
-  btnPrintReport.addEventListener('click', () => {
+  btnPrintReport.addEventListener('click', async () => {
     if (testResults.length === 0) {
       alert('No hay resultados para imprimir.');
       return;
     }
 
-    const total = testResults.length;
-    const restricted = testResults.filter(r => r.status === 'restricted_save' || r.status === 'restricted_field').length;
-    const conforme = testResults.filter(r => r.status === 'conforme').length;
-    const risk = testResults.filter(r => r.status === 'risk' || r.status === 'warning').length;
+    const auditData = getStructuredAuditData();
+    if (auditData && typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      await chrome.storage.local.set({ qa_audit_dashboard_data: auditData });
+    }
 
-    let rowsHtml = '';
-    testResults.forEach(r => {
-      const badgeCls = r.badgeClass || 'res-conforme';
-      rowsHtml += `
-        <tr>
-          <td class="col-field">
-            <strong>${escapeHtml(r.fieldName)}</strong>
-            <div class="field-sub">${escapeHtml(r.fieldType)}</div>
-          </td>
-          <td class="col-test">
-            <div class="test-name">${escapeHtml(r.testItem.name)}</div>
-            <code class="payload-code">${escapeHtml(r.input.length > 70 ? r.input.slice(0, 67) + '...' : r.input)}</code>
-          </td>
-          <td class="col-status">
-            <span class="res-badge ${badgeCls}">${escapeHtml(r.badgeText)}</span>
-          </td>
-          <td class="col-detail">${escapeHtml(r.detail)}</td>
-          <td class="col-rec">${escapeHtml(r.recommendation)}</td>
-        </tr>
-      `;
-    });
+    const reportUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
+      ? chrome.runtime.getURL('dashboard/dashboard.html?autoPrint=true')
+      : 'dashboard/dashboard.html?autoPrint=true';
 
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html lang="es">
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Informe de Validación QA Multi-Campo</title>
-        <style>
-          :root {
-            --bg-page: #0f172a;
-            --bg-card: #1e293b;
-            --bg-hover: #273549;
-            --border: #334155;
-            --text-main: #f8fafc;
-            --text-sub: #cbd5e1;
-            --text-muted: #94a3b8;
-            --primary: #3b82f6;
-            --primary-hover: #2563eb;
-          }
-
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-page);
-            color: var(--text-main);
-            line-height: 1.5;
-            padding: 28px 24px;
-          }
-
-          .report-container {
-            max-width: 1200px;
-            margin: 0 auto;
-          }
-
-          .report-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-            gap: 16px;
-          }
-
-          h1 {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 6px;
-          }
-
-          .meta {
-            font-size: 12px;
-            color: var(--text-muted);
-            line-height: 1.6;
-          }
-          .meta strong { color: var(--text-sub); }
-
-          .btn-print {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 9px 18px;
-            background: var(--primary);
-            color: #ffffff;
-            border: 1px solid #60a5fa;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            transition: background 0.15s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.25);
-            white-space: nowrap;
-          }
-          .btn-print:hover {
-            background: var(--primary-hover);
-          }
-          .btn-print svg {
-            width: 15px;
-            height: 15px;
-            stroke: currentColor;
-            fill: none;
-            stroke-width: 2;
-          }
-
-          .kpis {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin-bottom: 24px;
-          }
-
-          .kpi {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 14px 16px;
-            border-radius: 8px;
-            text-align: center;
-          }
-          .kpi-val {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 2px;
-            color: var(--text-main);
-          }
-          .kpi-desc {
-            font-size: 11px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-          }
-
-          .kpi-restricted {
-            border-color: rgba(16, 185, 129, 0.4);
-            background: rgba(16, 185, 129, 0.08);
-          }
-          .kpi-restricted .kpi-val { color: #34d399; }
-
-          .kpi-conforme {
-            border-color: rgba(2, 132, 199, 0.4);
-            background: rgba(2, 132, 199, 0.08);
-          }
-          .kpi-conforme .kpi-val { color: #38bdf8; }
-
-          .kpi-risk {
-            border-color: rgba(239, 68, 68, 0.4);
-            background: rgba(239, 68, 68, 0.08);
-          }
-          .kpi-risk .kpi-val { color: #f87171; }
-
-          .table-wrap {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
-          }
-
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-            text-align: left;
-          }
-
-          thead {
-            background: rgba(15, 23, 42, 0.85);
-          }
-
-          th {
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-muted);
-            font-size: 11px;
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-          }
-
-          td {
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border);
-            vertical-align: top;
-            color: var(--text-sub);
-            line-height: 1.45;
-          }
-
-          tr:last-child td {
-            border-bottom: none;
-          }
-
-          tbody tr:hover {
-            background: var(--bg-hover);
-          }
-
-          .col-field strong { color: var(--text-main); font-size: 12px; }
-          .field-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
-          .test-name { font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
-          
-          .payload-code {
-            display: inline-block;
-            background: #0f172a;
-            border: 1px solid var(--border);
-            color: #93c5fd;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 11px;
-            word-break: break-all;
-            max-width: 280px;
-          }
-
-          .col-rec {
-            color: #60a5fa;
-            font-size: 11px;
-          }
-
-          .res-badge {
-            display: inline-flex;
-            align-items: center;
-            font-size: 10px;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 4px;
-            white-space: nowrap;
-          }
-
-          .res-conforme {
-            background: rgba(2, 132, 199, 0.2);
-            color: #38bdf8;
-            border: 1px solid rgba(2, 132, 199, 0.4);
-          }
-          .res-restricted-save {
-            background: rgba(16, 185, 129, 0.2);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.5);
-          }
-          .res-restricted-field {
-            background: rgba(5, 150, 105, 0.2);
-            color: #6ee7b7;
-            border: 1px solid rgba(5, 150, 105, 0.5);
-          }
-          .res-truncated, .res-logic, .res-format {
-            background: rgba(245, 158, 11, 0.2);
-            color: #fbbf24;
-            border: 1px solid rgba(245, 158, 11, 0.45);
-          }
-          .res-integrity {
-            background: rgba(249, 115, 22, 0.2);
-            color: #fb923c;
-            border: 1px solid rgba(249, 115, 22, 0.45);
-          }
-          .res-capacity {
-            background: rgba(225, 29, 72, 0.2);
-            color: #fb7185;
-            border: 1px solid rgba(225, 29, 72, 0.45);
-          }
-          .res-risk {
-            background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.5);
-          }
-          .res-error {
-            background: rgba(168, 85, 247, 0.15);
-            color: #c084fc;
-            border: 1px solid rgba(168, 85, 247, 0.4);
-          }
-
-          /* PRINT MEDIA: PURE WHITE CLEAN THEME FOR PRINT / PDF DOWNLOAD */
-          @media print {
-            body {
-              background: #ffffff !important;
-              color: #0f172a !important;
-              padding: 0 !important;
-            }
-            .report-container {
-              max-width: 100% !important;
-            }
-            .no-print, .btn-print {
-              display: none !important;
-            }
-            .report-header {
-              border-bottom: 2px solid #cbd5e1 !important;
-              margin-bottom: 16px !important;
-              padding-bottom: 12px !important;
-            }
-            h1 {
-              color: #0f172a !important;
-              font-size: 18px !important;
-            }
-            .meta {
-              color: #475569 !important;
-              font-size: 11px !important;
-            }
-            .meta strong {
-              color: #0f172a !important;
-            }
-            .kpis {
-              gap: 8px !important;
-              margin-bottom: 16px !important;
-            }
-            .kpi {
-              background: #ffffff !important;
-              border: 1px solid #cbd5e1 !important;
-              padding: 8px 12px !important;
-            }
-            .kpi-val {
-              color: #0f172a !important;
-              font-size: 18px !important;
-            }
-            .kpi-desc {
-              color: #475569 !important;
-            }
-            .kpi-restricted .kpi-val { color: #15803d !important; }
-            .kpi-conforme .kpi-val { color: #0284c7 !important; }
-            .kpi-risk .kpi-val { color: #b91c1c !important; }
-            .table-wrap {
-              border: 1px solid #cbd5e1 !important;
-              box-shadow: none !important;
-              background: #ffffff !important;
-            }
-            thead {
-              background: #f8fafc !important;
-            }
-            th {
-              background: #f8fafc !important;
-              border-bottom: 1px solid #cbd5e1 !important;
-              color: #334155 !important;
-              font-size: 10px !important;
-            }
-            td {
-              border-bottom: 1px solid #e2e8f0 !important;
-              color: #1e293b !important;
-              font-size: 11px !important;
-              padding: 8px 10px !important;
-            }
-            .col-field strong { color: #0f172a !important; }
-            .test-name { color: #0f172a !important; }
-            .payload-code {
-              background: #f8fafc !important;
-              border: 1px solid #cbd5e1 !important;
-              color: #1e293b !important;
-            }
-            .col-rec {
-              color: #1d4ed8 !important;
-            }
-            .res-badge {
-              border: 1px solid #94a3b8 !important;
-            }
-            .res-conforme {
-              background: #f0f9ff !important;
-              color: #0369a1 !important;
-              border-color: #7dd3fc !important;
-            }
-            .res-restricted-save, .res-restricted-field {
-              background: #f0fdf4 !important;
-              color: #15803d !important;
-              border-color: #86efac !important;
-            }
-            .res-truncated, .res-logic, .res-format {
-              background: #fffbeb !important;
-              color: #b45309 !important;
-              border-color: #fde68a !important;
-            }
-            .res-integrity {
-              background: #fff7ed !important;
-              color: #c2410c !important;
-              border-color: #fed7aa !important;
-            }
-            .res-capacity, .res-risk {
-              background: #fef2f2 !important;
-              color: #b91c1c !important;
-              border-color: #fca5a5 !important;
-            }
-            .res-error {
-              background: #faf5ff !important;
-              color: #7e22ce !important;
-              border-color: #d8b4fe !important;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="report-container">
-          <div class="report-header">
-            <div>
-              <h1>Informe de Auditoría Multi-Campo</h1>
-              <div class="meta">
-                <strong>Campos auditados:</strong> ${escapeHtml(selectedFields.map(f => f.label).join(', '))}<br>
-                <strong>Fecha de generación:</strong> ${new Date().toLocaleString()}
-              </div>
-            </div>
-            <button onclick="window.print()" class="btn-print no-print">
-              <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-              Imprimir / Guardar PDF
-            </button>
-          </div>
-
-          <div class="kpis">
-            <div class="kpi">
-              <div class="kpi-val">${total}</div>
-              <div class="kpi-desc">Total Pruebas</div>
-            </div>
-            <div class="kpi kpi-restricted">
-              <div class="kpi-val">${restricted}</div>
-              <div class="kpi-desc">Restringidas</div>
-            </div>
-            <div class="kpi kpi-conforme">
-              <div class="kpi-val">${conforme}</div>
-              <div class="kpi-desc">Conformes</div>
-            </div>
-            <div class="kpi kpi-risk">
-              <div class="kpi-val">${risk}</div>
-              <div class="kpi-desc">Con Riesgo / Observación</div>
-            </div>
-          </div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Campo</th>
-                  <th>Prueba / Input</th>
-                  <th>Resultado</th>
-                  <th>Detalle del Sitio</th>
-                  <th>Recomendación Técnica</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rowsHtml}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+    if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+      chrome.tabs.create({ url: reportUrl });
+    } else {
+      window.open(reportUrl, '_blank');
+    }
   });
 
   // CUSTOM PAYLOAD MODAL HANDLERS
