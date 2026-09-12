@@ -1320,3 +1320,314 @@ textarea:focus-visible,
   color: #fbbf24;
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
+
+/* ==========================================================================
+   Dashboard View & Structured Risk Categories Styles
+   ========================================================================== */
+
+.view-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.view-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.view-toggle-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.view-toggle-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Global Health & Robustness Card */
+.dashboard-health-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.health-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.health-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #93c5fd;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.health-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+}
+
+.health-score-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  border: 2.5px solid var(--primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.score-number {
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  margin-top: 2px;
+}
+
+.health-summary-text {
+  flex: 1;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-sub);
+}
+
+.health-mini-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.mini-tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.2px;
+}
+
+.tag-critical {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.tag-high {
+  background: rgba(225, 29, 72, 0.18);
+  color: #fb7185;
+  border: 1px solid rgba(225, 29, 72, 0.4);
+}
+
+.tag-medium {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.tag-safe {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* Distribution bar */
+.risk-distribution-box {
+  margin-top: 4px;
+}
+
+.distribution-header {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.risk-distribution-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.85);
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.dist-seg {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.seg-critical { background: #f87171; }
+.seg-high { background: #fb7185; }
+.seg-medium { background: #fbbf24; }
+.seg-safe { background: #34d399; }
+
+/* Structured Risk Category Groups */
+.dashboard-risk-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.risk-category-card {
+  background: rgba(30, 41, 59, 0.55);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.risk-category-card.cat-critical { border-left: 3px solid #f87171; }
+.risk-category-card.cat-high { border-left: 3px solid #fb7185; }
+.risk-category-card.cat-medium { border-left: 3px solid #fbbf24; }
+.risk-category-card.cat-safe { border-left: 3px solid #34d399; }
+
+.risk-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.6);
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+  transition: background var(--transition-fast);
+}
+
+.risk-category-header:hover {
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.risk-cat-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+  flex: 1;
+}
+
+.risk-cat-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.risk-cat-chevron {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.risk-category-card.expanded .risk-cat-chevron {
+  transform: rotate(180deg);
+}
+
+.risk-category-body {
+  display: none;
+  padding: 8px 10px;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.risk-category-card.expanded .risk-category-body {
+  display: flex;
+}
+
+.risk-finding-item {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 4px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finding-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.finding-field-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.finding-payload {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 5px;
+  border-radius: 3px;
+  color: #93c5fd;
+  word-break: break-all;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  display: inline-block;
+}
+
+.finding-detail {
+  font-size: 10px;
+  color: var(--text-sub);
+  line-height: 1.4;
+}
+
+.finding-rec {
+  font-size: 10px;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 3px;
+  padding: 4px 7px;
+  line-height: 1.35;
+}
+
