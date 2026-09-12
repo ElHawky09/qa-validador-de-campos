@@ -512,15 +512,11 @@
     }
 
     if (formEl.getAttribute('aria-label')) return formEl.getAttribute('aria-label').trim();
-    if (formEl.id) return `#${formEl.id}`;
-    if (formEl.name) return `name="${formEl.name}"`;
+    if (formEl.id) return `Formulario #${formEl.id}`;
+    if (formEl.name) return `Formulario (${formEl.name})`;
 
-    const firstLabel = formEl.querySelector('label');
-    if (firstLabel && firstLabel.innerText.trim()) {
-      return `Formulario (${firstLabel.innerText.trim().slice(0, 22)})`;
-    }
-
-    return `Formulario #${index}`;
+    // Evitar tomar el texto del primer label, ya que nombra erróneamente al formulario completo con el nombre de un campo individual
+    return `Formulario Principal`;
   }
 
   // Extract comprehensive element metadata

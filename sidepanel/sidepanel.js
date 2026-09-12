@@ -518,6 +518,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pickFormBtnText = document.getElementById('pick-form-btn-text');
   const btnResetAll = document.getElementById('btn-reset-all');
 
+  // Form Name Box DOM
+  const formNameBox = document.getElementById('form-name-box');
+  const inputFormTitle = document.getElementById('input-form-title');
+
+  if (inputFormTitle) {
+    inputFormTitle.addEventListener('input', () => {
+      activeFormTitle = inputFormTitle.value.trim();
+    });
+  }
+
   // Save Button Section DOM
   const saveButtonBox = document.getElementById('save-button-box');
   const saveBtnPill = document.getElementById('save-btn-pill');
@@ -823,6 +833,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       fieldEmptyState.style.display = 'block';
       selectedFieldsList.style.display = 'none';
       saveButtonBox.style.display = 'none';
+      if (formNameBox) formNameBox.style.display = 'none';
       fieldsCountBadge.className = 'badge badge-idle';
       fieldsCountBadge.innerText = '0 campos';
       updateSelectedCount();
@@ -833,6 +844,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     fieldEmptyState.style.display = 'none';
     selectedFieldsList.style.display = 'flex';
     saveButtonBox.style.display = 'flex';
+    if (formNameBox) {
+      formNameBox.style.display = 'flex';
+      if (inputFormTitle) {
+        if (!inputFormTitle.value && activeFormTitle) {
+          inputFormTitle.value = activeFormTitle;
+        } else if (!inputFormTitle.value) {
+          inputFormTitle.value = 'Formulario Principal';
+          activeFormTitle = 'Formulario Principal';
+        }
+      }
+    }
     fieldsCountBadge.className = 'badge badge-active';
     fieldsCountBadge.innerText = `${selectedFields.length} campo${selectedFields.length > 1 ? 's' : ''}`;
 
@@ -1092,6 +1114,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       fieldData.saveButton = currentSaveButton;
       selectedFields.push(fieldData);
+      if (!activeFormTitle) {
+        activeFormTitle = fieldData.formTitle || 'Formulario Principal';
+        if (inputFormTitle) inputFormTitle.value = activeFormTitle;
+      }
     } else {
       // Visual feedback that the field is already in the list
       const existingIdx = selectedFields.findIndex(f => 
@@ -1204,7 +1230,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       btnAutoDetectForm.innerHTML = originalText;
 
       if (res && res.fields && res.fields.length > 0) {
-        activeFormTitle = res.title || 'Formulario';
+        activeFormTitle = res.title || 'Formulario Principal';
+        if (inputFormTitle) inputFormTitle.value = activeFormTitle;
         res.fields.forEach(f => {
           if (f.fillerValue === undefined) {
             f.fillerValue = f.suggestedFillerValue || 'Dato Válido QA';
@@ -1241,81 +1268,68 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderSaveButton() {
     if (!saveButtonBox) return;
 
-    if (selectedFields.length === 0) {
-      saveButtonBox.style.display = 'none';
-      return;
-    }
-
-    saveButtonBox.style.display = 'block';
-
-    if (saveBtnPill) {
-      if (currentSaveButton) {
-        const text = currentSaveButton.text || currentSaveButton.value || 'Botón Guardar';
-        saveBtnPill.className = 'pill pill-save';
-        saveBtnPill.innerText = text;
-        saveBtnPill.title = text;
-      } else {
-        saveBtnPill.className = 'pill pill-idle';
-        saveBtnPill.innerText = 'Auto / No asignado';
-        saveBtnPill.title = 'Se detectará automáticamente al iniciar pruebas o haz clic en "Cambiar botón"';
-      }
-    }
-
-    if (btnInspectSave) {
-      if (currentSaveButton) {
-        btnInspectSave.disabled = false;
+    if (currentSaveButton) {
+      const btnLabel = currentSaveButton.text || currentSaveButton.value || currentSaveButton.id || 'Botón de Guardar';
+      saveBtnPill.className = 'pill pill-assigned';
+      saveBtnPill.innerHTML = `<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> ${escapeHtml(btnLabel.slice(0, 32))}`;
+      saveBtnPill.title = `Botón: ${btnLabel}\nSelector: ${currentSaveButton.selector || 'N/A'}`;
+      if (btnInspectSave) {
         btnInspectSave.style.display = 'inline-flex';
-      } else {
-        btnInspectSave.disabled = true;
+        btnInspectSave.disabled = false;
+      }
+    } else {
+      saveBtnPill.className = 'pill pill-idle';
+      saveBtnPill.innerText = 'Auto / No asignado';
+      saveBtnPill.title = 'Se detectará automáticamente al enviar o se enviará por evento submit';
+      if (btnInspectSave) {
         btnInspectSave.style.display = 'none';
+        btnInspectSave.disabled = true;
       }
     }
 
     if (btnChangeSave) {
       if (isPickingButtonActive) {
-        btnChangeSave.classList.add('btn-primary');
         btnChangeSave.classList.remove('btn-outline');
-        if (changeSaveBtnText) changeSaveBtnText.innerText = 'Cancelar (ESC)';
+        btnChangeSave.classList.add('btn-primary');
+        changeSaveBtnText.innerText = 'Cancelar selección (ESC)';
       } else {
         btnChangeSave.classList.remove('btn-primary');
         btnChangeSave.classList.add('btn-outline');
-        if (changeSaveBtnText) changeSaveBtnText.innerText = 'Cambiar botón';
+        changeSaveBtnText.innerText = currentSaveButton ? 'Cambiar botón' : 'Asignar botón';
       }
     }
   }
 
-  if (btnInspectSave) {
-    btnInspectSave.addEventListener('click', async () => {
+  if (btnChangeSave) {
+    btnChangeSave.addEventListener('click', async () => {
       const tab = await getActiveTab();
-      if (tab?.id && currentSaveButton) {
+      if (!tab?.id) return;
+      activeTabId = tab.id;
+      await ensureContentScriptInjected(tab.id);
+
+      if (isPickingButtonActive) {
+        chrome.tabs.sendMessage(tab.id, { action: 'CANCEL_PICKING' });
+        setButtonPickingState(false);
+      } else {
         chrome.tabs.sendMessage(tab.id, {
-          action: 'HIGHLIGHT_SAVE_BUTTON',
-          saveButtonInfo: currentSaveButton
+          action: 'START_PICKING_BUTTON',
+          formTitle: (inputFormTitle?.value?.trim() || activeFormTitle || 'Formulario Principal')
         });
+        setButtonPickingState(true);
       }
     });
   }
 
-  if (btnChangeSave) {
-    btnChangeSave.addEventListener('click', async () => {
-      if (isPickingButtonActive) {
-        setButtonPickingState(false);
-        const tab = await getActiveTab();
-        if (tab?.id) {
-          chrome.tabs.sendMessage(tab.id, { action: 'CANCEL_PICKING' });
-        }
-      } else {
-        setButtonPickingState(true);
-        const tab = await getActiveTab();
-        if (tab?.id) {
-          activeTabId = tab.id;
-          await ensureContentScriptInjected(tab.id);
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'START_PICKING_BUTTON',
-            formTitle: activeFormTitle || 'Formulario'
-          });
-        }
-      }
+  if (btnInspectSave) {
+    btnInspectSave.addEventListener('click', async () => {
+      if (!currentSaveButton?.selector) return;
+      const tab = await getActiveTab();
+      if (!tab?.id) return;
+      await ensureContentScriptInjected(tab.id);
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'INSPECT_ELEMENT',
+        selector: currentSaveButton.selector
+      });
     });
   }
 
@@ -1329,7 +1343,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       setFormPickingState(false);
       const formData = message.data;
       if (formData && formData.fields && formData.fields.length > 0) {
-        activeFormTitle = formData.title || 'Formulario';
+        activeFormTitle = formData.title || 'Formulario Principal';
+        if (inputFormTitle) inputFormTitle.value = activeFormTitle;
         formData.fields.forEach(f => {
           if (f.fillerValue === undefined) {
             f.fillerValue = f.suggestedFillerValue || 'Dato Válido QA';
@@ -1363,6 +1378,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (confirm('¿Deseas reiniciar la lista de campos y los resultados?')) {
       selectedFields = [];
       activeFormTitle = '';
+      if (inputFormTitle) inputFormTitle.value = '';
+      if (formNameBox) formNameBox.style.display = 'none';
       reopenSteps = [];
       currentSaveButton = null;
       if (checkEnableReopen) checkEnableReopen.checked = false;
@@ -2325,7 +2342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
 
     return {
-      formulario: activeFormTitle || 'Formulario Principal',
+      formulario: (inputFormTitle?.value?.trim() || activeFormTitle || 'Formulario Principal'),
       fecha: new Date().toISOString(),
       fechaFormateada: new Date().toLocaleString(),
       camposAuditados: selectedFields.map(f => ({ label: f.label, type: f.type, name: f.name })),
@@ -2429,8 +2446,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const formTitleDisplay = (inputFormTitle?.value?.trim() || activeFormTitle || 'Formulario Principal');
+
     // Build rich HTML table that Notion understands natively
-    let htmlTable = `<table><thead><tr>`;
+    let htmlTable = `<p><strong>Formulario:</strong> ${escapeHtml(formTitleDisplay)} &bull; <strong>Fecha:</strong> ${escapeHtml(new Date().toLocaleString())}</p><table><thead><tr>`;
     htmlTable += `<th>Campo</th>`;
     htmlTable += `<th>Tipo</th>`;
     htmlTable += `<th>Prueba / Input</th>`;
@@ -2454,7 +2473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     htmlTable += `</tbody></table>`;
 
     // Plain text / markdown fallback
-    let plainText = `Campo\tTipo\tPrueba / Input\tResultado\tDetalle\tRecomendación\n`;
+    let plainText = `Formulario: ${formTitleDisplay}\nFecha: ${new Date().toLocaleString()}\n\nCampo\tTipo\tPrueba / Input\tResultado\tDetalle\tRecomendación\n`;
     testResults.forEach(r => {
       plainText += `${r.fieldName}\t${r.fieldType}\t${r.testItem.name} (${r.input})\t${r.badgeText}\t${r.detail}\t${r.recommendation}\n`;
     });
@@ -2487,7 +2506,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const formTitleDisplay = (inputFormTitle?.value?.trim() || activeFormTitle || 'Formulario Principal');
+
     let md = `## Reporte de Validación Multi-Campo Web\n\n`;
+    md += `**Formulario:** ${formTitleDisplay}\n`;
     md += `**Campos auditados:** ${selectedFields.map(f => f.label).join(', ')}\n`;
     md += `**Botón Guardar:** ${currentSaveButton ? (currentSaveButton.text || currentSaveButton.value) : 'Envío nativo / No asignado'}\n`;
     md += `**Fecha:** ${new Date().toLocaleString()}\n\n`;
@@ -2517,8 +2539,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const headers = ['Campo', 'Tipo de Campo', 'Prueba', 'Input Probado', 'Resultado', 'Detalle del Sitio', 'Recomendación'];
+    const formTitleDisplay = (inputFormTitle?.value?.trim() || activeFormTitle || 'Formulario Principal');
+
+    const headers = ['Formulario', 'Campo', 'Tipo de Campo', 'Prueba', 'Input Probado', 'Resultado', 'Detalle del Sitio', 'Recomendación'];
     const rows = testResults.map(r => [
+      `"${formTitleDisplay.replace(/"/g, '""')}"`,
       `"${r.fieldName.replace(/"/g, '""')}"`,
       `"${(r.fieldType || '').replace(/"/g, '""')}"`,
       `"${r.testItem.name.replace(/"/g, '""')}"`,
