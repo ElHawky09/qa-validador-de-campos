@@ -67,5 +67,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ status: 'PONG' });
     return false;
   }
+
+  // Open a new tab on behalf of the sidepanel (sidepanel lacks chrome.tabs access)
+  if (message.action === 'OPEN_DASHBOARD_TAB') {
+    const url = message.url || chrome.runtime.getURL('dashboard/dashboard.html');
+    chrome.tabs.create({ url: url }).then((tab) => {
+      sendResponse({ success: true, tabId: tab.id });
+    }).catch((err) => {
+      sendResponse({ success: false, error: err.message });
+    });
+    return true; // keep channel open for async sendResponse
+  }
+
   return false;
 });

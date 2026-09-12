@@ -2391,8 +2391,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? chrome.runtime.getURL('dashboard/dashboard.html')
         : 'dashboard/dashboard.html';
 
-      if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
-        chrome.tabs.create({ url: dashboardUrl });
+      // Side panels cannot use chrome.tabs directly; delegate to service worker
+      if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+        chrome.runtime.sendMessage({ action: 'OPEN_DASHBOARD_TAB', url: dashboardUrl }, (resp) => {
+          if (chrome.runtime.lastError) {
+            console.warn('Fallback: opening dashboard via window.open', chrome.runtime.lastError);
+            window.open(dashboardUrl, '_blank');
+          }
+        });
       } else {
         window.open(dashboardUrl, '_blank');
       }
@@ -2537,8 +2543,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       ? chrome.runtime.getURL('dashboard/dashboard.html?autoPrint=true')
       : 'dashboard/dashboard.html?autoPrint=true';
 
-    if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
-      chrome.tabs.create({ url: reportUrl });
+    // Side panels cannot use chrome.tabs directly; delegate to service worker
+    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({ action: 'OPEN_DASHBOARD_TAB', url: reportUrl }, (resp) => {
+        if (chrome.runtime.lastError) {
+          console.warn('Fallback: opening report via window.open', chrome.runtime.lastError);
+          window.open(reportUrl, '_blank');
+        }
+      });
     } else {
       window.open(reportUrl, '_blank');
     }
