@@ -1,32 +1,94 @@
-// QA Form Field Validator - Side Panel Controller
-// Compatible with Microsoft Edge, Brave, and Google Chrome
-// Supports Multi-Field Testing, Auto-Form Detection, Dual-Phase Save Auditing, and Notion Export
+// =========================================================================================
+// QA FORM FIELD VALIDATOR - CONTROLADOR DEL PANEL LATERAL (SIDE PANEL)
+// =========================================================================================
+// Este archivo actúa como el núcleo orquestador y centro de comando de la interfaz de usuario
+// que se muestra en el panel lateral del navegador (Chrome Side Panel API).
+// Es compatible con Microsoft Edge, Brave, Google Chrome y cualquier navegador Chromium moderno.
+//
+// Responsabilidades principales:
+// 1. Gestión del estado de la extensión (campos seleccionados, botón de guardar, pasos de reapertura).
+// 2. Comunicación bidireccional (IPC) con el content-script (`picker.js`) inyectado en la pestaña web.
+// 3. Renderizado dinámico de suites de prueba organizadas por niveles de profundidad (Tiers).
+// 4. Ejecución automatizada de pruebas secuenciales con inyección de valores, disparo de eventos y auditoría de guardado.
+// 5. Motor de categorización de riesgos (Crítico, Alto, Medio, Bajo/Conforme) según la respuesta del DOM y backend.
+// 6. Generación de informes exportables en formatos Notion (HTML enriquecido), Markdown, CSV, Impresión/PDF y Dashboard gráfico interactivo.
+// =========================================================================================
 
+// Se añade un escucha al evento 'DOMContentLoaded' del objeto global 'document'.
+// 'document' representa el árbol DOM de la página HTML del side panel ('sidepanel.html').
+// 'addEventListener' registra una función callback que se ejecutará cuando el HTML haya sido completamente parseado.
+// La palabra clave 'async' permite utilizar 'await' dentro de la función para operaciones asíncronas
+// como consultas de pestañas activas o lecturas de base de datos 'chrome.storage.local'.
 document.addEventListener('DOMContentLoaded', async () => {
-  // State
+
+  // =======================================================================================
+  // VARIABLES DE ESTADO GLOBAL DE LA APLICACIÓN (SIDE PANEL SCOPE)
+  // =======================================================================================
+  // La palabra reservada 'let' define variables mutables reasignables limitadas al ámbito de este bloque.
+
+  // Array que contendrá los objetos descriptores de los campos de formulario seleccionados para pruebas.
+  // Cada elemento almacena selector CSS, tipo de input, etiqueta humana, valor original y atributos HTML.
   let selectedFields = [];
+
+  // Almacena el descriptor del botón de envío/guardado del formulario (selector, texto, clase, tag).
+  // Si es 'null', significa que el usuario no ha seleccionado un botón de guardar aún.
   let currentSaveButton = null;
+
+  // Almacena el identificador numérico de la pestaña activa de Chrome en la que se ejecutan las auditorías.
   let activeTabId = null;
+
+  // Banderas booleanas (flags) para evitar colisiones entre los distintos modos interactivos de selección:
+  // Indica si el usuario está actualmente en modo de captura interactiva de un campo individual en la página.
   let isPickingFieldActive = false;
+
+  // Indica si el usuario está en modo de captura interactiva del botón de guardar/submit.
   let isPickingButtonActive = false;
+
+  // Indica si el usuario activó la detección/selección automática de un formulario completo mediante clic.
   let isPickingFormActive = false;
+
+  // Indica si el usuario está seleccionando un elemento interactivo para la secuencia de reapertura de modales/drawers.
   let isPickingReopenStepActive = false;
+
+  // Cadena de texto con el título asignado al formulario actual (personalizable por el usuario o auto-detectado).
   let activeFormTitle = '';
+
+  // Array que guarda la secuencia ordenada de pasos (clics en botones, selectores) necesarios para reabrir el formulario.
   let reopenSteps = [];
+
+  // Categoría de payloads actualmente visible en la interfaz ('all', 'text', 'emoji', 'number', 'date', 'security', 'url').
   let currentCategory = 'all';
+
+  // Filtro de estado aplicado sobre la tabla de resultados ('all', 'restricted', 'conforme', 'risk').
   let activeFilter = 'all';
+
+  // Filtro por campo específico para visualizar únicamente los resultados del input seleccionado en el dropdown ('all' o selector).
   let activeFieldFilter = 'all';
+
+  // Array que almacena los casos de prueba personalizados creados por el usuario mediante el modal "+ Añadir Input".
   let customPayloads = [];
+
+  // Array en memoria que recopila todos los objetos de resultados de pruebas ejecutadas en la sesión actual.
   let testResults = [];
+
+  // Nivel de profundidad activo para filtrar las pruebas predeterminadas ('simple', 'normal', 'advanced', 'total').
   let currentDepthTier = 'normal';
 
+  // =======================================================================================
+  // CONSTANTES DE NIVELES DE PROFUNDIDAD (TIER SYSTEM)
+  // =======================================================================================
+  // La palabra clave 'const' declara identificadores de solo lectura inmutables en su referencia.
+
+  // Mapa jerárquico numérico para comparar niveles de profundidad.
+  // Un nivel superior (ej. 'total' = 4) incluye implícitamente todas las pruebas de niveles inferiores.
   const TIER_HIERARCHY = {
-    simple: 1,
-    normal: 2,
-    advanced: 3,
-    total: 4
+    simple: 1,    // Nivel 1: Verificaciones básicas y mínimas indispensables.
+    normal: 2,    // Nivel 2: Casos de uso estándar en formularios web cotidianos.
+    advanced: 3,  // Nivel 3: Pruebas de calidad y casos borde complejos (edge cases).
+    total: 4      // Nivel 4: Auditoría exhaustiva completa incluyendo ataques de seguridad y sobrecargas.
   };
 
+  // Textos explicativos en español presentados en la interfaz para guiar al auditor sobre el volumen de pruebas.
   const TIER_DESCRIPTIONS = {
     simple: 'Simple (~13 pruebas rápidas)',
     normal: 'Normal (~29 pruebas estándar)',
@@ -34,9 +96,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     total: 'Total (~51 pruebas exhaustivas)'
   };
 
-  // Default Test Suites with Depth Tiers (simple, normal, advanced, total)
+  // =======================================================================================
+  // SUITES DE PRUEBA POR DEFECTO (DEFAULT TEST SUITES)
+  // =======================================================================================
+  // Colección inmutable de casos de prueba integrados con valores de entrada (payloads), categorías y niveles.
+  // Cada objeto contiene:
+  // - id: Identificador único de la prueba.
+  // - category: Grupo funcional al que pertenece.
+  // - tier: Nivel mínimo requerido para ser seleccionado automáticamente.
+  // - name: Nombre legible del caso de prueba.
+  // - payload: Valor exacto que se inyectará en el campo del formulario web.
+  // - desc: Justificación técnica de por qué se realiza esta prueba de calidad o seguridad.
+  // - isInvalidCase: Booleano que define si el valor DEBE ser rechazado por una validación correcta.
+  //   Si es 'true' y la página lo acepta como válido, se reporta como riesgo o advertencia.
+  //   Si es 'false' y la página lo acepta, se considera un comportamiento conforme y esperado.
   const defaultSuites = [
-    // TEXTO Y LONGITUD
+    // -------------------------------------------------------------------------------------
+    // GRUPO 1: TEXTO Y LONGITUD (Casos de longitud estándar, espacios y límites de buffer)
+    // -------------------------------------------------------------------------------------
     {
       id: 'txt_normal',
       category: 'text',
@@ -44,7 +121,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       name: 'Texto común',
       payload: 'Prueba de validación QA',
       desc: 'Texto alfabético estándar',
-      isInvalidCase: false
+      isInvalidCase: false // Debe ser aceptado en campos de texto normales.
     },
     {
       id: 'txt_spaces',
@@ -53,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       name: 'Espacios alrededor',
       payload: '   Texto con espacios al inicio y final   ',
       desc: 'Verificar trim / recorte de espacios en blanco',
-      isInvalidCase: false
+      isInvalidCase: false // Caso válido pero verifica si el sistema recorta espacios superfluos.
     },
     {
       id: 'txt_only_spaces',
@@ -62,16 +139,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       name: 'Solo espacios en blanco',
       payload: '       ',
       desc: 'Comprobar si permite campos vacíos mediante espacios',
-      isInvalidCase: true
+      isInvalidCase: true // Debería ser rechazado en campos requeridos o no opcionales.
     },
     {
       id: 'txt_zero_width',
       category: 'text',
       tier: 'advanced',
       name: 'Espacios de ancho cero (Zero-width)',
+      // Utiliza secuencias de escape Unicode: \u200B (Zero-width space), \u200C (ZWNJ), \u200D (ZWJ), \uFEFF (BOM).
       payload: 'Texto\u200Bcon\u200Cespa\u200Dcios\uFEFFocultos',
       desc: 'Caracteres invisibles Unicode que alteran validaciones',
-      isInvalidCase: true
+      isInvalidCase: true // Caracteres no imprimibles que pueden evadir filtros de texto o búsquedas.
     },
     {
       id: 'txt_15_digits',
@@ -80,13 +158,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       name: 'Cadena de 15 dígitos (ej. Tel/ID)',
       payload: '123456789012345',
       desc: '15 dígitos continuos para probar límites de teléfonos/identificaciones',
-      isInvalidCase: true
+      isInvalidCase: true // Comprueba si un campo de texto no restringe tamaños arbitrarios de números.
     },
     {
       id: 'txt_50',
       category: 'text',
       tier: 'simple',
       name: 'Longitud moderada (50 chars)',
+      // El método String.prototype.repeat repite el carácter 'A' cincuenta veces exactamente.
       payload: 'A'.repeat(50),
       desc: '50 caracteres exactos',
       isInvalidCase: false
@@ -96,6 +175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'text',
       tier: 'normal',
       name: 'Límite estándar DB (255 chars)',
+      // 255 caracteres es la longitud máxima histórica de una columna VARCHAR estándar en SQL (MySQL, PostgreSQL).
       payload: 'B'.repeat(255),
       desc: '255 caracteres exactos (límite común de VARCHAR)',
       isInvalidCase: false
@@ -105,6 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'text',
       tier: 'advanced',
       name: 'Texto extenso (1,000 chars)',
+      // 1000 caracteres verifica si inputs de una sola línea provocan desbordamientos visuales o errores 500.
       payload: 'C'.repeat(1000),
       desc: 'Cadena de 1,000 caracteres para prueba de desbordamiento',
       isInvalidCase: true
@@ -114,6 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'text',
       tier: 'total',
       name: 'Sobrecarga de texto (5,000 chars)',
+      // 5000 caracteres genera una carga pesada sobre el parser del DOM y comprueba si hay cuelgues de UI.
       payload: 'D'.repeat(5000),
       desc: 'Sobrecarga extrema para evaluar límite o lag de UI',
       isInvalidCase: true
@@ -123,26 +205,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'text',
       tier: 'advanced',
       name: 'Saltos de línea y tabuladores',
+      // Inyecta retornos de carro \r, saltos de línea \n y tabulaciones \t para probar compatibilidad multilínea.
       payload: 'Línea 1\nLínea 2\r\nLínea 3\tTab',
       desc: 'Caracteres de control multilínea',
       isInvalidCase: false
     },
 
-    // UNICODE & SÍMBOLOS
+    // -------------------------------------------------------------------------------------
+    // GRUPO 2: UNICODE Y SÍMBOLOS (Validación de codificación UTF-8, emojis y glifos globales)
+    // -------------------------------------------------------------------------------------
     {
       id: 'emo_standard',
       category: 'emoji',
       tier: 'simple',
       name: 'Emojis comunes (4 bytes UTF-8)',
+      // Los emojis modernos requieren 4 bytes en UTF-8. Si la base de datos utiliza una codificación
+      // antigua de MySQL como 'utf8' (que solo admite 3 bytes por caracter) en lugar de 'utf8mb4',
+      // la inserción fallará arrojando un error de truncamiento o una excepción fatal 500.
       payload: '😀 🎉 🔥 🚀',
       desc: 'Validar soporte UTF8mb4 en base de datos',
-      isInvalidCase: false
+      isInvalidCase: false // Texto legítimo en aplicaciones modernas (mensajería, perfiles, etc.).
     },
     {
       id: 'emo_compound',
       category: 'emoji',
       tier: 'advanced',
       name: 'Emoji compuesto con ZWJ',
+      // Los emojis compuestos unen múltiples glifos mediante el caracter especial Zero-Width Joiner (\u200D).
+      // Por ejemplo, una familia o profesionales con modificadores de tono de piel.
+      // Permite comprobar si el renderizado del frontend o el contador de caracteres maneja grafemas correctamente.
       payload: '👩‍👩‍👦‍👦 👨‍💻',
       desc: 'Secuencias compuestas (Zero-Width Joiner)',
       isInvalidCase: false
@@ -152,6 +243,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'emoji',
       tier: 'advanced',
       name: 'Banderas regionales',
+      // Las banderas no son un solo carácter, sino pares de Regional Indicator Symbols (ej. E + S = España).
+      // Permite evaluar la representación de glifos compuestos y longitudes de cadena en bytes vs caracteres.
       payload: '🇪🇸 🇲🇽 🇨🇱 🇦🇷 🇺🇸',
       desc: 'Unicode Regional Indicator Symbols',
       isInvalidCase: false
@@ -161,6 +254,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'emoji',
       tier: 'normal',
       name: 'Caracteres especiales de teclado',
+      // Verifica si los caracteres estándar de puntuación y operadores matemáticos son procesados
+      // sin romper la serialización JSON, XML o consultas dinámicas de backend.
       payload: '!@#$%^&*()_+-=[]{}|;:\'",./<>?~`',
       desc: 'Símbolos tipográficos y de puntuación',
       isInvalidCase: false
@@ -170,6 +265,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'emoji',
       tier: 'advanced',
       name: 'Comillas y apóstrofes variados',
+      // Comillas rectas (') ("), backticks (`), y comillas tipográficas curvadas (‘ ’ “ ” « »).
+      // Comprueba si los parsers de SQL o plantillas escapan o desinfectan adecuadamente las comillas.
       payload: '\' " ` ‘ ’ “ ” « »',
       desc: 'Comillas rectas, curvas y tipográficas',
       isInvalidCase: false
@@ -179,6 +276,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'emoji',
       tier: 'simple',
       name: 'Acentos y diacríticos (Español)',
+      // Vocales acentuadas, diéresis, eñes y cedillas indispensables en el idioma español y lenguas latinas.
+      // Ayuda a detectar si una expresión regular restrictiva (ej. solo [A-Za-z]) bloquea nombres hispanos.
       payload: 'áéíóú ÁÉÍÓÚ ñ Ñ ü Ü ç Ç',
       desc: 'Caracteres lingüísticos válidos en español',
       isInvalidCase: false
@@ -188,6 +287,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'emoji',
       tier: 'total',
       name: 'Alfabetos Cirílico y CJK',
+      // Caracteres en Cirílico (Ruso), Chino tradicional y Japonés (Hiragana/Katakana).
+      // Valida la internacionalización (i18n) y almacenamiento de alfabetos no latinos.
       payload: 'Привет мир / 測試 / こんにちは',
       desc: 'Caracteres internacionales no latinos',
       isInvalidCase: false
@@ -197,17 +298,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'emoji',
       tier: 'total',
       name: 'Texto bidireccional / RTL',
+      // Cadenas en Árabe y Hebreo cuya dirección de lectura natural es de derecha a izquierda (Right-To-Left).
+      // Comprueba si la interfaz altera su maquetación visual o si los campos de entrada soportan direccionalidad mixta.
       payload: 'مرحبا بالعالم - שלום',
       desc: 'Árabe y Hebreo (direccionalidad derecha a izquierda)',
       isInvalidCase: false
     },
 
-    // NÚMEROS
+    // -------------------------------------------------------------------------------------
+    // GRUPO 3: NÚMEROS Y FORMATOS NUMÉRICOS (Validación de tipos, rangos y precisión)
+    // -------------------------------------------------------------------------------------
     {
       id: 'num_positive',
       category: 'number',
       tier: 'simple',
       name: 'Entero positivo',
+      // Caso positivo ideal para campos que esperan cantidades enteras (edad, stock, código postal numérico).
       payload: '42',
       desc: 'Número entero estándar',
       isInvalidCase: false
@@ -217,6 +323,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'number',
       tier: 'simple',
       name: 'Cero (0)',
+      // El valor cero suele causar fallos de lógica condicional en JavaScript si se evalúa como falsy
+      // (ej. 'if (value)' evalúa '0' como false en lugar de un número válido ingresado).
       payload: '0',
       desc: 'Valor cero exacto',
       isInvalidCase: false
@@ -226,6 +334,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'number',
       tier: 'normal',
       name: 'Número negativo',
+      // Valida si campos que representan magnitudes físicas o monetarias (edad, precio, cantidad de artículos)
+      // prohíben números negativos mediante atributos 'min="0"' o validaciones personalizadas.
       payload: '-50',
       desc: 'Valor con signo negativo',
       isInvalidCase: true
@@ -235,6 +345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'number',
       tier: 'normal',
       name: 'Decimal estándar',
+      // Número con parte fraccionaria mediante punto decimal. Verifica soporte para monedas o medidas exactas.
       payload: '99.99',
       desc: 'Número con punto decimal',
       isInvalidCase: false
@@ -244,6 +355,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'number',
       tier: 'advanced',
       name: 'Notación científica',
+      // Notación con exponente (1e5 = 100,000). Muchos campos numéricos HTML5 tipo 'number' lo aceptan
+      // de forma nativa en el navegador, pero el backend puede fallar al convertirlo o parsearlo a entero.
       payload: '1e5',
       desc: 'Formato exponencial (100,000)',
       isInvalidCase: true
@@ -253,6 +366,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'number',
       tier: 'advanced',
       name: 'Desbordamiento numérico',
+      // 20 nueves consecutivos. Supera el límite de enteros seguros de JavaScript (Number.MAX_SAFE_INTEGER = 9007199254740991)
+      // y límites típicos de enteros de 32 o 64 bits en bases de datos relacionales, pudiendo causar redondeos o excepciones.
       payload: '99999999999999999999',
       desc: 'Número que supera límites de enteros de 32/64 bits',
       isInvalidCase: true
@@ -262,6 +377,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'number',
       tier: 'simple',
       name: 'Texto en campo numérico',
+      // Cadena de letras inyectada en un campo numérico. Debe ser rechazada inmediatamente por la UI o el backend.
       payload: 'abcDEF',
       desc: 'Letras donde solo se esperan dígitos',
       isInvalidCase: true
@@ -271,6 +387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'number',
       tier: 'normal',
       name: 'Símbolos en campo numérico',
+      // Caracteres que los usuarios suelen escribir por error en campos numéricos (signos de moneda, comas, porcentajes).
       payload: '+ - . , $ € %',
       desc: 'Signos de puntuación o divisas',
       isInvalidCase: true
@@ -280,17 +397,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'number',
       tier: 'total',
       name: 'Ceros a la izquierda',
+      // Comprueba si los ceros no significativos a la izquierda son preservados (importante en códigos postales o folios)
+      // o si son eliminados automáticamente al parsearse como entero matemático.
       payload: '00075',
       desc: 'Número con ceros precedentes',
       isInvalidCase: false
     },
 
-    // FECHAS
+    // -------------------------------------------------------------------------------------
+    // GRUPO 4: FECHAS Y TIEMPOS (Validación de formatos de calendario, bisiestos y rangos)
+    // -------------------------------------------------------------------------------------
     {
       id: 'date_valid',
       category: 'date',
       tier: 'simple',
       name: 'Fecha ISO válida',
+      // Formato canónico internacional estándar ISO 8601 (AAAA-MM-DD). Es el estándar utilizado por inputs HTML5 'date'.
       payload: '2024-05-15',
       desc: 'Formato estándar AAAA-MM-DD',
       isInvalidCase: false
@@ -300,6 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'date',
       tier: 'normal',
       name: '29 de Febrero (Año bisiesto 2024)',
+      // 2024 es un año bisiesto divisible por 4. El 29 de febrero existe legítimamente en el calendario.
       payload: '2024-02-29',
       desc: 'Día bisiesto en año bisiesto válido',
       isInvalidCase: false
@@ -309,6 +432,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'date',
       tier: 'advanced',
       name: '29 de Febrero (No bisiesto 2023)',
+      // 2023 no es un año bisiesto; el 29 de febrero no existe. Comprueba si el validador calcula la bisiestidad
+      // o si deja pasar la fecha convirtiéndola erróneamente en 1 de marzo (overflow de fecha).
       payload: '2023-02-29',
       desc: 'Fecha imposible en el calendario gregoriano',
       isInvalidCase: true
@@ -318,6 +443,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'date',
       tier: 'normal',
       name: 'Día 32 inexistente',
+      // Ningún mes del año cuenta con 32 días. Valida que el día esté acotado entre 1 y 31.
       payload: '2024-01-32',
       desc: 'Día fuera de rango calendario',
       isInvalidCase: true
@@ -327,6 +453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'date',
       tier: 'normal',
       name: 'Mes 13 inexistente',
+      // El año gregoriano solo tiene 12 meses. Un valor 13 debe ser bloqueado terminantemente.
       payload: '2024-13-10',
       desc: 'Mes superior a 12',
       isInvalidCase: true
@@ -336,6 +463,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'date',
       tier: 'total',
       name: 'Fecha límite pasada (1899-12-31)',
+      // Fecha anterior al siglo XX. Útil para verificar campos de fecha de nacimiento o vencimiento.
       payload: '1899-12-31',
       desc: 'Fecha histórica extrema',
       isInvalidCase: true
@@ -345,6 +473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'date',
       tier: 'total',
       name: 'Fecha límite futura (2099-12-31)',
+      // Fecha en el final del siglo XXI. Comprueba límites temporales hacia adelante en reservas o fechas de expiración.
       payload: '2099-12-31',
       desc: 'Fecha a muy largo plazo',
       isInvalidCase: true
@@ -354,6 +483,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'date',
       tier: 'advanced',
       name: 'Formato invertido (31/12/2024)',
+      // Formato común hispanohablante (DD/MM/AAAA) con barras inclinadas en lugar de guiones ISO.
+      // Evalúa la tolerancia o conversión automática de formato en la interfaz.
       payload: '31/12/2024',
       desc: 'Formato DD/MM/AAAA común en habla hispana',
       isInvalidCase: false
@@ -363,17 +494,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'date',
       tier: 'simple',
       name: 'Texto libre en campo de fecha',
+      // Lenguaje natural ("ayer por la tarde") inyectado en un campo que espera fecha estructurada.
       payload: 'ayer por la tarde',
       desc: 'Cadena arbitraria en selector de fecha',
       isInvalidCase: true
     },
 
-    // SEGURIDAD E INYECCIÓN
+    // -------------------------------------------------------------------------------------
+    // GRUPO 5: SEGURIDAD, INYECCIÓN Y VECTORES DE ATAQUE (OWASP Top 10)
+    // -------------------------------------------------------------------------------------
     {
       id: 'sec_script',
       category: 'security',
       tier: 'simple',
       name: 'Etiqueta <script> (XSS básico)',
+      // Vector de Cross-Site Scripting (XSS) reflejado o almacenado. Comprueba si el HTML escapa
+      // los caracteres especiales (< > & " ') antes de reflejar el valor en la pantalla del usuario.
       payload: '<script>alert("XSS")</script>',
       desc: 'Intento de inyección de script ejecutable',
       isInvalidCase: true
@@ -383,6 +519,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'security',
       tier: 'normal',
       name: 'Etiqueta <img> con onerror (XSS)',
+      // Vector de inyección que no depende de etiquetas <script>, sino del evento onerror de una imagen con ruta rota.
+      // Bypasea filtros que únicamente buscan la palabra clave 'script'.
       payload: '<img src="x" onerror="alert(1)">',
       desc: 'Vector XSS por manejo de errores en atributos',
       isInvalidCase: true
@@ -392,6 +530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'security',
       tier: 'advanced',
       name: 'Etiquetas HTML de formato (<b>, <h1>)',
+      // Inyección de HTML benigno para evaluar Defacement (alteración visual de la interfaz) o inyección de contenido.
       payload: '<b>Texto en Negrita</b> <h1>Título</h1>',
       desc: 'Inyección de marcado enriquecido',
       isInvalidCase: true
@@ -401,6 +540,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'security',
       tier: 'normal',
       name: 'Patrón SQL Injection básico',
+      // Payload clásico de Inyección SQL (' OR '1'='1' --). Si el backend concatena strings en lugar de
+      // utilizar consultas parametrizadas (Prepared Statements), la condición siempre evaluará a verdadero,
+      // alterando la lógica de autenticación o recuperación de datos.
       payload: '\' OR \'1\'=\'1\' --',
       desc: 'Bypass clásico de autenticación o consulta',
       isInvalidCase: true
@@ -410,16 +552,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'security',
       tier: 'total',
       name: 'Null byte (%00)',
+      // El byte nulo (\u0000 o ASCII 0x00) actúa como terminador de cadena en lenguajes como C y C++.
+      // En sistemas vulnerables, puede engañar a verificadores de extensiones de archivos (ej. 'archivo.pdf\0.exe').
       payload: 'archivo.pdf\u0000.exe',
       desc: 'Inyección de terminador de cadena en C/sistemas operativos',
       isInvalidCase: true
     },
-    // PRUEBAS DE URL Y ENLACES
+
+    // -------------------------------------------------------------------------------------
+    // GRUPO 6: PRUEBAS DE URL, ENLACES Y PROTOCOLOS DE RED (RFC 3986 y SSRF)
+    // -------------------------------------------------------------------------------------
     {
       id: 'url_valid_https',
       category: 'url',
       tier: 'simple',
       name: 'URL HTTPS válida estándar',
+      // Dirección web absoluta bien estructurada con esquema seguro HTTPS, subdominio, dominio y ruta de recurso.
       payload: 'https://qa.ejemplo.com/recurso-valido',
       desc: 'Formato canónico completo con esquema seguro, host y ruta',
       isInvalidCase: false
@@ -429,6 +577,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'url',
       tier: 'simple',
       name: 'URL sin protocolo (falta https://)',
+      // Dirección web sin protocolo explícito (www.ejemplo.com). Permite verificar si la aplicación
+      // lo antepone automáticamente (https://) o si exige que el usuario lo escriba explícitamente.
       payload: 'www.ejemplo.com/recurso',
       desc: 'Verificar si el sistema auto-completa o rechaza URLs sin protocolo',
       isInvalidCase: true
@@ -438,6 +588,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'url',
       tier: 'simple',
       name: 'Esquema peligroso javascript: (XSS)',
+      // Pseudoprotocolo 'javascript:'. Si este enlace es renderizado dentro de un tag <a href="...">
+      // y el usuario hace clic en él, ejecutará el código JavaScript arbitrario en el contexto de la página.
       payload: 'javascript:alert("XSS")',
       desc: 'Inyección de pseudoprotocolo para ejecución de script en enlaces',
       isInvalidCase: true
@@ -447,6 +599,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'url',
       tier: 'normal',
       name: 'URL con query parameters y puerto',
+      // URL compleja con puerto de red explícito (:8080) y parámetros de consulta (querystring).
       payload: 'https://api.ejemplo.com:8080/v1/items?id=123&status=ok',
       desc: 'Estructura URL avanzada con puerto explícito y parámetros GET',
       isInvalidCase: false
@@ -456,6 +609,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'url',
       tier: 'normal',
       name: 'URL con espacios no codificados',
+      // Las URLs según el estándar RFC 3986 no pueden contener caracteres de espacio sin codificar (%20).
       payload: 'https://ejemplo.com/ruta con espacios',
       desc: 'Violación RFC 3986 por falta de percent-encoding (%20)',
       isInvalidCase: true
@@ -465,6 +619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'url',
       tier: 'normal',
       name: 'Dominio/Host malformado con puntos dobles',
+      // Dos puntos consecutivos en el nombre de dominio infringen la especificación DNS y RFC 1123.
       payload: 'https://dominio..ejemplo.com/item',
       desc: 'Hostname inválido según sintaxis RFC 1123',
       isInvalidCase: true
@@ -474,6 +629,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'url',
       tier: 'advanced',
       name: 'URL relativa de protocolo (//ejemplo.com)',
+      // Enlace relativo que hereda el esquema del contexto padre (HTTP o HTTPS).
+      // En muchos formularios debe restringirse a URLs absolutas canónicas.
       payload: '//ejemplo.com/recurso',
       desc: 'Verificar si acepta o resuelve enlaces dependientes de protocolo',
       isInvalidCase: true
@@ -483,6 +640,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'url',
       tier: 'advanced',
       name: 'Host local / Intranet (Riesgo SSRF)',
+      // Vector de Server-Side Request Forgery (SSRF). Si el backend descarga o inspecciona la URL enviada,
+      // podría acceder a servicios internos confidenciales en localhost (127.0.0.1) o metadata cloud.
       payload: 'http://127.0.0.1:8080/admin',
       desc: 'Destino a interfaz loopback o infraestructura interna no restringida',
       isInvalidCase: true
@@ -492,6 +651,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'url',
       tier: 'advanced',
       name: 'Esquema data: con HTML/script',
+      // Esquema 'data:' con carga Base64 que contiene un script ejecutable.
+      // Si se abre o renderiza en un iframe o enlace sin restricciones, puede ejecutar código no deseado.
       payload: 'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
       desc: 'Esquema URI peligroso capaz de generar contexto de ejecución arbitrario',
       isInvalidCase: true
@@ -501,149 +662,190 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: 'url',
       tier: 'total',
       name: 'URL extremadamente larga (>2000 chars)',
+      // Cadena de más de 2000 caracteres. Muchos servidores web y navegadores cortan o rechazan URLs
+      // que superan los 2048 caracteres con errores '414 Request-URI Too Long'.
       payload: 'https://ejemplo.com/' + 'a'.repeat(2000),
       desc: 'Verificar tolerancia a límites de URI en navegadores y servidores (2048)',
       isInvalidCase: true
     }
   ];
 
-  // DOM Elements
-  const btnPickField = document.getElementById('btn-pick-field');
-  const pickBtnText = document.getElementById('pick-btn-text');
-  const btnAutoDetectForm = document.getElementById('btn-auto-detect-form');
-  const fieldsCountBadge = document.getElementById('fields-count-badge');
-  const fieldEmptyState = document.getElementById('field-empty-state');
-  const selectedFieldsList = document.getElementById('selected-fields-list');
-  const btnPickFormClick = document.getElementById('btn-pick-form-click');
-  const pickFormBtnText = document.getElementById('pick-form-btn-text');
-  const btnResetAll = document.getElementById('btn-reset-all');
+  // =======================================================================================
+  // REFERENCIAS A ELEMENTOS DEL DOM (DOCUMENT OBJECT MODEL)
+  // =======================================================================================
+  // Se obtienen punteros directos a los nodos HTML de 'sidepanel.html' mediante 'getElementById' y 'querySelectorAll'.
+  // Esto optimiza el rendimiento evitando búsquedas repetitivas en el árbol DOM durante la ejecución.
 
-  // Form Name Box DOM
-  const formNameBox = document.getElementById('form-name-box');
-  const inputFormTitle = document.getElementById('input-form-title');
+  // Botones y badges de captura de campos individuales y detección automática de formularios:
+  const btnPickField = document.getElementById('btn-pick-field'); // Botón para iniciar el cursor inspector de un campo.
+  const pickBtnText = document.getElementById('pick-btn-text'); // Etiqueta textual del botón de captura individual.
+  const btnAutoDetectForm = document.getElementById('btn-auto-detect-form'); // Botón para auto-descubrir el formulario completo en la página.
+  const fieldsCountBadge = document.getElementById('fields-count-badge'); // Badge numérico que indica cuántos campos han sido capturados.
+  const fieldEmptyState = document.getElementById('field-empty-state'); // Contenedor visual mostrado cuando la lista de campos está vacía.
+  const selectedFieldsList = document.getElementById('selected-fields-list'); // Contenedor flex donde se renderizan los chips de campos seleccionados.
+  const btnPickFormClick = document.getElementById('btn-pick-form-click'); // Botón secundario para seleccionar un contenedor de formulario haciendo clic.
+  const pickFormBtnText = document.getElementById('pick-form-btn-text'); // Texto del botón de selección manual de formulario.
+  const btnResetAll = document.getElementById('btn-reset-all'); // Botón de reinicio global para limpiar campos, resultados y estado.
 
+  // Referencias a la caja de personalización del nombre del formulario:
+  const formNameBox = document.getElementById('form-name-box'); // Contenedor del input para nombrar el formulario.
+  const inputFormTitle = document.getElementById('input-form-title'); // Input de texto donde el auditor escribe el título del formulario auditado.
+
+  // Si el elemento inputFormTitle existe en el DOM, se asocia un listener al evento 'input'.
+  // Cada vez que el usuario teclea un caracter, se actualiza reactivamente la variable 'activeFormTitle'.
   if (inputFormTitle) {
     inputFormTitle.addEventListener('input', () => {
+      // El método String.prototype.trim elimina espacios en blanco sobrantes a los extremos.
       activeFormTitle = inputFormTitle.value.trim();
     });
   }
 
-  // Save Button Section DOM
-  const saveButtonBox = document.getElementById('save-button-box');
-  const saveBtnPill = document.getElementById('save-btn-pill');
-  const btnInspectSave = document.getElementById('btn-inspect-save');
-  const btnChangeSave = document.getElementById('btn-change-save');
-  const changeSaveBtnText = document.getElementById('change-save-btn-text');
+  // Referencias a la sección de configuración del botón de guardar (Save Button):
+  const saveButtonBox = document.getElementById('save-button-box'); // Contenedor que agrupa la información del botón de envío.
+  const saveBtnPill = document.getElementById('save-btn-pill'); // Píldora visual que muestra el nombre o selector del botón configurado.
+  const btnInspectSave = document.getElementById('btn-inspect-save'); // Botón de mira telescópica para resaltar el botón de guardar en la página.
+  const btnChangeSave = document.getElementById('btn-change-save'); // Botón para cambiar o reasignar interactivamente el botón de guardar.
+  const changeSaveBtnText = document.getElementById('change-save-btn-text'); // Texto del botón de cambio ("Cambiar" o "Cancelar").
 
-  // Sibling Fillers DOM
-  const siblingFillersBox = document.getElementById('sibling-fillers-box');
-  const checkEnableSiblingFillers = document.getElementById('check-enable-sibling-fillers');
-  const siblingFillersList = document.getElementById('sibling-fillers-list');
+  // Referencias a la sección de campos hermanos de relleno (Sibling Fillers):
+  const siblingFillersBox = document.getElementById('sibling-fillers-box'); // Contenedor de la lista de campos que no se auditan pero requieren valor.
+  const checkEnableSiblingFillers = document.getElementById('check-enable-sibling-fillers'); // Checkbox para activar/desactivar el auto-llenado de hermanos.
+  const siblingFillersList = document.getElementById('sibling-fillers-list'); // Contenedor DOM donde se listan los campos hermanos y sus valores asignados.
 
-  // Re-open Flow DOM
-  const reopenFlowBox = document.getElementById('reopen-flow-box');
-  const checkEnableReopen = document.getElementById('check-enable-reopen');
-  const reopenStepsContent = document.getElementById('reopen-steps-content');
-  const reopenStepsList = document.getElementById('reopen-steps-list');
-  const btnAddReopenStep = document.getElementById('btn-add-reopen-step');
-  const btnTestReopen = document.getElementById('btn-test-reopen');
+  // Referencias al flujo de reapertura de formularios en modales o drawers (Re-open Flow):
+  const reopenFlowBox = document.getElementById('reopen-flow-box'); // Contenedor de configuración de reapertura de diálogos emergentes.
+  const checkEnableReopen = document.getElementById('check-enable-reopen'); // Checkbox para activar la reapertura automática entre pruebas.
+  const reopenStepsContent = document.getElementById('reopen-steps-content'); // Bloque colapsable que aloja la lista de pasos grabados.
+  const reopenStepsList = document.getElementById('reopen-steps-list'); // Lista visual ordenada de pasos secuenciales para reabrir el modal.
+  const btnAddReopenStep = document.getElementById('btn-add-reopen-step'); // Botón para capturar un nuevo clic en la secuencia de reapertura.
+  const btnTestReopen = document.getElementById('btn-test-reopen'); // Botón para probar en vivo la secuencia grabada en la pestaña actual.
 
-  // Suites and Payloads DOM
-  const depthButtons = document.querySelectorAll('.depth-btn');
-  const depthDescBadge = document.getElementById('depth-desc-badge');
-  const categoryTabs = document.querySelectorAll('.tab-btn');
-  const checkSelectAll = document.getElementById('check-select-all');
-  const btnOpenCustomModal = document.getElementById('btn-open-custom-modal');
-  const payloadsContainer = document.getElementById('payloads-container');
-  const selectedCountBadge = document.getElementById('selected-count-badge');
+  // Referencias a la selección de suites de prueba, filtros por categoría y profundidad:
+  const depthButtons = document.querySelectorAll('.depth-btn'); // Colección de botones para alternar entre niveles Simple, Normal, Avanzado y Total.
+  const depthDescBadge = document.getElementById('depth-desc-badge'); // Badge informativo con el conteo aproximado y descripción del nivel actual.
+  const categoryTabs = document.querySelectorAll('.tab-btn'); // Pestañas superiores de categorías (Todas, Texto, Emoji, Números, Fechas, Seguridad, URL).
+  const checkSelectAll = document.getElementById('check-select-all'); // Checkbox maestro para seleccionar o deseleccionar todas las pruebas de la vista activa.
+  const btnOpenCustomModal = document.getElementById('btn-open-custom-modal'); // Botón "+ Añadir Input" para desplegar el modal de creación de payloads propios.
+  const payloadsContainer = document.getElementById('payloads-container'); // Contenedor scrollable donde se renderizan las tarjetas de cada caso de prueba.
+  const selectedCountBadge = document.getElementById('selected-count-badge'); // Badge que muestra el total dinámico de pruebas seleccionadas listas para ejecutarse.
 
-  // Execution DOM
-  const checkTriggerSave = document.getElementById('check-trigger-save');
-  const executionSpeedSelect = document.getElementById('execution-speed');
-  const submitWaitTimeSelect = document.getElementById('submit-wait-time');
-  const checkRestoreValue = document.getElementById('check-restore-value');
-  const btnRunTests = document.getElementById('btn-run-tests');
-  const runBtnText = document.getElementById('run-btn-text');
-  const progressContainer = document.getElementById('progress-container');
-  const progressLabel = document.getElementById('progress-label');
-  const progressPercent = document.getElementById('progress-percent');
-  const progressBarFill = document.getElementById('progress-bar-fill');
+  // Referencias a los controles de configuración y ejecución de pruebas:
+  const checkTriggerSave = document.getElementById('check-trigger-save'); // Checkbox para auditar fase 2 (hacer clic real en Guardar tras inyectar valor).
+  const executionSpeedSelect = document.getElementById('execution-speed'); // Selector de velocidad entre pruebas (Rápido: 100ms, Normal: 300ms, Lento: 700ms).
+  const submitWaitTimeSelect = document.getElementById('submit-wait-time'); // Selector del tiempo de espera para observar la respuesta del servidor (500ms, 1s, 2s, 3s).
+  const checkRestoreValue = document.getElementById('check-restore-value'); // Checkbox para reponer el valor original del input al finalizar toda la auditoría.
+  const btnRunTests = document.getElementById('btn-run-tests'); // Botón principal de acción para iniciar la batería automatizada de pruebas.
+  const runBtnText = document.getElementById('run-btn-text'); // Texto interno del botón de ejecución (muestra cantidad de campos seleccionados).
+  const progressContainer = document.getElementById('progress-container'); // Contenedor de la barra de progreso visible durante la ejecución.
+  const progressLabel = document.getElementById('progress-label'); // Texto con el progreso paso a paso (ej. "Campo 1/3: Prueba 5/29").
+  const progressPercent = document.getElementById('progress-percent'); // Porcentaje numérico completado (ej. "45%").
+  const progressBarFill = document.getElementById('progress-bar-fill'); // Elemento div que se ensancha mediante CSS width para reflejar el progreso.
 
-  // Results DOM
-  const resultsCard = document.getElementById('results-card');
-  const btnClearResults = document.getElementById('btn-clear-results');
-  const kpiTotal = document.getElementById('kpi-total');
-  const kpiRestricted = document.getElementById('kpi-restricted');
-  const kpiConforme = document.getElementById('kpi-conforme');
-  const kpiRisk = document.getElementById('kpi-risk');
-  const resultsFilterChips = document.querySelectorAll('.filter-chip');
-  const filterFieldSelect = document.getElementById('filter-field-select');
-  const resultsTbody = document.getElementById('results-tbody');
+  // Referencias al resumen de resultados y KPIs de auditoría:
+  const resultsCard = document.getElementById('results-card'); // Tarjeta contenedor que agrupa la tabla, KPIs y exportaciones.
+  const btnClearResults = document.getElementById('btn-clear-results'); // Botón para descartar y vaciar la tabla de resultados actual.
+  const kpiTotal = document.getElementById('kpi-total'); // Contador KPI: Total de pruebas ejecutadas.
+  const kpiRestricted = document.getElementById('kpi-restricted'); // Contador KPI: Pruebas con restricción detectada (bloqueo por frontend o backend).
+  const kpiConforme = document.getElementById('kpi-conforme'); // Contador KPI: Pruebas válidas aceptadas conforme a lo esperado.
+  const kpiRisk = document.getElementById('kpi-risk'); // Contador KPI: Casos inválidos aceptados o errores 500 catalogados como riesgo/advertencia.
+  const resultsFilterChips = document.querySelectorAll('.filter-chip'); // Chips de filtro superior (Todos, Restringidos, Conformes, Riesgos).
+  const filterFieldSelect = document.getElementById('filter-field-select'); // Dropdown para filtrar la vista por un campo de texto específico.
+  const resultsTbody = document.getElementById('results-tbody'); // Cuerpo de la tabla (tbody) donde se insertan las filas dinámicas de resultados.
 
-  // View Toggle and Dashboard DOM
-  const btnViewTable = document.getElementById('btn-view-table');
-  const btnViewDashboard = document.getElementById('btn-view-dashboard');
-  const tableViewContainer = document.getElementById('table-view-container');
-  const dashboardViewContainer = document.getElementById('dashboard-view-container');
-  const dashboardRiskLevelBadge = document.getElementById('dashboard-risk-level-badge');
-  const dashboardScoreVal = document.getElementById('dashboard-score-val');
-  const dashboardSummaryMsg = document.getElementById('dashboard-summary-msg');
-  const statCriticalCount = document.getElementById('stat-critical-count');
-  const statHighCount = document.getElementById('stat-high-count');
-  const statMediumCount = document.getElementById('stat-medium-count');
-  const statSafeCount = document.getElementById('stat-safe-count');
-  const dashboardDistBar = document.getElementById('dashboard-dist-bar');
-  const dashboardRiskGroups = document.getElementById('dashboard-risk-groups');
+  // Referencias a los contenedores de vista (Tabla clásica vs Dashboard gráfico):
+  const btnViewTable = document.getElementById('btn-view-table'); // Botón de alternancia a vista de tabla detallada.
+  const btnViewDashboard = document.getElementById('btn-view-dashboard'); // Botón de alternancia a vista de dashboard visual ejecutivo.
+  const tableViewContainer = document.getElementById('table-view-container'); // Contenedor con la tabla y buscador de resultados.
+  const dashboardViewContainer = document.getElementById('dashboard-view-container'); // Contenedor con gráficos de barras, KPIs y desglose de severidad.
+  const dashboardRiskLevelBadge = document.getElementById('dashboard-risk-level-badge'); // Badge con el nivel general de riesgo (CRÍTICO, ALTO, MEDIO, SEGURO).
+  const dashboardScoreVal = document.getElementById('dashboard-score-val'); // Puntuación de calidad calculada de 0 a 100 puntos.
+  const dashboardSummaryMsg = document.getElementById('dashboard-summary-msg'); // Párrafo explicativo con la conclusión del diagnóstico.
+  const statCriticalCount = document.getElementById('stat-critical-count'); // Contador de vulnerabilidades críticas.
+  const statHighCount = document.getElementById('stat-high-count'); // Contador de fallos de severidad alta.
+  const statMediumCount = document.getElementById('stat-medium-count'); // Contador de observaciones de severidad media.
+  const statSafeCount = document.getElementById('stat-safe-count'); // Contador de pruebas seguras/conformes.
+  const dashboardDistBar = document.getElementById('dashboard-dist-bar'); // Barra segmentada multicolor que muestra visualmente la distribución de riesgos.
+  const dashboardRiskGroups = document.getElementById('dashboard-risk-groups'); // Contenedor de grupos de riesgo en acordeones expandibles.
 
-  // Export DOM
-  const btnOpenDashboard = document.getElementById('btn-open-dashboard');
-  const btnCopyNotion = document.getElementById('btn-copy-notion');
-  const btnCopyMarkdown = document.getElementById('btn-copy-markdown');
-  const btnExportCsv = document.getElementById('btn-export-csv');
-  const btnPrintReport = document.getElementById('btn-print-report');
+  // Referencias a los botones de la barra de exportación:
+  const btnOpenDashboard = document.getElementById('btn-open-dashboard'); // Abre el dashboard gráfico interactivo en una pestaña dedicada.
+  const btnCopyNotion = document.getElementById('btn-copy-notion'); // Copia la tabla estructurada en HTML enriquecido listo para pegar directamente en Notion.
+  const btnCopyMarkdown = document.getElementById('btn-copy-markdown'); // Copia la tabla en sintaxis estándar GitHub Flavored Markdown (GFM).
+  const btnExportCsv = document.getElementById('btn-export-csv'); // Descarga un archivo .csv delimitado por comas compatible con Excel y Google Sheets.
+  const btnPrintReport = document.getElementById('btn-print-report'); // Abre el diálogo del navegador para imprimir en papel o guardar como PDF formal.
 
-  // Custom Modal DOM
-  const customModal = document.getElementById('custom-modal');
-  const btnCloseModal = document.getElementById('btn-close-modal');
-  const btnCancelCustom = document.getElementById('btn-cancel-custom');
-  const btnSaveCustom = document.getElementById('btn-save-custom');
-  const customName = document.getElementById('custom-name');
-  const customCategory = document.getElementById('custom-category');
-  const customValue = document.getElementById('custom-value');
-  const customDesc = document.getElementById('custom-desc');
-  const customIsInvalid = document.getElementById('custom-is-invalid');
+  // Referencias a los campos del modal de creación de payload personalizado:
+  const customModal = document.getElementById('custom-modal'); // Ventana modal flotante para registrar nuevos casos de prueba.
+  const btnCloseModal = document.getElementById('btn-close-modal'); // Botón de cierre en la esquina superior del modal.
+  const btnCancelCustom = document.getElementById('btn-cancel-custom'); // Botón "Cancelar" en el pie del modal.
+  const btnSaveCustom = document.getElementById('btn-save-custom'); // Botón "Guardar Input" para validar e insertar el payload.
+  const customName = document.getElementById('custom-name'); // Input de texto con el nombre descriptivo de la prueba propia.
+  const customCategory = document.getElementById('custom-category'); // Selector desplegable para asociar el input a una categoría existente.
+  const customValue = document.getElementById('custom-value'); // Textarea donde se introduce el valor o carga de inyección personalizada.
+  const customDesc = document.getElementById('custom-desc'); // Input opcional con la explicación o motivo del caso de prueba.
+  const customIsInvalid = document.getElementById('custom-is-invalid'); // Checkbox que define si el valor representa un caso inválido/ataque.
 
-  // Viewer Modal DOM
-  const payloadViewerModal = document.getElementById('payload-viewer-modal');
-  const btnCloseViewer = document.getElementById('btn-close-viewer');
-  const btnDismissViewer = document.getElementById('btn-dismiss-viewer');
-  const btnCopyViewer = document.getElementById('btn-copy-viewer');
-  const viewerTitle = document.getElementById('viewer-title');
-  const viewerContent = document.getElementById('viewer-content');
+  // Referencias al modal visor de payloads largos:
+  const payloadViewerModal = document.getElementById('payload-viewer-modal'); // Modal emergente para inspeccionar payloads que exceden el tamaño visible.
+  const btnCloseViewer = document.getElementById('btn-close-viewer'); // Botón de cruz superior del visor.
+  const btnDismissViewer = document.getElementById('btn-dismiss-viewer'); // Botón "Cerrar" del visor.
+  const btnCopyViewer = document.getElementById('btn-copy-viewer'); // Botón para copiar el payload completo al portapapeles del sistema.
+  const viewerTitle = document.getElementById('viewer-title'); // Encabezado h3 del visor con el nombre del test.
+  const viewerContent = document.getElementById('viewer-content'); // Bloque preformateado (pre) donde se muestra el payload sin truncar.
 
-  // Load Custom Payloads from storage
+  // =======================================================================================
+  // PERSISTENCIA DE DATOS CON CHROME STORAGE API
+  // =======================================================================================
+
+  /**
+   * Carga los casos de prueba personalizados definidos por el usuario desde el almacenamiento
+   * local persistente de la extensión ('chrome.storage.local').
+   * Esta función es asíncrona y previene la pérdida de configuraciones personalizadas al cerrar el navegador.
+   * @async
+   * @returns {Promise<void>}
+   */
   async function loadCustomPayloads() {
+    // Estructura 'try...catch' para capturar cualquier posible error de permisos o cuota de almacenamiento.
     try {
+      // 'chrome.storage.local.get' recupera el objeto asociado a la clave 'qa_custom_payloads'.
       const stored = await chrome.storage.local.get('qa_custom_payloads');
+      // 'Array.isArray' comprueba si los datos recuperados corresponden efectivamente a un arreglo válido.
       if (stored && Array.isArray(stored.qa_custom_payloads)) {
         customPayloads = stored.qa_custom_payloads;
       }
     } catch (e) {
+      // 'console.warn' registra una advertencia en la consola de depuración sin interrumpir el flujo.
       console.warn('Error loading custom payloads:', e);
     }
   }
 
+  /**
+   * Persiste la lista actual de casos de prueba personalizados en el almacenamiento local de Chrome.
+   * @async
+   * @returns {Promise<void>}
+   */
   async function saveCustomPayloads() {
     try {
+      // 'chrome.storage.local.set' serializa y escribe el array en disco.
       await chrome.storage.local.set({ qa_custom_payloads: customPayloads });
     } catch (e) {
       console.warn('Error saving custom payloads:', e);
     }
   }
 
-  // Get active tab
+  // =======================================================================================
+  // GESTIÓN DE PESTAÑAS Y COMUNICACIÓN CON CONTENT SCRIPTS
+  // =======================================================================================
+
+  /**
+   * Obtiene el descriptor de la pestaña activa en la ventana actual del navegador.
+   * Utiliza la API 'chrome.tabs.query'.
+   * @async
+   * @returns {Promise<chrome.tabs.Tab|null>} La pestaña activa o null en caso de error.
+   */
   async function getActiveTab() {
     try {
+      // La desestructuración '[tab]' extrae el primer elemento del arreglo devuelto por 'chrome.tabs.query'.
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       return tab;
     } catch (e) {
@@ -652,40 +854,71 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Ensure content script injected
+  /**
+   * Garantiza que los archivos del content-script ('picker.css' y 'picker.js') estén inyectados
+   * y ejecutándose en la pestaña web objetivo.
+   * Primero intenta enviar un mensaje ping; si la pestaña no responde (porque fue abierta antes de
+   * instalar la extensión o tras recargar), inyecta dinámicamente el CSS y JS usando 'chrome.scripting'.
+   * @async
+   * @param {number} tabId - El identificador numérico de la pestaña objetivo.
+   * @returns {Promise<boolean>} True si el script está listo y funcional, False si falló la inyección.
+   */
   async function ensureContentScriptInjected(tabId) {
     try {
+      // Envía un mensaje simple con la acción 'PING' para comprobar si 'picker.js' ya está vivo.
       await chrome.tabs.sendMessage(tabId, { action: 'PING' });
-      return true;
+      return true; // El script respondió exitosamente, no se requiere inyección adicional.
     } catch {
+      // Si entra al bloque 'catch', significa que no hubo ningún content-script escuchando.
       try {
+        // 'chrome.scripting.insertCSS' inyecta los estilos de la mira interactiva y tooltips en la página web.
         await chrome.scripting.insertCSS({
           target: { tabId },
           files: ['content-scripts/picker.css']
         });
+        // 'chrome.scripting.executeScript' evalúa y arranca el content-script 'picker.js' en el DOM del usuario.
         await chrome.scripting.executeScript({
           target: { tabId },
           files: ['content-scripts/picker.js']
         });
         return true;
       } catch (err) {
+        // En sitios protegidos como 'chrome://', 'edge://' o la Chrome Web Store, la inyección es rechazada por diseño de seguridad.
         console.error('Failed to inject content script:', err);
         return false;
       }
     }
   }
 
-  // Payloads management
+  // =======================================================================================
+  // GESTIÓN Y RENDERIZADO DE PAYLOADS (CASOS DE PRUEBA)
+  // =======================================================================================
+
+  /**
+   * Combina las suites de prueba predeterminadas con los casos personalizados creados por el usuario.
+   * Utiliza el operador spread (...) para generar un nuevo array unificado sin alterar los arreglos originales.
+   * @returns {Array<Object>} Arreglo con la totalidad de los casos de prueba disponibles.
+   */
   function getAllPayloads() {
     return [...defaultSuites, ...customPayloads];
   }
 
+  /**
+   * Renderiza dinámicamente las tarjetas de los casos de prueba dentro del contenedor '#payloads-container'
+   * aplicando el filtro de categoría actual ('all' o una categoría específica).
+   * Genera los checkboxes de selección, las etiquetas de nivel (tier) y asocia escuchas de eventos
+   * para vista previa completa, modificación de selección y eliminación de entradas personalizadas.
+   */
   function renderPayloads() {
+    // Se obtiene el universo total de pruebas combinadas.
     const all = getAllPayloads();
+    // El método 'Array.prototype.filter' filtra las pruebas que coinciden con la pestaña de categoría seleccionada.
     const filtered = all.filter(p => currentCategory === 'all' || p.category === currentCategory);
 
+    // Se vacía el contenido previo del contenedor para reconstruirlo limpiamente.
     payloadsContainer.innerHTML = '';
 
+    // Si la categoría filtrada no contiene ninguna prueba (ej. casos personalizados vacíos), se muestra un aviso didáctico.
     if (filtered.length === 0) {
       payloadsContainer.innerHTML = `
         <div class="empty-notice" style="margin: 10px;">
@@ -693,21 +926,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       `;
       updateSelectedCount();
-      return;
+      return; // Se detiene la ejecución de la función.
     }
 
+    // Se itera sobre cada caso de prueba filtrado para construir su representación visual en el DOM.
     filtered.forEach((p) => {
+      // Se crea un nuevo elemento contenedor 'div'.
       const item = document.createElement('div');
       item.className = 'payload-item';
+      // 'dataset.id' almacena el ID del payload en un atributo de datos HTML5 (data-id) para fácil identificación.
       item.dataset.id = p.id;
 
+      // Si la propiedad 'selected' no está definida explícitamente en false, se asume seleccionada por defecto.
       const isChecked = p.selected !== false;
 
+      // Se genera un extracto legible del payload; si excede 25 caracteres, se trunca y agrega elipsis ("...").
       let displayPreview = p.payload;
       if (displayPreview.length > 25) {
         displayPreview = displayPreview.slice(0, 22) + '...';
       }
 
+      // Se inyecta la estructura HTML interna del elemento de prueba usando interpolación de plantillas (template literals).
+      // Se utiliza la función de sanitización 'escapeHtml' para prevenir inyección accidental de HTML en la UI.
       item.innerHTML = `
         <div class="payload-main">
           <input type="checkbox" class="payload-checkbox" data-id="${p.id}" ${isChecked ? 'checked' : ''}>
@@ -723,45 +963,66 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       `;
 
+      // Se añade el nodo hijo al contenedor principal de la interfaz.
       payloadsContainer.appendChild(item);
     });
 
+    // Se asigna un escucha de clic a todos los elementos con clase '.payload-preview' para abrir el modal visor.
     payloadsContainer.querySelectorAll('.payload-preview').forEach(el => {
       el.addEventListener('click', (e) => {
+        // 'currentTarget.dataset.viewerId' obtiene el ID del caso desde el atributo 'data-viewer-id'.
         const id = e.currentTarget.dataset.viewerId;
+        // 'Array.prototype.find' busca el objeto de prueba correspondiente en la colección completa.
         const targetPayload = all.find(p => p.id === id);
         if (targetPayload) {
+          // Despliega el modal emergente con el nombre y valor íntegro del caso de prueba.
           showViewerModal(targetPayload.name, targetPayload.payload);
         }
       });
     });
 
+    // Se asigna un escucha al evento 'change' en cada checkbox individual de payload.
     payloadsContainer.querySelectorAll('.payload-checkbox').forEach(chk => {
       chk.addEventListener('change', (e) => {
         const id = e.target.dataset.id;
         const item = all.find(p => p.id === id);
         if (item) item.selected = e.target.checked;
+        // Se recalculan y actualizan los badges de conteo y estado del botón de inicio.
         updateSelectedCount();
       });
     });
 
+    // Se asigna un escucha al botón de eliminar para casos de prueba personalizados creados por el usuario.
     payloadsContainer.querySelectorAll('.btn-delete-custom').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
+        // Se excluye la prueba eliminada del array 'customPayloads' mediante 'filter'.
         customPayloads = customPayloads.filter(p => p.id !== id);
+        // Se guarda el nuevo estado en 'chrome.storage.local'.
         await saveCustomPayloads();
+        // Se refresca la lista visible de pruebas en pantalla.
         renderPayloads();
       });
     });
 
+    // Sincroniza el contador total de pruebas seleccionadas en la interfaz.
     updateSelectedCount();
   }
 
+  /**
+   * Actualiza el badge numérico de pruebas seleccionadas y habilita/deshabilita el botón principal de ejecución.
+   * Si no hay campos capturados o no hay ninguna prueba marcada, el botón se bloquea para evitar ejecuciones vacías.
+   */
   function updateSelectedCount() {
     const all = getAllPayloads();
+    // Cuenta cuántas pruebas tienen la propiedad 'selected' distinta de false.
     const count = all.filter(p => p.selected !== false).length;
     selectedCountBadge.innerText = `${count} pruebas activas`;
+
+    // El botón se deshabilita si no hay campos seleccionados o si la cantidad de pruebas activas es cero.
     btnRunTests.disabled = selectedFields.length === 0 || count === 0;
+
+    // Actualiza el texto del botón principal para informar dinámicamente cuántos campos se procesarán.
     if (selectedFields.length > 0) {
       runBtnText.innerText = `Iniciar Verificación (${selectedFields.length} campo${selectedFields.length > 1 ? 's' : ''})`;
     } else {
@@ -769,83 +1030,123 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Depth Tier Management (Simple, Normal, Avanzado, Total)
+  // =======================================================================================
+  // GESTIÓN DE NIVELES DE PROFUNDIDAD (SIMPLE, NORMAL, AVANZADO, TOTAL)
+  // =======================================================================================
+
+  /**
+   * Aplica un nivel de profundidad determinado sobre las suites de prueba predeterminadas.
+   * Marca como activas aquellas pruebas cuyo nivel jerárquico sea menor o igual al seleccionado.
+   * Por ejemplo, el nivel 'normal' incluye pruebas 'simple' y 'normal', pero omite 'advanced' y 'total'.
+   * @param {string} tier - Nombre del nivel: 'simple', 'normal', 'advanced' o 'total'.
+   */
   function applyDepthTier(tier) {
+    // Si se pasa un nivel no reconocido en el diccionario, se establece 'normal' como valor por defecto.
     if (!TIER_HIERARCHY[tier]) tier = 'normal';
     currentDepthTier = tier;
+    // Se obtiene el valor numérico correspondiente al nivel (1, 2, 3 o 4).
     const targetLevel = TIER_HIERARCHY[tier];
 
+    // Se recorre la lista de botones de nivel para actualizar la clase CSS 'active'.
     depthButtons.forEach(btn => {
       if (btn.dataset.depth === tier) {
-        btn.classList.add('active');
+        btn.classList.add('active'); // Se resalta visualmente el botón seleccionado.
       } else {
-        btn.classList.remove('active');
+        btn.classList.remove('active'); // Se desmarcan los otros botones.
       }
     });
 
+    // Se actualiza el texto del badge descriptivo de profundidad.
     if (depthDescBadge) {
       depthDescBadge.innerText = TIER_DESCRIPTIONS[tier] || tier;
     }
 
+    // Se itera sobre las suites por defecto actualizando la propiedad 'selected' según la jerarquía.
     defaultSuites.forEach(p => {
       const pLevel = TIER_HIERARCHY[p.tier] || 2;
+      // La prueba queda seleccionada si su nivel numérico es menor o igual al nivel objetivo.
       p.selected = pLevel <= targetLevel;
     });
 
-    // Keep custom payloads active if user created any
+    // Se garantiza que los payloads personalizados del usuario permanezcan activos a menos que se hayan desmarcado manualmente.
     customPayloads.forEach(c => {
       if (c.selected === undefined) c.selected = true;
     });
 
+    // Se vuelve a renderizar el listado de casos con los nuevos estados de selección.
     renderPayloads();
   }
 
+  // Escucha de eventos de clic en los botones de profundidad:
   depthButtons.forEach(btn => {
     btn.addEventListener('click', () => {
+      // Se lee el atributo 'data-depth' del botón pulsado y se aplica el nivel correspondiente.
       applyDepthTier(btn.dataset.depth);
     });
   });
 
-  // Category Tab Switching
+  // =======================================================================================
+  // INTERCAMBIO DE PESTAÑAS DE CATEGORÍA Y CHECKBOX MAESTRO
+  // =======================================================================================
+
+  // Escucha de eventos de clic en las pestañas de categorías:
   categoryTabs.forEach(tab => {
     tab.addEventListener('click', () => {
+      // Se remueve la clase activa de todas las pestañas.
       categoryTabs.forEach(t => t.classList.remove('active'));
+      // Se añade la clase activa a la pestaña sobre la que se hizo clic.
       tab.classList.add('active');
+      // Se actualiza la categoría activa en el estado global.
       currentCategory = tab.dataset.category;
+      // Se renderiza nuevamente el listado mostrando únicamente las pruebas de la categoría elegida.
       renderPayloads();
     });
   });
 
+  // Escucha de eventos de cambio en el checkbox maestro "Seleccionar todo":
   checkSelectAll.addEventListener('change', (e) => {
     const isChecked = e.target.checked;
     const all = getAllPayloads();
+    // Se actualiza la selección de todas las pruebas que pertenezcan a la categoría que está actualmente en pantalla.
     all.forEach(p => {
       if (currentCategory === 'all' || p.category === currentCategory) {
         p.selected = isChecked;
       }
     });
+    // Se refleja el cambio en la interfaz gráfica.
     renderPayloads();
   });
 
-  // MULTI-FIELD MANAGEMENT
+  // =======================================================================================
+  // GESTIÓN Y RENDERIZADO DE MÚLTIPLES CAMPOS (MULTI-FIELD MANAGEMENT)
+  // =======================================================================================
+
+  /**
+   * Renderiza la lista visual de campos capturados en la interfaz del side panel.
+   * Si no hay campos, muestra el estado vacío ('#field-empty-state') y oculta secciones dependientes.
+   * Si hay campos, genera los chips interactivos con tipo, nombre, botón de mira telescópica y botón de eliminación.
+   */
   function renderSelectedFields() {
+    // Si la lista de campos está vacía, se ocultan los paneles secundarios y se restablecen los badges.
     if (selectedFields.length === 0) {
-      fieldEmptyState.style.display = 'block';
-      selectedFieldsList.style.display = 'none';
-      saveButtonBox.style.display = 'none';
-      if (formNameBox) formNameBox.style.display = 'none';
-      fieldsCountBadge.className = 'badge badge-idle';
+      fieldEmptyState.style.display = 'block'; // Muestra el mensaje "No hay campos seleccionados".
+      selectedFieldsList.style.display = 'none'; // Oculta la lista de chips.
+      saveButtonBox.style.display = 'none'; // Oculta la configuración del botón de guardar.
+      if (formNameBox) formNameBox.style.display = 'none'; // Oculta la caja del título del formulario.
+      fieldsCountBadge.className = 'badge badge-idle'; // Aplica estilo visual inactivo.
       fieldsCountBadge.innerText = '0 campos';
-      updateSelectedCount();
-      updateFilterFieldSelect();
-      return;
+      updateSelectedCount(); // Actualiza el estado del botón de inicio de pruebas.
+      updateFilterFieldSelect(); // Limpia las opciones del dropdown de filtros.
+      return; // Fin anticipado de la función.
     }
 
+    // Si existen campos seleccionados, se activan los contenedores visuales correspondientes.
     fieldEmptyState.style.display = 'none';
     selectedFieldsList.style.display = 'flex';
     saveButtonBox.style.display = 'flex';
     if (formNameBox) {
       formNameBox.style.display = 'flex';
+      // Si el input de título de formulario no tiene texto, se le asigna el título activo o uno por defecto.
       if (inputFormTitle) {
         if (!inputFormTitle.value && activeFormTitle) {
           inputFormTitle.value = activeFormTitle;
@@ -855,13 +1156,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
     }
+    // Actualiza el badge con estilo activo y el número total de campos capturados.
     fieldsCountBadge.className = 'badge badge-active';
     fieldsCountBadge.innerText = `${selectedFields.length} campo${selectedFields.length > 1 ? 's' : ''}`;
 
+    // Se limpia el listado previo de chips para volver a generarlo desde el estado actual.
     selectedFieldsList.innerHTML = '';
     selectedFields.forEach((field, index) => {
+      // Se crea el elemento contenedor del chip.
       const chip = document.createElement('div');
       chip.className = 'field-chip-item';
+      // Se inyecta la estructura del chip: tipo de input, etiqueta del campo y botones de inspección/eliminación.
       chip.innerHTML = `
         <div class="field-chip-info">
           <span class="field-chip-type">${escapeHtml(field.type)}</span>
@@ -875,34 +1180,52 @@ document.addEventListener('DOMContentLoaded', async () => {
       selectedFieldsList.appendChild(chip);
     });
 
+    // Escucha para resaltar el campo en la página web mediante el botón de mira telescópica:
     selectedFieldsList.querySelectorAll('.btn-inspect-field').forEach(btn => {
       btn.addEventListener('click', async (e) => {
+        // Se obtiene el índice numérico del campo desde el atributo 'data-index'.
         const idx = parseInt(e.currentTarget.dataset.index, 10);
         const f = selectedFields[idx];
         if (f && activeTabId) {
+          // Se envía el mensaje 'HIGHLIGHT_TARGET' al content-script para activar la animación de destello visual en la web.
           chrome.tabs.sendMessage(activeTabId, { action: 'HIGHLIGHT_TARGET', fieldInfo: f });
         }
       });
     });
 
+    // Escucha para remover un campo individual de la selección:
     selectedFieldsList.querySelectorAll('.field-chip-remove').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.currentTarget.dataset.index, 10);
+        // El método 'Array.prototype.splice' elimina 1 elemento en la posición 'idx'.
         selectedFields.splice(idx, 1);
+        // Se redibuja la lista actualizada.
         renderSelectedFields();
       });
     });
 
+    // Se sincronizan las demás secciones que dependen de la lista de campos seleccionados.
     updateSelectedCount();
     updateFilterFieldSelect();
     renderSiblingFillers();
     renderSaveButton();
   }
 
-  // Render Sibling Fillers for Required/Auxiliary Fields
+  // =======================================================================================
+  // CAMPOS HERMANOS DE RELLENO (SIBLING FILLERS PARA CAMPOS REQUERIDOS)
+  // =======================================================================================
+
+  /**
+   * Renderiza la lista de campos hermanos en el contenedor '#sibling-fillers-box'.
+   * En formularios con múltiples campos requeridos (ej. Nombre, Email, Password), si probamos 'Email'
+   * pero 'Nombre' está vacío, el formulario no permitirá el guardado no por culpa del email, sino
+   * por la ausencia del nombre. Los Sibling Fillers inyectan datos válidos en los campos secundarios
+   * para aislar y evaluar exclusivamente el comportamiento del campo bajo auditoría activa.
+   */
   function renderSiblingFillers() {
     if (!siblingFillersBox) return;
 
+    // Si hay un solo campo o ninguno, no existen hermanos que requieran pre-llenado.
     if (selectedFields.length <= 1) {
       siblingFillersBox.style.display = 'none';
       return;
@@ -911,11 +1234,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     siblingFillersBox.style.display = 'flex';
     siblingFillersList.innerHTML = '';
 
+    // Se genera una fila por cada campo hermano seleccionado en el formulario.
     selectedFields.forEach((field, index) => {
       const item = document.createElement('div');
       item.className = 'sibling-filler-item';
 
+      // Determina si el campo está marcado como obligatorio (por defecto true a menos que sea explícitamente false).
       const isReq = field.required !== false;
+      // Obtiene el valor de relleno asignado o uno sugerido inteligente.
       const currentVal = field.fillerValue !== undefined ? field.fillerValue : (field.suggestedFillerValue || 'Dato Válido QA');
 
       item.innerHTML = `
@@ -932,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       siblingFillersList.appendChild(item);
     });
 
-    // Wire listeners
+    // Escucha para conmutar entre Obligatorio u Opcional en el campo hermano:
     siblingFillersList.querySelectorAll('.sibling-req-toggle').forEach(chk => {
       chk.addEventListener('change', (e) => {
         const idx = parseInt(e.target.dataset.index, 10);
@@ -943,6 +1269,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
+    // Escucha para capturar la edición manual del valor de relleno ingresado por el usuario:
     siblingFillersList.querySelectorAll('.sibling-filler-input').forEach(inp => {
       inp.addEventListener('input', (e) => {
         const idx = parseInt(e.target.dataset.index, 10);
@@ -952,18 +1279,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
+    // Escucha para generar un valor dummy aleatorio acorde a las heurísticas del tipo de campo:
     siblingFillersList.querySelectorAll('.btn-random-filler').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const idx = parseInt(e.currentTarget.dataset.index, 10);
         const f = selectedFields[idx];
         if (f && activeTabId) {
           try {
+            // Intenta solicitar un valor inteligente al content-script mediante 'GENERATE_NEW_DUMMY'.
             const res = await chrome.tabs.sendMessage(activeTabId, { action: 'GENERATE_NEW_DUMMY', fieldInfo: f });
             if (res && res.value) {
               f.fillerValue = res.value;
               renderSiblingFillers();
             }
           } catch {
+            // Fallback heurístico local si falla la comunicación IPC:
             const isUrl = !!f.isUrlField || f.type === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|slug|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
             const isSlug = /\bslug\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
             if (isSlug) {
@@ -980,7 +1310,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // RENDER REOPEN STEPS FOR COLLAPSIBLE / MODAL FORMS
+  // =======================================================================================
+  // SECUENCIA DE REAPERTURA DE FORMULARIOS COLAPSABLES O MODALES (REOPEN STEPS)
+  // =======================================================================================
+
+  /**
+   * Renderiza la secuencia ordenada de pasos grabados para reabrir el formulario en pantalla.
+   * Muy útil para modales o cajones laterales (drawers) que se cierran tras cada intento de guardado.
+   */
   function renderReopenSteps() {
     if (!reopenStepsList) return;
     if (reopenSteps.length === 0) {
@@ -1005,6 +1342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       reopenStepsList.appendChild(chip);
     });
 
+    // Escucha para resaltar el elemento del paso en la página:
     reopenStepsList.querySelectorAll('.btn-inspect-step').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.currentTarget.dataset.index, 10);
@@ -1015,6 +1353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
+    // Escucha para eliminar un paso individual de la secuencia:
     reopenStepsList.querySelectorAll('.btn-remove-step').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.currentTarget.dataset.index, 10);
@@ -1024,15 +1363,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Escucha del checkbox principal para habilitar/deshabilitar el bloque de reapertura:
   if (checkEnableReopen) {
     checkEnableReopen.addEventListener('change', (e) => {
       if (reopenStepsContent) {
+        // Muestra u oculta la caja colapsable de pasos.
         reopenStepsContent.style.display = e.target.checked ? 'block' : 'none';
       }
       renderReopenSteps();
     });
   }
 
+  // Botón para iniciar el modo de captura interactiva de un nuevo paso de clic:
   if (btnAddReopenStep) {
     btnAddReopenStep.addEventListener('click', async () => {
       const tab = await getActiveTab();
@@ -1043,6 +1385,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       activeTabId = tab.id;
       await ensureContentScriptInjected(tab.id);
 
+      // Si ya estaba activo el modo de captura, se cancela; de lo contrario, se inicia.
       if (isPickingReopenStepActive) {
         chrome.tabs.sendMessage(tab.id, { action: 'CANCEL_PICKING' });
         setReopenStepPickingState(false);
@@ -1053,6 +1396,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  /**
+   * Actualiza el aspecto visual del botón de captura de pasos de reapertura según el estado activo.
+   * @param {boolean} active - True si el cursor inspector de pasos está activo.
+   */
   function setReopenStepPickingState(active) {
     isPickingReopenStepActive = active;
     if (!btnAddReopenStep) return;
@@ -1065,6 +1412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Botón para probar en vivo la secuencia de reapertura grabada:
   if (btnTestReopen) {
     btnTestReopen.addEventListener('click', async () => {
       if (reopenSteps.length === 0) {
@@ -1079,10 +1427,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       btnTestReopen.innerText = 'Abriendo...';
       btnTestReopen.disabled = true;
       try {
+        // Envía la secuencia completa de pasos al content-script para que simule los clics reales en la web.
         await chrome.tabs.sendMessage(tab.id, {
           action: 'EXECUTE_REOPEN_STEPS',
           steps: reopenSteps,
-          waitMs: 450
+          waitMs: 450 // Pausa de 450ms entre cada clic para dar tiempo a animaciones CSS/JS.
         });
         btnTestReopen.innerHTML = '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> ¡Abierto!';
         setTimeout(() => {
@@ -1097,8 +1446,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // =======================================================================================
+  // INSERCIÓN Y PREVENCIÓN DE DUPLICADOS DE CAMPOS
+  // =======================================================================================
+
+  /**
+   * Añade un descriptor de campo de entrada a la lista de 'selectedFields' evitando duplicaciones.
+   * Si el campo ya existe, produce una retroalimentación visual animando el chip preexistente.
+   * @param {Object} fieldData - Objeto descriptor del campo capturado por el content-script.
+   */
   function addField(fieldData) {
-    // Avoid duplicate selection
+    // Se evalúa si el campo ya fue capturado comparando ID, selector CSS o combinación de nombre y tipo.
     const exists = selectedFields.some(f => 
       (f.id && f.id === fieldData.id) || 
       (f.selector && f.selector === fieldData.selector) ||
@@ -1106,20 +1464,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
 
     if (!exists) {
+      // Se inicializa el valor de relleno para campos hermanos.
       if (fieldData.fillerValue === undefined) {
         fieldData.fillerValue = fieldData.suggestedFillerValue || 'Dato Válido QA';
       }
+      // Se vincula el botón de guardar si el campo trae uno auto-detectado y no había ninguno configurado.
       if (!currentSaveButton && (fieldData.saveButton || fieldData.autoSaveButton)) {
         currentSaveButton = fieldData.saveButton || fieldData.autoSaveButton;
       }
       fieldData.saveButton = currentSaveButton;
+      // Se agrega el nuevo campo al array principal.
       selectedFields.push(fieldData);
+      // Si el título del formulario aún no está definido, se adopta el del campo o un valor por defecto.
       if (!activeFormTitle) {
         activeFormTitle = fieldData.formTitle || 'Formulario Principal';
         if (inputFormTitle) inputFormTitle.value = activeFormTitle;
       }
     } else {
-      // Visual feedback that the field is already in the list
+      // Retroalimentación visual: si el campo ya estaba presente, resalta brevemente su chip con un destello.
       const existingIdx = selectedFields.findIndex(f => 
         (f.id && f.id === fieldData.id) || 
         (f.selector && f.selector === fieldData.selector) ||
@@ -1134,11 +1496,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    // Se actualiza la vista de campos en la interfaz.
     renderSelectedFields();
   }
 
+  // =======================================================================================
+  // DROPDOWN DE FILTRO POR CAMPO EN LA TABLA DE RESULTADOS
+  // =======================================================================================
 
-  // Update Field Dropdown in Results Filter
+  /**
+   * Regenera las opciones del elemento select '#filter-field-select'
+   * permitiendo filtrar la tabla de resultados para analizar un campo específico o todos.
+   */
   function updateFilterFieldSelect() {
     filterFieldSelect.innerHTML = '<option value="all">Todos los campos</option>';
     selectedFields.forEach((f, i) => {
@@ -1150,7 +1519,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Pick Field button
+  // =======================================================================================
+  // BOTONES Y CONTROLADORES DE CAPTURA INTERACTIVA (PICKERS)
+  // =======================================================================================
+
+  // Botón para apuntar un campo individual en la página web:
   btnPickField.addEventListener('click', async () => {
     const tab = await getActiveTab();
     if (!tab?.id) {
@@ -1164,6 +1537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    // Alterna entre activar o cancelar el modo inspector de campos.
     if (isPickingFieldActive) {
       chrome.tabs.sendMessage(tab.id, { action: 'CANCEL_PICKING' });
       setFieldPickingState(false);
@@ -1173,6 +1547,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  /**
+   * Modifica los estilos y texto del botón de selección individual de campos según el estado activo.
+   * @param {boolean} active - True si el cursor selector está activo.
+   */
   function setFieldPickingState(active) {
     isPickingFieldActive = active;
     if (active) {
@@ -1186,7 +1564,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Point-and-click Form Picker (Single Form)
+  // Botón para apuntar un contenedor de formulario haciendo clic:
   if (btnPickFormClick) {
     btnPickFormClick.addEventListener('click', async () => {
       const tab = await getActiveTab();
@@ -1204,6 +1582,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  /**
+   * Modifica los estilos y texto del botón de selección de formulario completo según el estado.
+   * @param {boolean} active - True si el modo de selección de formulario está activo.
+   */
   function setFormPickingState(active) {
     isPickingFormActive = active;
     if (!btnPickFormClick) return;
@@ -1216,7 +1598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Auto-detect single form across the page
+  // Botón de detección automática de formularios en toda la página web:
   btnAutoDetectForm.addEventListener('click', async () => {
     const tab = await getActiveTab();
     if (!tab?.id) return;
@@ -1226,6 +1608,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const originalText = btnAutoDetectForm.innerHTML;
       btnAutoDetectForm.innerText = 'Detectando...';
+      // Envía la acción 'DETECT_SINGLE_FORM' al content-script para escanear etiquetas <form> o bloques densos de inputs.
       const res = await chrome.tabs.sendMessage(tab.id, { action: 'DETECT_SINGLE_FORM' });
       btnAutoDetectForm.innerHTML = originalText;
 
@@ -1250,13 +1633,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // =======================================================================================
+  // GESTIÓN DEL BOTÓN DE GUARDAR / ENVIAR (SAVE BUTTON LOGIC)
+  // =======================================================================================
 
-  // Single-Form Save Button Logic
+  /**
+   * Cambia el estado visual del selector del botón de guardar.
+   * @param {boolean} active - True si el cursor inspector de botón está activo.
+   */
   function setButtonPickingState(active) {
     isPickingButtonActive = active;
     renderSaveButton();
   }
 
+  /**
+   * Asigna el descriptor del botón capturado al estado y lo propaga a todos los campos seleccionados.
+   * @param {Object} btnData - Descriptor del botón seleccionado en la web.
+   */
   function handleSaveButtonSelected(btnData) {
     currentSaveButton = btnData;
     selectedFields.forEach(f => {
@@ -1265,6 +1658,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderSaveButton();
   }
 
+  /**
+   * Renderiza el estado actual del botón de guardar en la interfaz (píldora asignada o auto-detectada).
+   */
   function renderSaveButton() {
     if (!saveButtonBox) return;
 
@@ -1300,6 +1696,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Botón para cambiar o reasignar interactivamente el botón de guardar:
   if (btnChangeSave) {
     btnChangeSave.addEventListener('click', async () => {
       const tab = await getActiveTab();
@@ -1320,6 +1717,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Botón para inspeccionar/resaltar el botón de guardar configurado en la página:
   if (btnInspectSave) {
     btnInspectSave.addEventListener('click', async () => {
       if (!currentSaveButton?.selector) return;
@@ -1333,13 +1731,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // =======================================================================================
+  // ENRUTADOR DE MENSAJES IPC (INTER-PROCESS COMMUNICATION) DESDE EL CONTENT-SCRIPT
+  // =======================================================================================
 
-  // Receive message from content script
+  // Se suscribe un escucha global a 'chrome.runtime.onMessage' para recibir eventos emitidos por 'picker.js'.
   chrome.runtime.onMessage.addListener((message) => {
+    // 1. Campo individual capturado por el usuario:
     if (message.action === 'ELEMENT_SELECTED') {
       setFieldPickingState(false);
       addField(message.data);
-    } else if (message.action === 'FORM_SELECTED') {
+    } 
+    // 2. Formulario completo seleccionado mediante clic:
+    else if (message.action === 'FORM_SELECTED') {
       setFormPickingState(false);
       const formData = message.data;
       if (formData && formData.fields && formData.fields.length > 0) {
@@ -1356,16 +1760,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         alert('El formulario o sector seleccionado no contiene campos válidos.');
       }
-    } else if (message.action === 'SAVE_BUTTON_SELECTED') {
+    } 
+    // 3. Botón de guardar seleccionado por el usuario:
+    else if (message.action === 'SAVE_BUTTON_SELECTED') {
       setButtonPickingState(false);
       handleSaveButtonSelected(message.data);
-    } else if (message.action === 'REOPEN_STEP_PICKED') {
+    } 
+    // 4. Paso de la secuencia de reapertura capturado:
+    else if (message.action === 'REOPEN_STEP_PICKED') {
       setReopenStepPickingState(false);
       if (message.data) {
         reopenSteps.push(message.data);
         renderReopenSteps();
       }
-    } else if (message.action === 'PICKING_CANCELLED') {
+    } 
+    // 5. Usuario canceló cualquier modo de selección presionando ESC o haciendo clic en el banner:
+    else if (message.action === 'PICKING_CANCELLED') {
       setFieldPickingState(false);
       setFormPickingState(false);
       setReopenStepPickingState(false);
@@ -1373,8 +1783,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Reset Everything
+  // =======================================================================================
+  // REINICIO GLOBAL DEL ESTADO DE LA EXTENSIÓN (RESET EVERYTHING)
+  // =======================================================================================
+
+  // Escucha del botón "Reiniciar Todo" con diálogo de confirmación de seguridad:
   btnResetAll.addEventListener('click', () => {
+    // El diálogo nativo 'confirm' solicita aprobación al usuario antes de borrar datos.
     if (confirm('¿Deseas reiniciar la lista de campos y los resultados?')) {
       selectedFields = [];
       activeFormTitle = '';
@@ -1395,13 +1810,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
 
-  // EXECUTION ENGINE: TYPE-AWARE TESTING ACROSS ALL SELECTED FIELDS
+  // =======================================================================================
+  // MOTOR DE EJECUCIÓN: PRUEBAS AUTOMATIZADAS SECUENCIALES POR TIPO DE CAMPO
+  // =======================================================================================
+
+  // Escucha del botón principal "Iniciar Verificación":
   btnRunTests.addEventListener('click', async () => {
+    // Validación previa: se requiere al menos un campo capturado y una pestaña web activa conectada.
     if (selectedFields.length === 0 || !activeTabId) {
       alert('Por favor selecciona al menos un campo antes de iniciar.');
       return;
     }
 
+    // Se obtienen todas las pruebas y se filtran únicamente las que tienen 'selected !== false'.
     const all = getAllPayloads();
     const selectedPayloads = all.filter(p => p.selected !== false);
     if (selectedPayloads.length === 0) {
@@ -1409,66 +1830,91 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Build test tasks mapped by field type
+    // -------------------------------------------------------------------------------------
+    // FASE 1: CONSTRUCCIÓN INTELIGENTE DE LA COLA DE PRUEBAS SEGÚN TIPO DE CAMPO
+    // -------------------------------------------------------------------------------------
+    // Cada tipo de dato HTML5 (texto, número, fecha, url) tiene reglas semánticas distintas.
+    // Inyectar fechas en un campo numérico carece de sentido; este discriminador asigna a cada campo
+    // únicamente los vectores de prueba pertinentes, optimizando tiempo y relevancia de auditoría.
     const testQueue = [];
     selectedFields.forEach(field => {
+      // Se normaliza el tipo de dato a minúsculas ('text', 'number', 'date', 'url', etc.).
       const fType = (field.type || 'text').toLowerCase();
       let applicable = [];
 
+      // Heurística avanzada para determinar si el campo representa una URL o enlace web:
       const isUrl = !!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|slug|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
 
       if (isUrl) {
+        // En campos de URL se aplican pruebas de protocolo, XSS en esquemas, byte nulo y espacios en blanco.
         applicable = selectedPayloads.filter(p => p.category === 'url' || p.id === 'sec_null_byte' || p.id === 'sec_script' || p.id === 'txt_spaces' || p.id === 'txt_only_spaces');
       } else if (fType === 'number') {
+        // En campos numéricos se aplican casos de números (positivos, negativos, desbordamientos, letras).
         applicable = selectedPayloads.filter(p => p.category === 'number' || p.id === 'sec_null_byte');
       } else if (fType === 'date' || fType === 'datetime-local' || fType === 'month') {
+        // En selectores de fecha se aplican formatos ISO, años bisiestos y rangos calendario.
         applicable = selectedPayloads.filter(p => p.category === 'date');
       } else {
-        // Text, Textarea, Email, Tel, etc.
+        // En campos de texto libre, áreas de texto (textarea), correos y contraseñas:
         applicable = selectedPayloads.filter(p => p.category === 'text' || p.category === 'emoji' || p.category === 'security');
       }
 
-      // If no category matched (e.g. custom), include them
+      // Si el usuario creó pruebas personalizadas (isCustom: true), se incorporan siempre:
       const customs = selectedPayloads.filter(p => p.isCustom);
       customs.forEach(c => {
         if (!applicable.includes(c)) applicable.push(c);
       });
 
+      // Se genera un elemento en la cola de tareas asociando el campo con cada caso aplicable.
       applicable.forEach(testItem => {
         testQueue.push({ field, testItem });
       });
     });
 
+    // Si tras el filtrado por tipo no hay ninguna prueba para ejecutar, se notifica y cancela.
     if (testQueue.length === 0) {
       alert('No se encontraron pruebas aplicables para los tipos de campo seleccionados.');
       return;
     }
 
+    // Advertencia amigable si se activó la reapertura automática pero no se registraron clics:
     if (checkEnableReopen && checkEnableReopen.checked && reopenSteps.length === 0) {
       const proceed = confirm('Has activado "Auto re-abrir formulario" pero aún no has grabado ningún paso de clic.\n\n¿Deseas ejecutar las pruebas sin re-apertura automática? (Presiona Cancelar para apuntar los pasos antes de iniciar)');
       if (!proceed) return;
     }
 
+    // -------------------------------------------------------------------------------------
+    // FASE 2: PREPARACIÓN DE LA INTERFAZ Y LECTURA DE PARÁMETROS
+    // -------------------------------------------------------------------------------------
+    // Se deshabilitan los controles de interacción para evitar condiciones de carrera durante la prueba.
     btnRunTests.disabled = true;
     btnPickField.disabled = true;
     btnAutoDetectForm.disabled = true;
     if (btnChangeSave) btnChangeSave.disabled = true;
     if (btnInspectSave) btnInspectSave.disabled = true;
     runBtnText.innerText = 'Ejecutando pruebas...';
-    progressContainer.style.display = 'flex';
-    resultsCard.style.display = 'block';
-    resultsTbody.innerHTML = '';
-    testResults = [];
+    progressContainer.style.display = 'flex'; // Muestra la barra de progreso animada.
+    resultsCard.style.display = 'block'; // Muestra la tarjeta de resultados.
+    resultsTbody.innerHTML = ''; // Limpia resultados de auditorías previas.
+    testResults = []; // Reinicia el array en memoria de resultados.
 
-    const delayMs = parseInt(executionSpeedSelect.value, 10) || 150;
-    const submitWaitMs = parseInt(submitWaitTimeSelect.value, 10) || 500;
-    const triggerSave = checkTriggerSave.checked;
-    const shouldRestore = checkRestoreValue.checked;
-    const shouldFillSiblings = checkEnableSiblingFillers && checkEnableSiblingFillers.checked;
+    // Se extraen los valores configurados por el usuario en la interfaz:
+    const delayMs = parseInt(executionSpeedSelect.value, 10) || 150; // Retardo entre pruebas consecutivas en milisegundos.
+    const submitWaitMs = parseInt(submitWaitTimeSelect.value, 10) || 500; // Tiempo de espera para observar respuestas del servidor.
+    const triggerSave = checkTriggerSave.checked; // Booleano: auditar clic en botón de guardar.
+    const shouldRestore = checkRestoreValue.checked; // Booleano: reponer valor inicial al terminar.
+    const shouldFillSiblings = checkEnableSiblingFillers && checkEnableSiblingFillers.checked; // Booleano: auto-llenar campos hermanos.
 
-    let completed = 0;
+    let completed = 0; // Contador de pruebas ejecutadas con éxito.
+
+    // -------------------------------------------------------------------------------------
+    // FASE 3: BUCLE SECUENCIAL ASÍNCRONO DE PRUEBAS (TEST EXECUTION LOOP)
+    // -------------------------------------------------------------------------------------
+    // Se utiliza un bucle 'for...of' para garantizar una ejecución rigurosamente secuencial.
+    // Esto evita que múltiples pruebas colisionen simultáneamente sobre el mismo formulario del DOM.
     for (const task of testQueue) {
       completed++;
+      // Cálculo del porcentaje completado (de 0 a 100).
       const pct = Math.round((completed / testQueue.length) * 100);
       progressPercent.innerText = `${pct}%`;
       progressBarFill.style.width = `${pct}%`;
@@ -1476,7 +1922,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const formPrefix = task.field.formTitle ? `[${task.field.formTitle}] ` : '';
       progressLabel.innerText = `(${completed}/${testQueue.length}) ${formPrefix}[${task.field.label}]: ${task.testItem.name}...`;
 
-      // Highlight the chip of the field currently being tested
+      // Destaca visualmente el chip del campo que se está evaluando actualmente:
       const currentFieldIndex = selectedFields.indexOf(task.field);
       const chips = selectedFieldsList.querySelectorAll('.field-chip-item');
       chips.forEach((c, idx) => {
@@ -1488,16 +1934,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       try {
-        // Pre-fill valid dummy data in sibling fields so they don't block the save!
+        // Pre-llenado de datos válidos en los campos hermanos para aislar el campo auditado:
         const siblingFields = selectedFields.filter(f => f !== task.field);
         const siblingFillers = shouldFillSiblings ? siblingFields.map(f => ({
           fieldInfo: f,
           value: (f.fillerValue !== undefined ? f.fillerValue : f.suggestedFillerValue) || 'Dato Válido QA'
         })) : [];
 
+        // Determina el botón de guardar asignado al campo o el global:
         const targetSaveButton = currentSaveButton || task.field.saveButton || null;
 
-
+        // Envía el mensaje 'RUN_SINGLE_PAYLOAD' al content-script para ejecutar la prueba en la página:
         const res = await chrome.tabs.sendMessage(activeTabId, {
           action: 'RUN_SINGLE_PAYLOAD',
           fieldInfo: task.field,
@@ -1513,11 +1960,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           }
         });
 
+        // Evalúa el resultado con el motor de diagnóstico y recomendaciones:
         const evaluation = evaluateTestResult(task.field, task.testItem, res, triggerSave);
         testResults.push(evaluation);
-        appendResultRow(evaluation);
-        updateKPICounters();
+        appendResultRow(evaluation); // Inserta la nueva fila en la tabla visual.
+        updateKPICounters(); // Actualiza contadores KPI en tiempo real.
       } catch (err) {
+        // Captura de excepciones en caso de que la pestaña web falle o se desconecte:
         console.error('Error running payload:', task.testItem.name, err);
         const errMsg = String(err?.message || '');
         const isTabFatal = errMsg.includes('Receiving end does not exist') || 
@@ -1541,6 +1990,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         appendResultRow(errorEval);
         updateKPICounters();
 
+        // Si la pestaña fue cerrada o navegó fuera, se interrumpe el ciclo de pruebas:
         if (isTabFatal) {
           progressLabel.innerText = 'Pestaña cerrada o desconectada. Pruebas detenidas.';
           selectedFieldsList.querySelectorAll('.field-chip-item').forEach(c => c.classList.remove('field-chip-active'));
@@ -1555,12 +2005,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
 
+      // Pausa configurable entre pruebas para permitir que los scripts del sitio respiren y no saturen la CPU:
       await new Promise(r => setTimeout(r, delayMs));
     }
 
+    // Remueve el destello activo de todos los chips de campo:
     selectedFieldsList.querySelectorAll('.field-chip-item').forEach(c => c.classList.remove('field-chip-active'));
 
-    // Restore initial values if checked
+    // -------------------------------------------------------------------------------------
+    // FASE 4: RESTAURACIÓN DE VALORES ORIGINALES Y FINALIZACIÓN
+    // -------------------------------------------------------------------------------------
     if (shouldRestore) {
       for (const field of selectedFields) {
         try {
@@ -1575,6 +2029,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    // Restablece el estado de los botones tras concluir toda la batería de pruebas:
     progressLabel.innerText = `¡Pruebas completadas (${testQueue.length} casos)!`;
     btnRunTests.disabled = false;
     btnPickField.disabled = false;
@@ -1582,17 +2037,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnChangeSave) btnChangeSave.disabled = false;
     if (btnInspectSave) btnInspectSave.disabled = !currentSaveButton;
     runBtnText.innerText = `Volver a Iniciar (${selectedFields.length} campos)`;
+    // Actualiza la vista de Dashboard con los nuevos datos recopilados:
     renderDashboardView();
+    // Oculta la barra de progreso tras 2.5 segundos de gracia:
     setTimeout(() => {
       progressContainer.style.display = 'none';
     }, 2500);
   });
 
-  // EVALUATION & RECOMMENDATION ENGINE
+  // =======================================================================================
+  // MOTOR DE EVALUACIÓN Y GENERACIÓN DE RECOMENDACIONES (EVALUATION ENGINE)
+  // =======================================================================================
+
+  /**
+   * Analiza el resultado obtenido tras inyectar un payload y opcionalmente pulsar Guardar.
+   * Clasifica el comportamiento del sistema en una de las categorías:
+   * - 'conforme': El valor válido fue aceptado normalmente según las reglas esperadas.
+   * - 'truncated': El campo recortó el texto antes de guardar (maxlength o máscara activa).
+   * - 'restricted_field': El campo impidió la escritura o borró de inmediato el valor inválido.
+   * - 'restricted_save': El campo aceptó el valor al teclear pero el botón Guardar o backend lo bloqueó.
+   * - 'warning': Se aceptó un valor anómalo de formato o regla de negocio (espacios, ceros, etc.).
+   * - 'risk': Se aceptó un vector malicioso de seguridad o sobrecarga (XSS, SQL, DoS, SSRF).
+   * - 'error': Fallo técnico o cierre inesperado del formulario durante la prueba.
+   * 
+   * @param {Object} field - Descriptor del campo auditado.
+   * @param {Object} testItem - Caso de prueba ejecutado con su payload y banderas.
+   * @param {Object} res - Respuesta devuelta por 'picker.js' tras la inyección.
+   * @param {boolean} triggerSave - Si se solicitó la acción de guardado real.
+   * @returns {Object} Objeto estructurado con estado, badges, diagnósticos técnicos y recomendaciones.
+   */
   function evaluateTestResult(field, testItem, res, triggerSave) {
     const payload = testItem.payload;
 
-    // 0. FORM CLOSED / DRAWER COLLAPSED (Explicit detection)
+    // -------------------------------------------------------------------------------------
+    // CASO 0: DETECCIÓN EXPLÍCITA DE CIERRE DEL FORMULARIO O MODAL
+    // -------------------------------------------------------------------------------------
+    // Si un modal se cerró tras el guardado anterior, el campo ya no existe en el DOM visible.
     if (res && (res.error === 'FORM_CLOSED' || res.error === 'ELEMENT_NOT_VISIBLE')) {
       return {
         fieldName: field.label || field.selector,
@@ -1608,6 +2088,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
 
+    // Si hubo un error no controlado o no se recibió respuesta de la pestaña web:
     if (!res || res.error) {
       return {
         fieldName: field.label || field.selector,
@@ -1623,22 +2104,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
 
+    // Se extraen valores resultantes y longitudes de caracteres para la comparación:
     const resVal = res.resultingValue !== undefined ? res.resultingValue : '';
     const resLen = res.resultingLength !== undefined ? res.resultingLength : resVal.length;
     const payLen = payload.length;
 
+    // Inicialización de variables de clasificación con valores por defecto:
     let status = 'conforme'; // 'restricted_save' | 'restricted_field' | 'truncated' | 'conforme' | 'risk' | 'error'
     let badgeText = 'Conforme (Guardado)';
     let badgeClass = 'res-conforme';
     let detail = '';
     let recommendation = '';
 
+    // Variables de verificación de estado y validaciones HTML5 nativas:
     const validity = res.validity;
     const hasHTML5Error = validity && !validity.valid;
     const saveBlocked = !!res.saveBlocked;
     const saveErrorMessage = res.saveErrorMessage || '';
 
-    // 1. TRUNCATED IN FIELD (maxlength)
+    // -------------------------------------------------------------------------------------
+    // CASO 1: TRUNCAMIENTO ACTIVO EN EL CAMPO (HTML5 MAXLENGTH O MÁSCARA JS)
+    // -------------------------------------------------------------------------------------
+    // Si la longitud resultante en el campo es inferior a la del payload inyectado:
     if (resLen < payLen && payLen > 1) {
       status = 'truncated';
       badgeText = 'Truncado en Campo';
@@ -1651,7 +2138,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         recommendation = 'Recortado en frontend mediante script/máscara. Verificar si la regla es intencional.';
       }
     }
-    // 2. REJECTED DIRECTLY BY FIELD (cleared input, e.g. non-digits in number)
+    // -------------------------------------------------------------------------------------
+    // CASO 2: RECHAZO DIRECTO E INMEDIATO EN EL CAMPO (VALOR LIMPIADO O RECHAZADO)
+    // -------------------------------------------------------------------------------------
+    // Si el valor resultante quedó vacío cuando el payload no era vacío:
     else if (resVal === '' && payload !== '' && payload.trim() !== '') {
       status = 'restricted_field';
       badgeText = 'Restringido en Campo';
@@ -1663,7 +2153,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         recommendation = 'Excelente: El campo aplica validación o filtrado estricto en tiempo real.';
       }
     }
-    // 3. EMOJIS STRIPPED IN FIELD
+    // -------------------------------------------------------------------------------------
+    // CASO 3: EMOJIS O GLIFOS ELIMINADOS POR FILTRO DE CARACTERES
+    // -------------------------------------------------------------------------------------
     else if (testItem.category === 'emoji' && resVal !== payload && resLen < payLen) {
       status = 'restricted_field';
       badgeText = 'Restringido en Campo';
@@ -1671,7 +2163,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       detail = `Los emojis o símbolos fueron filtrados o eliminados del campo automáticamente. (Recibido: "${resVal.slice(0, 15)}...").`;
       recommendation = 'Comportamiento esperado si el campo prohíbe caracteres especiales. Si se esperan nombres internacionales, verificar soporte UTF-8.';
     }
-    // 4. BLOCKED UPON SAVE / SUBMIT
+    // -------------------------------------------------------------------------------------
+    // CASO 4: BLOQUEO AL PULSAR EL BOTÓN DE GUARDAR (VALIDACIÓN DE FORMULARIO O BACKEND)
+    // -------------------------------------------------------------------------------------
     else if (triggerSave && saveBlocked) {
       status = 'restricted_save';
       badgeText = 'Restringido al Guardar';
@@ -1690,7 +2184,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         recommendation = 'El servidor o formulario contiene validación de negocio activa al enviar. Se recomienda sincronizar la validación en tiempo real.';
       }
     }
-    // 5. CLIENT-SIDE HTML5 ERROR OR VISIBLE DOM ERROR (WITHOUT SAVE)
+    // -------------------------------------------------------------------------------------
+    // CASO 5: ERROR NATIVO HTML5 O MENSAJES DE ERROR VISIBLES EN EL DOM (SIN GUARDAR)
+    // -------------------------------------------------------------------------------------
     else if (hasHTML5Error || (res.postInputErrors && res.postInputErrors.length > 0)) {
       status = 'restricted_field';
       badgeText = 'Restringido en Campo';
@@ -1701,109 +2197,144 @@ document.addEventListener('DOMContentLoaded', async () => {
       detail = `El sitio detectó la irregularidad: ${msgList.join(' | ') || 'Validación activa'}.`;
       recommendation = 'Correcto: El campo avisa de inmediato al usuario que el valor no es válido.';
     }
-    // 6. ACCEPTED / SAVED (NO ERROR)
+    // -------------------------------------------------------------------------------------
+    // CASO 6: VALOR ACEPTADO Y GUARDADO SIN NINGÚN ERROR DETECTADO
+    // -------------------------------------------------------------------------------------
     else {
-      // Distinguish between genuine risk vs normal expected test
+      // Se discrimina si el caso ejecutado era intencionalmente un valor inválido o ataque:
       if (testItem.isInvalidCase) {
-        // Detailed domain-specific evaluation
+        // Diagnóstico minucioso por tipo de anomalía:
+        // Caso A: Solo espacios en blanco
         if (testItem.id === 'txt_only_spaces' || (typeof payload === 'string' && payload.length > 0 && payload.trim() === '')) {
           status = 'warning';
           badgeText = 'Defecto de Formato (Espacios)';
           badgeClass = 'res-logic';
           detail = `Se ingresó una cadena compuesta únicamente por espacios en blanco (${payLen} caracteres). El formulario permitió guardarla sin recortar ni requerir texto visible, generando registros vacíos o invisibles.`;
           recommendation = 'Aplicar .trim() obligatorio en frontend y backend antes de evaluar minLength > 0 para impedir el almacenamiento de registros vacíos.';
-        } else if (testItem.id === 'txt_zero_width' || (typeof payload === 'string' && /[\u200B-\u200D\uFEFF]/.test(payload))) {
+        } 
+        // Caso B: Caracteres invisibles de ancho cero [Zero-Width]
+        else if (testItem.id === 'txt_zero_width' || (typeof payload === 'string' && /[\u200B-\u200D\uFEFF]/.test(payload))) {
           status = 'warning';
           badgeText = 'Riesgo de Integridad (Spoofing)';
           badgeClass = 'res-integrity';
           detail = `El campo aceptó ${resLen} caracteres incluyendo caracteres invisibles de control Unicode (\\u200B-\\u200D, \\uFEFF). Esto puede facilitar la suplantación visual de identidad o evasión de filtros.`;
           recommendation = 'Filtrar caracteres de control y formato Unicode (rangos \\u200B-\\u200D, \\uFEFF) mediante expresión regular o normalización previa al almacenamiento.';
-        } else if (testItem.id === 'txt_15_digits' || (typeof payload === 'string' && /^\d{10,}$/.test(payload) && field.type !== 'number' && field.type !== 'tel')) {
+        } 
+        // Caso C: Cadena excesiva de dígitos en campo alfabético
+        else if (testItem.id === 'txt_15_digits' || (typeof payload === 'string' && /^\d{10,}$/.test(payload) && field.type !== 'number' && field.type !== 'tel')) {
           status = 'warning';
           badgeText = 'Regla de Negocio (Formato)';
           badgeClass = 'res-format';
           detail = `Se ingresó una cadena de ${payLen} dígitos numéricos ('${payload}'). El formulario la aceptó en un campo textual sin verificar regla alfabética ni restricción de tipo de dato.`;
           recommendation = 'Validar formato con expresión regular que restrinja dígitos y exija caracteres alfabéticos para nombres personales o campos lingüísticos.';
-        } else if (testItem.id === 'txt_1000' || testItem.id === 'txt_5000' || payLen >= 1000) {
+        } 
+        // Caso D: Sobrecarga de longitud extensa [1000 a 5000 caracteres]
+        else if (testItem.id === 'txt_1000' || testItem.id === 'txt_5000' || payLen >= 1000) {
           status = 'risk';
           badgeText = 'Riesgo de Capacidad (DoS / Búfer)';
           badgeClass = 'res-capacity';
           detail = `El formulario aceptó y guardó una carga extensa de ${resLen} caracteres sin aplicar límite maxlength ni validación de longitud máxima en frontend o backend.`;
           recommendation = 'Definir atributo maxlength en HTML y restringir rígidamente en el backend (ej. máximo 100-150 caracteres para nombres o datos breves) para mitigar desbordamientos y denegación de servicio.';
-        } else if (testItem.id === 'sec_script' || testItem.id === 'sec_img_onerror' || testItem.id === 'sec_html_tags' || (testItem.category === 'security' && /<[a-z][\s\S]*>/i.test(payload))) {
+        } 
+        // Caso E: Inyección XSS [Cross-Site Scripting]
+        else if (testItem.id === 'sec_script' || testItem.id === 'sec_img_onerror' || testItem.id === 'sec_html_tags' || (testItem.category === 'security' && /<[a-z][\s\S]*>/i.test(payload))) {
           status = 'risk';
           badgeText = 'Falta de Filtrado (Riesgo XSS)';
           badgeClass = 'res-risk';
           const sample = payload.length > 32 ? payload.slice(0, 30) + '...' : payload;
           detail = `El campo guardó sintaxis HTML/JavaScript ('${sample}') sin validación de lista blanca (allowlist). Nota técnica: La aceptación en el input no implica XSS ejecutable automático; el riesgo real surge si la aplicación renderiza este contenido en el navegador sin escapado contextual (output encoding).`;
           recommendation = 'Validar caracteres permitidos en el input mediante lista blanca (allowlist) y garantizar sanitización y escapado HTML context-aware al renderizar los datos en el navegador.';
-        } else if (testItem.id === 'sec_sql_basic' || (testItem.category === 'security' && /('|--|\bOR\b|\bAND\b)/i.test(payload))) {
+        } 
+        // Caso F: Inyección SQL
+        else if (testItem.id === 'sec_sql_basic' || (testItem.category === 'security' && /('|--|\bOR\b|\bAND\b)/i.test(payload))) {
           status = 'risk';
           badgeText = 'Falta de Filtrado (Sintaxis SQL)';
           badgeClass = 'res-risk';
           detail = `El formulario aceptó caracteres de sintaxis SQL ('${payload}'). Nota técnica: Aceptar sintaxis SQL en la entrada no implica inyección ejecutable por sí sola; el riesgo existe únicamente si la capa de persistencia concatena sentencias sin consultas preparadas.`;
           recommendation = 'Implementar sentencias preparadas (parameterized queries) o uso estricto de ORM en backend; restringir caracteres de sintaxis SQL innecesarios en la capa de entrada.';
-        } else if (testItem.id === 'sec_null_byte' || (typeof payload === 'string' && payload.includes('\u0000'))) {
+        } 
+        // Caso G: Byte Nulo [%00]
+        else if (testItem.id === 'sec_null_byte' || (typeof payload === 'string' && payload.includes('\u0000'))) {
           status = 'risk';
           badgeText = 'Falta de Filtrado (Null Byte)';
           badgeClass = 'res-risk';
           detail = `El campo aceptó el carácter de terminación nula (\\0). Aunque JavaScript maneja cadenas con terminador nulo, puede truncar cadenas al interactuar con librerías nativas C/C++ o rutas del sistema de archivos en el backend.`;
           recommendation = 'Rechazar o filtrar caracteres de control ASCII (código 0 / \\0) en la capa de validación de entrada antes de procesar o persistir.';
-        } else if (testItem.category === 'date') {
+        } 
+        // Caso H: Fechas imposibles en calendario
+        else if (testItem.category === 'date') {
           status = 'warning';
           badgeText = 'Fecha Inválida Aceptada';
           badgeClass = 'res-format';
           detail = `El formulario permitió ingresar y guardar la fecha '${payload}', la cual no corresponde a un día o mes válido en el calendario o se encuentra fuera del rango de negocio.`;
           recommendation = 'Utilizar un control nativo con tipo date o implementar validación estricta de calendario (año bisiesto, 28-31 días, meses 1-12) en frontend y backend.';
-        } else if (testItem.category === 'number') {
+        } 
+        // Caso I: Letras en campos numéricos
+        else if (testItem.category === 'number') {
           status = 'warning';
           badgeText = 'Dato No Numérico Aceptado';
           badgeClass = 'res-format';
           detail = `El campo numérico aceptó el valor '${payload}' sin forzar formato numérico ni validar límites.`;
           recommendation = 'Configurar el atributo type="number" o regex de validación numérica, y validar estrictamente en el backend.';
-        } else if (testItem.id === 'url_missing_scheme') {
+        } 
+        // Caso J: URL sin protocolo [falta https://]
+        else if (testItem.id === 'url_missing_scheme') {
           status = 'warning';
           badgeText = 'Defecto de Formato (Sin Protocolo)';
           badgeClass = 'res-format';
           detail = `Se ingresó la URL '${payload}' sin especificar protocolo (http:// o https://). El sitio la aceptó y guardó directamente.`;
           recommendation = 'Exigir protocolo obligatorio en frontend/backend (ej. https://) o anteponerlo automáticamente antes de guardar para evitar enlaces relativos rotos en la interfaz.';
-        } else if (testItem.id === 'url_unencoded_spaces') {
+        } 
+        // Caso K: URL con espacios sin codificar [%20]
+        else if (testItem.id === 'url_unencoded_spaces') {
           status = 'warning';
           badgeText = 'Defecto de Sintaxis (RFC 3986)';
           badgeClass = 'res-format';
           detail = `El campo aceptó la dirección '${payload}' con espacios en blanco sin codificar, violando la especificación estándar de URIs RFC 3986.`;
           recommendation = 'Rechazar URLs con espacios o aplicar percent-encoding (%20) automático antes de procesar o almacenar el recurso.';
-        } else if (testItem.id === 'url_invalid_domain') {
+        } 
+        // Caso L: Dominio o host con puntos dobles
+        else if (testItem.id === 'url_invalid_domain') {
           status = 'warning';
           badgeText = 'Hostname Malformado';
           badgeClass = 'res-format';
           detail = `El formulario aceptó la dirección '${payload}' con un nombre de host inválido (etiquetas vacías o puntos consecutivos).`;
           recommendation = 'Validar la estructura del hostname mediante el constructor estándar URL o expresiones regulares basadas en RFC 1123.';
-        } else if (testItem.id === 'url_xss_javascript' || testItem.id === 'url_data_scheme') {
+        } 
+        // Caso M: Esquemas peligrosos en URLs [javascript:, data:]
+        else if (testItem.id === 'url_xss_javascript' || testItem.id === 'url_data_scheme') {
           status = 'risk';
           badgeText = 'Riesgo de Seguridad (Esquema Peligroso)';
           badgeClass = 'res-risk';
           detail = `El campo aceptó el esquema no seguro ('${payload.slice(0, 20)}...'). Si este enlace es renderizado en una etiqueta <a> o iframe sin filtrado, puede provocar ejecución de scripts (XSS).`;
           recommendation = 'Implementar una lista blanca estricta de esquemas permitidos (únicamente http: y https:) y rechazar explícitamente esquemas como javascript:, data:, vbscript: o file:.';
-        } else if (testItem.id === 'url_protocol_relative') {
+        } 
+        // Caso N: URL relativa de protocolo [//ejemplo.com]
+        else if (testItem.id === 'url_protocol_relative') {
           status = 'warning';
           badgeText = 'URL Relativa de Protocolo';
           badgeClass = 'res-format';
           detail = `El campo aceptó la sintaxis dependiente de protocolo ('${payload}'). Dependiendo del contexto, puede heredar esquemas inesperados o conectar a destinos imprevistos.`;
           recommendation = 'Normalizar la URL forzando esquema explícito seguro https://.';
-        } else if (testItem.id === 'url_internal_ssrf') {
+        } 
+        // Caso O: Host local o intranet [Riesgo SSRF]
+        else if (testItem.id === 'url_internal_ssrf') {
           status = 'warning';
           badgeText = 'Riesgo Potencial SSRF (Host Interno)';
           badgeClass = 'res-capacity';
           detail = `El formulario aceptó una dirección dirigida a la interfaz loopback local o red privada ('${payload}'). Si el backend consulta o descarga recursos de esta URL, existe riesgo de Server-Side Request Forgery (SSRF).`;
           recommendation = 'Si el servidor realiza peticiones fetch/webhook hacia las URLs guardadas, validar y bloquear resolución a IPs locales (127.0.0.1, localhost) y rangos privados RFC 1918.';
-        } else if (testItem.id === 'url_excessive_length') {
+        } 
+        // Caso P: Longitud extrema de URL [>2000 caracteres]
+        else if (testItem.id === 'url_excessive_length') {
           status = 'risk';
           badgeText = 'Riesgo de Capacidad (URL Extensa)';
           badgeClass = 'res-capacity';
           detail = `El campo aceptó una URL extensa de ${resLen} caracteres sin aplicar límite razonable de longitud.`;
           recommendation = 'Definir atributo maxlength="2048" en el campo HTML y validar en backend el límite estándar de navegadores y servidores web.';
-        } else {
+        } 
+        // Caso Q: Caso inválido genérico
+        else {
           status = 'risk';
           badgeText = 'Riesgo: Sin Restricción';
           badgeClass = 'res-risk';
@@ -1813,7 +2344,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           recommendation = 'Definir reglas de validación en frontend y backend para delimitar los valores permitidos según las especificaciones del campo.';
         }
       } else {
-        // Normal, benign, valid test input
+        // Caso de prueba benigno y esperado:
         status = 'conforme';
         badgeText = triggerSave ? 'Conforme (Guardado)' : 'Conforme (Aceptado)';
         badgeClass = 'res-conforme';
@@ -1822,6 +2353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    // Devuelve el objeto completo de auditoría para su registro y renderizado:
     return {
       fieldName: field.label || field.selector,
       fieldKey: field.id || field.selector || field.name || field.label,
@@ -1838,18 +2370,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
-  // APPEND ROW TO RESULTS TABLE
+  // =======================================================================================
+  // INSERCIÓN DE FILAS Y RENDERIZADO EN LA TABLA DE RESULTADOS
+  // =======================================================================================
+
+  /**
+   * Genera y agrega una nueva fila tr en el cuerpo de la tabla (#results-tbody).
+   * Asigna atributos de datos HTML5 (dataset) para permitir el filtrado reactivo en tiempo real
+   * y configura la apertura del modal visor al hacer clic sobre el código del payload.
+   * @param {Object} result - Objeto de resultado generado por evaluateTestResult.
+   */
   function appendResultRow(result) {
+    // Se crea el elemento tr para la fila de la tabla:
     const tr = document.createElement('tr');
+    // Atributos dataset para permitir búsquedas y filtrados dinámicos sin consultar el objeto:
     tr.dataset.status = result.status;
     tr.dataset.fieldName = result.fieldName;
     tr.dataset.fieldKey = result.fieldKey || result.fieldName;
 
+    // Si el texto del payload es muy largo, se trunca a 25 caracteres con elipsis visual:
     let displayInput = result.input;
     if (displayInput.length > 28) {
       displayInput = displayInput.slice(0, 25) + '...';
     }
 
+    // Se inyecta la estructura de celdas con escape de entidades HTML para evitar inyección:
     tr.innerHTML = `
       <td>
         <strong>${escapeHtml(result.fieldName)}</strong>
@@ -1866,6 +2411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <td class="tech-recommendation">${escapeHtml(result.recommendation)}</td>
     `;
 
+    // Asocia un escucha al elemento <code> para desplegar el modal con el texto completo del payload:
     const codeEl = tr.querySelector('code');
     if (codeEl) {
       codeEl.addEventListener('click', () => {
@@ -1873,14 +2419,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
+    // Se inserta la fila al final del tbody:
     resultsTbody.appendChild(tr);
     try {
+      // Desplazamiento suave para mantener la última prueba ejecutada a la vista del usuario:
       tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch {}
+    // Aplica los filtros activos para determinar si la nueva fila debe ser visible o permanecer oculta:
     applyResultsFilter();
   }
 
-  // KPI Counters
+  // =======================================================================================
+  // CONTADORES KPI (KEY PERFORMANCE INDICATORS)
+  // =======================================================================================
+
+  /**
+   * Recalcula y actualiza los cuatro contadores numéricos de la tarjeta de resumen:
+   * - Total de pruebas evaluadas
+   * - Pruebas con defensas activas detectadas (restringidas al guardar o en el campo)
+   * - Pruebas conformes aceptadas legítimamente
+   * - Anomalías categorizadas como riesgo o advertencia
+   */
   function updateKPICounters() {
     const total = testResults.length;
     const restricted = testResults.filter(r => r.status === 'restricted_save' || r.status === 'restricted_field').length;
@@ -1893,7 +2452,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     kpiRisk.innerText = risk;
   }
 
-  // Filter results table
+  // =======================================================================================
+  // FILTRADO DINÁMICO DE LA TABLA DE RESULTADOS
+  // =======================================================================================
+
+  // Escuchas para conmutar los chips de filtro por severidad/estado (Todos, Restringidos, Conformes, Riesgos):
   resultsFilterChips.forEach(chip => {
     chip.addEventListener('click', () => {
       resultsFilterChips.forEach(c => c.classList.remove('active'));
@@ -1903,11 +2466,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+  // Escucha del dropdown para filtrar la tabla por un campo de entrada específico:
   filterFieldSelect.addEventListener('change', (e) => {
     activeFieldFilter = e.target.value;
     applyResultsFilter();
   });
 
+  /**
+   * Oculta o muestra cada fila de la tabla evaluando si coincide simultáneamente
+   * con el filtro de severidad activo y el filtro de campo seleccionado.
+   */
   function applyResultsFilter() {
     const rows = resultsTbody.querySelectorAll('tr');
     rows.forEach(r => {
@@ -1915,6 +2483,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const fieldName = r.dataset.fieldName;
       const fieldKey = r.dataset.fieldKey;
 
+      // Evalúa concordancia con el filtro de estado:
       const matchesStatus = 
         activeFilter === 'all' ||
         (activeFilter === 'restricted' && (status === 'restricted_save' || status === 'restricted_field')) ||
@@ -1922,11 +2491,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         (activeFilter === 'truncated' && status === 'truncated') ||
         (activeFilter === 'risk' && (status === 'risk' || status === 'warning'));
 
+      // Evalúa concordancia con el filtro de campo:
       const matchesField = 
         activeFieldFilter === 'all' || 
         fieldName === activeFieldFilter ||
         fieldKey === activeFieldFilter;
 
+      // Si cumple ambas condiciones se mantiene visible; caso contrario se oculta con CSS display none:
       if (matchesStatus && matchesField) {
         r.style.display = '';
       } else {
@@ -1935,6 +2506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Botón para vaciar la tabla de resultados y restablecer los KPIs a cero:
   btnClearResults.addEventListener('click', () => {
     resultsTbody.innerHTML = '';
     testResults = [];
@@ -1943,10 +2515,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     resultsCard.style.display = 'none';
   });
 
-  // =========================================================================
-  // RISK TAXONOMY & DASHBOARD ENGINE
-  // =========================================================================
+  // =======================================================================================
+  // TAXONOMÍA DE RIESGOS Y MOTOR DEL DASHBOARD (RISK TAXONOMY & DASHBOARD ENGINE)
+  // =======================================================================================
 
+  /**
+   * Clasifica un resultado de prueba en una de las 5 categorías oficiales de diagnóstico:
+   * 1. 'security': Crítico (Vectores XSS, SQLi, null byte o esquemas URI no permitidos).
+   * 2. 'capacity': Alto (Sobrecargas masivas de 1000 a 5000 chars o URLs enormes sin maxlength).
+   * 3. 'integrity': Medio (Caracteres invisibles Unicode zero-width o secuencias compuestas).
+   * 4. 'format_logic': Medio (Ausencia de trim, validación alfabética, fechas o números).
+   * 5. 'conforme': Seguro (Comportamiento conforme o defensas activas del frontend/servidor).
+   * 
+   * @param {Object} r - Objeto de resultado individual.
+   * @returns {Object} Descriptor taxonómico con clave, título, severidad, clase CSS e icono SVG.
+   */
   function categorizeTestRisk(r) {
     const item = r.testItem || {};
     const itemId = item.id || '';
@@ -1954,7 +2537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const payload = typeof r.input === 'string' ? r.input : String(r.input || '');
     const isAnomalous = r.status === 'risk' || r.status === 'warning' || r.status === 'error';
 
-    // If result was restricted, truncated, or conforme, it belongs to Effective Defenses
+    // Si el resultado demostró defensas activas (bloqueo al guardar, truncamiento o conforme):
     if (!isAnomalous) {
       return {
         key: 'conforme',
@@ -1966,7 +2549,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
 
-    // 1. Seguridad e Inyecciones (Crítico / Alto)
+    // 1. Grupo Seguridad e Inyecciones (Severidad Crítica):
     if (
       itemCat === 'security' ||
       itemId === 'url_xss_javascript' ||
@@ -1990,7 +2573,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
 
-    // 2. Capacidad y Resistencia DoS (Alto)
+    // 2. Grupo Capacidad y Resistencia DoS (Severidad Alta):
     if (
       itemId === 'txt_1000' ||
       itemId === 'txt_5000' ||
@@ -2008,7 +2591,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
 
-    // 3. Integridad y Spoofing Unicode (Medio)
+    // 3. Grupo Integridad y Spoofing Unicode (Severidad Media):
     if (
       itemId === 'txt_zero_width' ||
       itemId.startsWith('emo_') ||
@@ -2026,7 +2609,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
 
-    // 4. Lógica de Negocio y Reglas de Formato (Medio / Bajo)
+    // 4. Grupo Lógica de Negocio y Reglas de Formato (Severidad Media / Observación):
     return {
       key: 'format_logic',
       title: 'Lógica de Negocio y Formato',
@@ -2037,23 +2620,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
+  // ============================================================================
+  // FUNCIÓN: renderDashboardView
+  // ============================================================================
+  // PROPÓSITO:
+  // Renderizar la vista analítica del Dashboard dentro del contenedor visual del Sidepanel.
+  // Transforma la lista plana de resultados de pruebas (testResults) en un resumen
+  // estructurado por severidad, calcula una métrica porcentual de robustez del formulario,
+  // dibuja la barra visual de distribución proporcional de riesgos y genera tarjetas
+  // colapsables interactivas (tipo acordeón) para cada una de las 5 categorías analizadas.
+  //
+  // PARÁMETROS: Ninguno (utiliza el estado global 'testResults' del Sidepanel).
+  // RETORNO: Ninguno. Modifica directamente el DOM y sincroniza el almacenamiento local.
+  // ============================================================================
   function renderDashboardView() {
+    // 1. Verificación defensiva previa de la existencia de contenedores en el DOM:
+    // Si los contenedores principales no existen en el árbol HTML, abortamos de inmediato.
     if (!dashboardViewContainer || !dashboardRiskGroups) return;
+
+    // 2. Control de Estado Vacío (Empty State):
+    // Si aún no se han ejecutado pruebas, mostramos un mensaje orientativo al usuario
+    // y reseteamos los indicadores visuales a sus valores neutros predeterminados.
     if (testResults.length === 0) {
+      // Inyectamos el aviso informativo indicando que se requiere correr la auditoría:
       dashboardRiskGroups.innerHTML = `
         <div class="empty-notice" style="margin: 10px 0;">
           No hay resultados evaluados aún. Ejecuta la verificación para generar el dashboard.
         </div>
       `;
+      // Restablecemos el texto del porcentaje a un indicador nulo:
       if (dashboardScoreVal) dashboardScoreVal.innerText = '--%';
+
+      // Asignamos la insignia de estado inactivo:
       if (dashboardRiskLevelBadge) {
         dashboardRiskLevelBadge.className = 'badge badge-idle';
         dashboardRiskLevelBadge.innerText = 'Sin pruebas';
       }
+
+      // Localizamos los elementos de texto de la barra de distribución proporcional:
       const spDistCrit = document.getElementById('sp-dist-crit-val');
       const spDistHigh = document.getElementById('sp-dist-high-val');
       const spDistMed = document.getElementById('sp-dist-med-val');
       const spDistSafe = document.getElementById('sp-dist-safe-val');
+
+      // Restablecemos los contadores numéricos y porcentuales a cero absoluto:
       if (spDistCrit) spDistCrit.innerText = '0 (0%)';
       if (spDistHigh) spDistHigh.innerText = '0 (0%)';
       if (spDistMed) spDistMed.innerText = '0 (0%)';
@@ -2061,12 +2671,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const total = testResults.length;
-    let criticalCount = 0;
-    let highCount = 0;
-    let mediumCount = 0;
-    let safeCount = 0;
+    // 3. Variables de agregación y conteo global:
+    const total = testResults.length; // Total absoluto de evaluaciones realizadas
+    let criticalCount = 0; // Acumulador de fallas de severidad Crítica (Inyecciones, XSS)
+    let highCount = 0;     // Acumulador de fallas de severidad Alta (Capacidad, Desbordamiento DoS)
+    let mediumCount = 0;   // Acumulador de anomalías de severidad Media (Unicode, Lógica, Formato)
+    let safeCount = 0;     // Acumulador de pruebas superadas con éxito (Comportamiento Seguro)
 
+    // Diccionario clasificador que agrupará los objetos de prueba según su clave de riesgo:
     const grouped = {
       security: [],
       capacity: [],
@@ -2075,47 +2687,68 @@ document.addEventListener('DOMContentLoaded', async () => {
       conforme: []
     };
 
+    // 4. Iteración y distribución de cada resultado en su categoría correspondiente:
     testResults.forEach(r => {
+      // Obtenemos la definición taxonómica de riesgo evaluando el resultado individual:
       const cat = categorizeTestRisk(r);
+
+      // Agregamos el resultado al arreglo de la categoría detectada:
       grouped[cat.key].push(r);
 
+      // Incrementamos los acumuladores numéricos correspondientes para métricas y gráficos:
       if (cat.key === 'security') criticalCount++;
       else if (cat.key === 'capacity') highCount++;
       else if (cat.key === 'integrity' || cat.key === 'format_logic') mediumCount++;
       else if (cat.key === 'conforme') safeCount++;
     });
 
+    // 5. Cálculo Matemático del Índice de Robustez:
+    // La fórmula calcula el porcentaje de pruebas seguras respecto al total evaluado:
+    // Índice = redondear((safeCount / total) * 100).
+    // Se utiliza Math.max(0, Math.min(100, ...)) para garantizar que el valor siempre
+    // se encuentre dentro del rango acotado entre 0% y 100%.
     const score = Math.max(0, Math.min(100, Math.round((safeCount / total) * 100)));
 
+    // Actualizamos el elemento visual que exhibe la cifra del puntaje:
     if (dashboardScoreVal) {
       dashboardScoreVal.innerText = `${score}%`;
     }
 
+    // 6. Asignación Dinámica de la Insignia de Nivel Global de Riesgo y Mensaje Contextual:
+    // Se evalúa la presencia de incidencias en orden descendente de severidad:
     if (dashboardRiskLevelBadge) {
       if (criticalCount > 0) {
+        // Presencia de vulnerabilidades de inyección o seguridad activa:
         dashboardRiskLevelBadge.className = 'badge badge-danger';
         dashboardRiskLevelBadge.innerText = 'Riesgo Crítico';
+        // Resaltamos el borde del contenedor del puntaje con color rojo de alerta:
         if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#f87171';
         if (dashboardSummaryMsg) {
           dashboardSummaryMsg.innerHTML = `Se detectaron <strong>${criticalCount} anomalía(s) de seguridad</strong>. Requiere revisión prioritaria de filtrado y escapado.`;
         }
       } else if (highCount > 0) {
+        // Presencia de riesgos de denegación de servicio o longitudes excesivas:
         dashboardRiskLevelBadge.className = 'badge badge-warning';
         dashboardRiskLevelBadge.innerText = 'Riesgo Alto (DoS)';
+        // Resaltamos el borde del puntaje con color rosa-naranja de precaución:
         if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#fb7185';
         if (dashboardSummaryMsg) {
           dashboardSummaryMsg.innerHTML = `El formulario admitió sobrecargas extensas sin límite maxlength. Riesgo de degradación o desbordamiento.`;
         }
       } else if (mediumCount > 0) {
+        // Presencia de fallas en saneamiento o lógica de formato:
         dashboardRiskLevelBadge.className = 'badge badge-warning';
         dashboardRiskLevelBadge.innerText = 'Riesgo Moderado';
+        // Resaltamos el borde del puntaje con color ámbar:
         if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#fbbf24';
         if (dashboardSummaryMsg) {
           dashboardSummaryMsg.innerHTML = `Validaciones funcionales incompletas (espacios en blanco, formato numérico o caracteres Unicode).`;
         }
       } else {
+        // Ausencia total de fallas; todas las pruebas fueron debidamente contenidas:
         dashboardRiskLevelBadge.className = 'badge badge-active';
         dashboardRiskLevelBadge.innerText = 'Formulario Robusto';
+        // Resaltamos el borde del puntaje con color esmeralda satisfactorio:
         if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#34d399';
         if (dashboardSummaryMsg) {
           dashboardSummaryMsg.innerHTML = `¡Excelente! Todas las pruebas evaluadas fueron restringidas al guardar o cumplieron el comportamiento esperado.`;
@@ -2123,27 +2756,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    // 7. Actualización de las tarjetas numéricas de KPIs (Key Performance Indicators):
     if (statCriticalCount) statCriticalCount.innerText = `${criticalCount} Críticos`;
     if (statHighCount) statHighCount.innerText = `${highCount} Altos`;
     if (statMediumCount) statMediumCount.innerText = `${mediumCount} Medios`;
     if (statSafeCount) statSafeCount.innerText = `${safeCount} Seguros`;
 
+    // 8. Dibujo y dimensionamiento de la Barra de Distribución Proporcional de Riesgos:
     if (dashboardDistBar) {
+      // Calculamos los porcentajes relativos de cada nivel respecto al total:
       const pCrit = total > 0 ? (criticalCount / total) * 100 : 0;
       const pHigh = total > 0 ? (highCount / total) * 100 : 0;
       const pMed = total > 0 ? (mediumCount / total) * 100 : 0;
       const pSafe = total > 0 ? (safeCount / total) * 100 : 0;
 
+      // Localizamos los segmentos coloreados individuales dentro de la barra compuesta:
       const segCrit = dashboardDistBar.querySelector('.seg-critical');
       const segHigh = dashboardDistBar.querySelector('.seg-high');
       const segMed = dashboardDistBar.querySelector('.seg-medium');
       const segSafe = dashboardDistBar.querySelector('.seg-safe');
 
+      // Modificamos el ancho CSS de cada segmento según su proporción calculada:
       if (segCrit) { segCrit.style.width = `${pCrit}%`; segCrit.title = `Seguridad: ${criticalCount} (${Math.round(pCrit)}%)`; }
       if (segHigh) { segHigh.style.width = `${pHigh}%`; segHigh.title = `Capacidad DoS: ${highCount} (${Math.round(pHigh)}%)`; }
       if (segMed) { segMed.style.width = `${pMed}%`; segMed.title = `Integridad/Formato: ${mediumCount} (${Math.round(pMed)}%)`; }
       if (segSafe) { segSafe.style.width = `${pSafe}%`; segSafe.title = `Conformes: ${safeCount} (${Math.round(pSafe)}%)`; }
 
+      // Actualizamos las etiquetas de texto complementarias ubicadas debajo de la barra:
       const spDistCrit = document.getElementById('sp-dist-crit-val');
       const spDistHigh = document.getElementById('sp-dist-high-val');
       const spDistMed = document.getElementById('sp-dist-med-val');
@@ -2154,8 +2793,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (spDistSafe) spDistSafe.innerText = `${safeCount} (${Math.round(pSafe)}%)`;
     }
 
+    // 9. Generación de las Tarjetas Acordeón Desplegables de Categorías de Riesgo:
+    // Vaciamos el contenedor previo para evitar duplicaciones acumuladas:
     dashboardRiskGroups.innerHTML = '';
 
+    // Catálogo maestro de definiciones estéticas y metadatos para cada grupo:
     const categoriesDef = [
       { key: 'security', title: '1. Seguridad e Inyecciones', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>', severity: 'CRÍTICO', severityClass: 'cat-critical' },
       { key: 'capacity', title: '2. Capacidad y Resistencia DoS', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>', severity: 'ALTO', severityClass: 'cat-high' },
@@ -2164,12 +2806,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>', severity: 'SEGURO', severityClass: 'cat-safe' }
     ];
 
+    // Construcción dinámica de cada tarjeta en el DOM:
     categoriesDef.forEach(catDef => {
       const items = grouped[catDef.key] || [];
       const count = items.length;
+
+      // Si una categoría de riesgo no contiene anomalías, omitimos su renderizado
+      // para mantener la interfaz limpia y concisa, salvo la categoría de casos conformes:
       if (count === 0 && catDef.key !== 'conforme') return;
 
       const card = document.createElement('div');
+      // Las categorías con incidencias de riesgo se expanden por defecto para llamar la atención del auditor:
       const shouldAutoExpand = count > 0 && catDef.key !== 'conforme';
       card.className = `risk-category-card ${catDef.severityClass} ${shouldAutoExpand ? 'expanded' : ''}`;
 
@@ -2177,7 +2824,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (count === 0) {
         findingsHtml = `<div style="font-size: 10px; color: var(--text-muted); font-style: italic;">Sin incidencias registradas en esta categoría.</div>`;
       } else {
+        // Iteramos los hallazgos individuales para construir su estructura visual detallada:
         items.forEach(r => {
+          // Truncamos la representación visual de la carga útil si excede 55 caracteres:
           const safeInput = r.input.length > 55 ? r.input.slice(0, 52) + '...' : r.input;
           findingsHtml += `
             <div class="risk-finding-item">
@@ -2198,6 +2847,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
 
+      // Estructura HTML de la cabecera interactiva y del cuerpo colapsable:
       card.innerHTML = `
         <div class="risk-category-header" role="button" tabindex="0" aria-expanded="${shouldAutoExpand}">
           <div class="risk-cat-title-wrap">
@@ -2216,49 +2866,95 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
       `;
 
+      // Añadimos el manejador de clic para alternar el estado expandido/colapsado (tipo acordeón):
       const header = card.querySelector('.risk-category-header');
       header.addEventListener('click', () => {
         const isExp = card.classList.toggle('expanded');
         header.setAttribute('aria-expanded', String(isExp));
       });
 
+      // Añadimos la tarjeta construida al contenedor principal del Sidepanel:
       dashboardRiskGroups.appendChild(card);
     });
 
+    // 10. Persistencia y Sincronización Automática con la Pestaña Standalone del Dashboard:
+    // Extraemos la estructura completa y la guardamos en chrome.storage.local para que
+    // cualquier pestaña abierta de dashboard.html pueda reflejar inmediatamente los datos:
     const structuredData = getStructuredAuditData();
     if (structuredData && typeof chrome !== 'undefined' && chrome.storage?.local) {
       chrome.storage.local.set({ qa_audit_dashboard_data: structuredData });
     }
   }
 
+  // ============================================================================
+  // FUNCIÓN: resetDashboardState
+  // ============================================================================
+  // PROPÓSITO:
+  // Restablecer por completo el estado visual y de memoria del Dashboard analítico.
+  // Se invoca cuando el usuario limpia los resultados de las pruebas o reinicia la
+  // extensión, asegurando que no queden datos obsoletos en pantalla ni en almacenamiento.
+  //
+  // PARÁMETROS: Ninguno.
+  // RETORNO: Ninguno. Modifica el DOM y limpia chrome.storage.local.
+  // ============================================================================
   function resetDashboardState() {
+    // 1. Regresamos la vista activa a la modalidad de Tabla tradicional:
     switchResultsView('table');
+
+    // 2. Eliminamos los datos serializados persistentes del almacenamiento local de Chrome:
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
       chrome.storage.local.remove(['qa_audit_dashboard_data']);
     }
+
+    // 3. Vaciamos las tarjetas de hallazgos del contenedor de grupos de riesgo:
     if (dashboardRiskGroups) dashboardRiskGroups.innerHTML = '';
+
+    // 4. Reiniciamos el ancho de todos los segmentos de la barra de distribución a 0%:
     if (dashboardDistBar) {
       dashboardDistBar.querySelectorAll('.dist-seg').forEach(s => s.style.width = '0%');
     }
+
+    // 5. Restablecemos el indicador numérico del puntaje a su valor por defecto:
     if (dashboardScoreVal) dashboardScoreVal.innerText = '--%';
+
+    // 6. Restablecemos la insignia de severidad al estado inactivo:
     if (dashboardRiskLevelBadge) {
       dashboardRiskLevelBadge.className = 'badge badge-idle';
       dashboardRiskLevelBadge.innerText = 'Sin pruebas';
     }
+
+    // 7. Reiniciamos los contadores numéricos de las tarjetas de métricas:
     if (statCriticalCount) statCriticalCount.innerText = '0 Críticos';
     if (statHighCount) statHighCount.innerText = '0 Altos';
     if (statMediumCount) statMediumCount.innerText = '0 Medios';
     if (statSafeCount) statSafeCount.innerText = '0 Seguros';
+
+    // 8. Restablecemos el mensaje orientativo inferior del Dashboard:
     if (dashboardSummaryMsg) {
       dashboardSummaryMsg.innerText = 'Inicia las pruebas para ver el análisis de riesgo estructurado.';
     }
+
+    // 9. Devolvemos el color del borde del círculo del puntaje al color primario neutro:
     if (dashboardScoreVal?.parentElement) {
       dashboardScoreVal.parentElement.style.borderColor = 'var(--primary)';
     }
   }
 
+  // ============================================================================
+  // FUNCIÓN: switchResultsView
+  // ============================================================================
+  // PROPÓSITO:
+  // Alternar dinámicamente entre la vista tabular clásica y la vista analítica Dashboard.
+  // Gestiona el intercambio de clases CSS activas, accesibilidad ARIA y visibilidad
+  // en el DOM mediante la propiedad style.display.
+  //
+  // PARÁMETROS:
+  // - viewMode (string): Modo de visualización deseado ('table' o 'dashboard').
+  // RETORNO: Ninguno. Modifica directamente los estilos y atributos del DOM.
+  // ============================================================================
   function switchResultsView(viewMode) {
     if (viewMode === 'dashboard') {
+      // Caso A: Activación de la vista Dashboard analítica:
       if (btnViewTable) {
         btnViewTable.classList.remove('active');
         btnViewTable.setAttribute('aria-selected', 'false');
@@ -2267,10 +2963,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnViewDashboard.classList.add('active');
         btnViewDashboard.setAttribute('aria-selected', 'true');
       }
+      // Ocultamos el contenedor de la tabla y mostramos el del dashboard:
       if (tableViewContainer) tableViewContainer.style.display = 'none';
       if (dashboardViewContainer) dashboardViewContainer.style.display = 'block';
+
+      // Disparamos la generación y renderizado visual del Dashboard:
       renderDashboardView();
     } else {
+      // Caso B: Activación de la vista Tabular tradicional:
       if (btnViewDashboard) {
         btnViewDashboard.classList.remove('active');
         btnViewDashboard.setAttribute('aria-selected', 'false');
@@ -2279,12 +2979,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnViewTable.classList.add('active');
         btnViewTable.setAttribute('aria-selected', 'true');
       }
+      // Ocultamos el contenedor del dashboard y mostramos el de la tabla:
       if (dashboardViewContainer) dashboardViewContainer.style.display = 'none';
       if (tableViewContainer) tableViewContainer.style.display = 'block';
+
+      // Aplicamos los filtros actuales de campo y severidad sobre la tabla:
       applyResultsFilter();
     }
   }
 
+  // Asignación de escuchadores de eventos para los botones de pestañas superiores:
   if (btnViewTable) {
     btnViewTable.addEventListener('click', () => switchResultsView('table'));
   }
@@ -2292,16 +2996,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnViewDashboard.addEventListener('click', () => switchResultsView('dashboard'));
   }
 
-  // Helper to extract structured audit data for the Dashboard & Storage
+  // ============================================================================
+  // FUNCIÓN: getStructuredAuditData
+  // ============================================================================
+  // PROPÓSITO:
+  // Motor central de estructuración y serialización de datos de la auditoría.
+  // Transforma todas las pruebas ejecutadas en un objeto JSON integral y enriquecido,
+  // calculando penalizaciones ponderadas, puntaje de robustez técnica, desglose
+  // porcentual con un decimal y agrupaciones listas para ser consumidas por:
+  // 1. La ventana independiente del Dashboard (dashboard/dashboard.html).
+  // 2. El almacenamiento persistente (chrome.storage.local y localStorage).
+  // 3. Los exportadores (HTML para Notion, Markdown, CSV, Imprimir PDF).
+  //
+  // PARÁMETROS: Ninguno (lee variables globales del Sidepanel).
+  // RETORNO: Objeto estructurado completo con métricas y hallazgos, o null si no hay pruebas.
+  // ============================================================================
   function getStructuredAuditData() {
+    // Si no existen resultados evaluados, retornamos valor nulo:
     if (testResults.length === 0) return null;
 
     const total = testResults.length;
-    let criticalCount = 0;
-    let highCount = 0;
-    let mediumCount = 0;
-    let safeCount = 0;
+    let criticalCount = 0; // Conteo de vulnerabilidades de severidad Crítica
+    let highCount = 0;     // Conteo de anomalías de severidad Alta
+    let mediumCount = 0;   // Conteo de observaciones de severidad Media
+    let safeCount = 0;     // Conteo de pruebas con comportamiento Conforme / Seguro
 
+    // Agrupador estructurado por identificador de categoría:
     const grouped = {
       security: [],
       capacity: [],
@@ -2310,6 +3030,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       conforme: []
     };
 
+    // Clasificamos cada resultado dentro de su grupo correspondiente:
     testResults.forEach(r => {
       const cat = categorizeTestRisk(r);
       const catKey = (cat && cat.key) ? cat.key : 'conforme';
@@ -2318,6 +3039,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       grouped[catKey].push(r);
 
+      // Totalizamos según el nivel de severidad asignado:
       if (catKey === 'security') {
         criticalCount++;
       } else if (catKey === 'capacity') {
@@ -2329,9 +3051,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
+    // 1. Fórmula de Penalización Ponderada de Riesgo:
+    // Se asigna un peso relativo a cada tipo de fallo según su impacto en seguridad:
+    // - Fallo Crítico (Inyecciones): 25 puntos de penalización cada uno.
+    // - Fallo Alto (Desbordamiento DoS): 15 puntos de penalización cada uno.
+    // - Fallo Medio (Lógica, Espacios, Unicode): 5 puntos de penalización cada uno.
     const penalty = (criticalCount * 25) + (highCount * 15) + (mediumCount * 5);
+
+    // 2. Cálculo del Puntaje Global de Robustez:
+    // Restamos la penalización proporcional del puntaje base de 100 puntos:
+    // Puntaje = redondear(100 - (penalización / total) * 20).
+    // Acotamos el resultado con Math.max(0, Math.min(100, ...)) para garantizar rango 0-100:
     const score = Math.max(0, Math.min(100, Math.round(100 - (penalty / (total || 1)) * 20)));
 
+    // 3. Determinación Cualitativa del Diagnóstico Global y Recomendación Ejecutiva:
     let overallLevel = 'Saludable';
     let overallMessage = 'El formulario cuenta con defensas preventivas efectivas ante la mayoría de pruebas.';
     if (criticalCount > 0) {
@@ -2345,11 +3078,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       overallMessage = 'Se observaron inconsistencias en recorte de espacios, sintaxis o reglas de formato.';
     }
 
+    // 4. Cálculo de Porcentajes Relativos formateados con un dígito decimal:
     const pCrit = total > 0 ? Number(((criticalCount / total) * 100).toFixed(1)) : 0;
     const pHigh = total > 0 ? Number(((highCount / total) * 100).toFixed(1)) : 0;
     const pMed = total > 0 ? Number(((mediumCount / total) * 100).toFixed(1)) : 0;
     const pSafe = total > 0 ? Number(((safeCount / total) * 100).toFixed(1)) : 0;
 
+    // 5. Definición Maestra de Metadatos de Categorías para el Dashboard y Reportes:
     const categoriesDef = [
       { key: 'security', title: '1. Seguridad e Inyecciones', desc: 'Vectores de XSS, inyección SQL, terminación nula y esquemas ejecutables.', severity: 'CRÍTICO', color: '#f87171', borderLeft: '#f87171' },
       { key: 'capacity', title: '2. Capacidad y Resistencia DoS', desc: 'Sobrecargas masivas de texto y URLs de longitud excesiva sin maxlength.', severity: 'ALTO', color: '#fb7185', borderLeft: '#fb7185' },
@@ -2358,6 +3093,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', desc: 'Casos rechazados con éxito por el validador, truncados por límite o datos conformes.', severity: 'SEGURO', color: '#34d399', borderLeft: '#34d399' }
     ];
 
+    // 6. Retorno del objeto JSON integral con el esquema unificado de auditoría:
     return {
       formulario: (inputFormTitle?.value?.trim() || activeFormTitle || 'Formulario Principal'),
       fecha: new Date().toISOString(),
@@ -2379,6 +3115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         medios: pMed,
         seguros: pSafe
       },
+      // Mapeo detallado de hallazgos por cada categoría taxonómica:
       categorias: categoriesDef.map(cat => ({
         key: cat.key,
         title: cat.title,
@@ -2398,6 +3135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           recommendation: r.recommendation
         }))
       })),
+      // Mapeo plano de todos los resultados con su categoría asociada:
       resultados: testResults.map(r => {
         const cat = categorizeTestRisk(r);
         return {
@@ -2416,37 +3154,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
-  // Standalone Full-Page Dashboard Window Generator
+  // ============================================================================
+  // BOTÓN: btnOpenDashboard (Generador y Lanzador de Ventana Standalone)
+  // ============================================================================
+  // PROPÓSITO:
+  // Abrir el Dashboard en una pestaña independiente a pantalla completa.
+  // Permite una visualización amplia, interactiva y desacoplada del panel lateral,
+  // facilitando la presentación ejecutiva de resultados a stakeholders y desarrolladores.
+  // ============================================================================
   if (btnOpenDashboard) {
     btnOpenDashboard.addEventListener('click', async () => {
+      // 1. Verificamos que existan resultados para auditar:
       if (testResults.length === 0) {
         alert('No hay resultados para mostrar en el Dashboard. Inicia la verificación de campos primero.');
         return;
       }
 
       try {
+        // 2. Obtenemos el esquema de datos estructurado completo:
         const auditData = getStructuredAuditData();
+
+        // 3. Persistimos los datos en el almacenamiento local de la extensión (chrome.storage.local):
         if (typeof chrome !== 'undefined' && chrome.storage?.local) {
           await chrome.storage.local.set({ qa_audit_dashboard_data: auditData });
         }
+
+        // 4. Guardamos también en localStorage como mecanismo redundante de respaldo:
         try {
           localStorage.setItem('qa_audit_dashboard_data', JSON.stringify(auditData));
         } catch (e) {}
 
+        // 5. Construimos la URL canónica absoluta del recurso HTML de la extensión:
         const dashboardUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
           ? chrome.runtime.getURL('dashboard/dashboard.html')
           : 'dashboard/dashboard.html';
 
+        // 6. Apertura de la pestaña mediante la API nativa de Chrome o ventana web:
         if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
           chrome.tabs.create({ url: dashboardUrl }, () => {
+            // Si la API tabs arroja un error inesperado, recurrimos a window.open:
             if (chrome.runtime.lastError) {
               window.open(dashboardUrl, '_blank');
             }
           });
         } else {
+          // Entorno estándar sin API de pestañas de Chrome:
           window.open(dashboardUrl, '_blank');
         }
       } catch (err) {
+        // Registro y notificación de cualquier fallo en la invocación:
         console.error('Error al abrir dashboard:', err);
         alert('Error al abrir el dashboard: ' + err.message);
       }
@@ -2454,18 +3210,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
 
-  // EXPORT ENGINE (INCLUDING NOTION READY FORMAT)
+  // ============================================================================
+  // MOTOR DE EXPORTACIONES MULTIFORMATO
+  // ============================================================================
+  // Ofrece 4 mecanismos de extracción y difusión de los resultados de la auditoría:
+  // 1. Exportación enriquecida a Portapapeles para Notion (HTML nativo + texto plano).
+  // 2. Exportación a Markdown estándar GitHub Flavored (GFM).
+  // 3. Exportación a archivo CSV con cabecera BOM UTF-8 y codificación RFC 4180.
+  // 4. Reporte imprimible / Generación de PDF profesional mediante el Dashboard.
+  // ============================================================================
 
-  // 1. NOTION NATIVE TABLE CLIPBOARD EXPORT
+  // ----------------------------------------------------------------------------
+  // 1. EXPORTADOR A NOTION (TABLA NATIVA EN PORTAPAPELES)
+  // ----------------------------------------------------------------------------
   btnCopyNotion.addEventListener('click', async () => {
+    // Verificamos previamente si existen resultados disponibles para exportar:
     if (testResults.length === 0) {
       alert('No hay resultados para copiar.');
       return;
     }
 
+    // Título descriptivo para la cabecera del reporte:
     const formTitleDisplay = (inputFormTitle?.value?.trim() || activeFormTitle || 'Formulario Principal');
 
-    // Build rich HTML table that Notion understands natively
+    // Construcción de la tabla HTML enriquecida que Notion, Word y Google Docs
+    // reconocen e interpretan automáticamente al momento de pegar con Ctrl + V:
     let htmlTable = `<p><strong>Formulario:</strong> ${escapeHtml(formTitleDisplay)} &bull; <strong>Fecha:</strong> ${escapeHtml(new Date().toLocaleString())}</p><table><thead><tr>`;
     htmlTable += `<th>Campo</th>`;
     htmlTable += `<th>Tipo</th>`;
@@ -2475,7 +3244,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     htmlTable += `<th>Recomendación</th>`;
     htmlTable += `</tr></thead><tbody>`;
 
+    // Generamos las filas de datos recorriendo los resultados evaluados:
     testResults.forEach(r => {
+      // Limitamos visualmente el tamaño del texto para preservar la estética de la tabla:
       const safeInput = r.input.length > 40 ? r.input.slice(0, 37) + '...' : r.input;
       htmlTable += `<tr>`;
       htmlTable += `<td><strong>${escapeHtml(r.fieldName)}</strong></td>`;
@@ -2489,35 +3260,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     htmlTable += `</tbody></table>`;
 
-    // Plain text / markdown fallback
+    // Formato de texto plano separado por tabulaciones (\t) como respaldo para editores simples:
     let plainText = `Formulario: ${formTitleDisplay}\nFecha: ${new Date().toLocaleString()}\n\nCampo\tTipo\tPrueba / Input\tResultado\tDetalle\tRecomendación\n`;
     testResults.forEach(r => {
       plainText += `${r.fieldName}\t${r.fieldType}\t${r.testItem.name} (${r.input})\t${r.badgeText}\t${r.detail}\t${r.recommendation}\n`;
     });
 
     try {
+      // Creamos dos objetos Blob con sus tipos MIME correspondientes:
       const blobHtml = new Blob([htmlTable], { type: 'text/html' });
       const blobText = new Blob([plainText], { type: 'text/plain' });
+
+      // Instanciamos el ClipboardItem con soporte dual para texto enriquecido y texto plano:
       const clipboardItem = new ClipboardItem({
         'text/html': blobHtml,
         'text/plain': blobText
       });
 
+      // Escribimos el objeto al portapapeles global del sistema operativo:
       await navigator.clipboard.write([clipboardItem]);
       alert('¡Tabla formateada copiada con éxito!\n\nVe a tu página en NOTION y presiona Ctrl + V para pegarla como tabla.');
     } catch (err) {
+      // Manejo de contingencia si el navegador bloquea ClipboardItem por directivas de seguridad:
       console.warn('ClipboardItem error, fallback to plain text copy:', err);
       try {
         await navigator.clipboard.writeText(plainText);
         alert('Tabla copiada al portapapeles. Puedes pegarla en Notion con Ctrl + V.');
       } catch (e) {
+        // En caso extremo, mostramos un diálogo modal para copia manual:
         prompt('Copia manualmente:', plainText);
       }
     }
   });
 
-  // 2. Markdown Export
+  // ----------------------------------------------------------------------------
+  // 2. EXPORTADOR A MARKDOWN (GFM - GITHUB FLAVORED MARKDOWN)
+  // ----------------------------------------------------------------------------
   btnCopyMarkdown.addEventListener('click', async () => {
+    // Comprobamos la existencia de resultados previos:
     if (testResults.length === 0) {
       alert('No hay resultados para copiar.');
       return;
@@ -2525,14 +3305,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const formTitleDisplay = (inputFormTitle?.value?.trim() || activeFormTitle || 'Formulario Principal');
 
+    // Construcción de la cabecera del documento Markdown:
     let md = `## Reporte de Validación Multi-Campo Web\n\n`;
     md += `**Formulario:** ${formTitleDisplay}\n`;
     md += `**Campos auditados:** ${selectedFields.map(f => f.label).join(', ')}\n`;
     md += `**Botón Guardar:** ${currentSaveButton ? (currentSaveButton.text || currentSaveButton.value) : 'Envío nativo / No asignado'}\n`;
     md += `**Fecha:** ${new Date().toLocaleString()}\n\n`;
+
+    // Encabezado de la tabla con delimitadores de columnas estilo GFM:
     md += `| Campo | Tipo | Input / Prueba | Resultado | Detalle Observado | Recomendación |\n`;
     md += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
 
+    // Iteramos cada prueba escapando los caracteres de pleca vertical (|)
+    // para evitar que rompan la estructura de las columnas en Markdown:
     testResults.forEach(r => {
       const safeInput = r.input.length > 30 ? r.input.slice(0, 27) + '...' : r.input;
       const cleanInput = safeInput.replace(/\|/g, '\\|').replace(/\n/g, ' ');
@@ -2542,15 +3327,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     try {
+      // Escribimos la cadena Markdown directamente en el portapapeles del sistema:
       await navigator.clipboard.writeText(md);
       alert('¡Tabla en formato Markdown copiada al portapapeles!');
     } catch (e) {
+      // Respaldo manual ante bloqueo de permisos:
       prompt('Copia manualmente:', md);
     }
   });
 
-  // 3. CSV Export
+  // ----------------------------------------------------------------------------
+  // 3. EXPORTADOR A ARCHIVO CSV (COMPATIBLE EXCEL Y RFC 4180)
+  // ----------------------------------------------------------------------------
   btnExportCsv.addEventListener('click', () => {
+    // Comprobamos la disponibilidad de resultados:
     if (testResults.length === 0) {
       alert('No hay resultados para exportar.');
       return;
@@ -2558,7 +3348,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const formTitleDisplay = (inputFormTitle?.value?.trim() || activeFormTitle || 'Formulario Principal');
 
+    // Nombres de las columnas del archivo CSV:
     const headers = ['Formulario', 'Campo', 'Tipo de Campo', 'Prueba', 'Input Probado', 'Resultado', 'Detalle del Sitio', 'Recomendación'];
+
+    // Transformamos cada resultado en un registro con campos entrecomillados.
+    // Según el estándar RFC 4180, si un valor contiene comillas dobles ("),
+    // estas deben ser escapadas duplicándolas (""):
     const rows = testResults.map(r => [
       `"${formTitleDisplay.replace(/"/g, '""')}"`,
       `"${r.fieldName.replace(/"/g, '""')}"`,
@@ -2570,27 +3365,40 @@ document.addEventListener('DOMContentLoaded', async () => {
       `"${r.recommendation.replace(/"/g, '""')}"`
     ]);
 
+    // PREFIJO BOM (Byte Order Mark) UTF-8 (\uFEFF):
+    // Garantiza que Microsoft Excel en Windows abra el archivo interpretando
+    // correctamente tildes, letras ñ y caracteres especiales sin deformaciones.
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\r\n');
+
+    // Creamos el archivo en memoria como un Blob:
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
+
+    // Creamos un elemento <a> invisible para detonar la descarga automática:
     const link = document.createElement('a');
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
     link.setAttribute('href', url);
     link.setAttribute('download', `reporte_qa_multicampo_${timestamp}.csv`);
     document.body.appendChild(link);
     link.click();
+
+    // Limpieza de recursos en el DOM y liberación de la URL en memoria:
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   });
 
-  // 4. Printable HTML Report / PDF
+  // ----------------------------------------------------------------------------
+  // 4. INFORME IMPRIMIBLE Y GENERACIÓN DE PDF PROFESIONAL
+  // ----------------------------------------------------------------------------
   btnPrintReport.addEventListener('click', async () => {
+    // Validación previa de resultados:
     if (testResults.length === 0) {
       alert('No hay resultados para imprimir.');
       return;
     }
 
     try {
+      // Sincronizamos los datos estructurados en el almacenamiento de Chrome:
       const auditData = getStructuredAuditData();
       if (typeof chrome !== 'undefined' && chrome.storage?.local) {
         await chrome.storage.local.set({ qa_audit_dashboard_data: auditData });
@@ -2599,10 +3407,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('qa_audit_dashboard_data', JSON.stringify(auditData));
       } catch (e) {}
 
+      // Generamos la URL con el parámetro 'autoPrint=true' para que el Dashboard
+      // abra de forma automática el cuadro de diálogo de impresión del navegador:
       const reportUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
         ? chrome.runtime.getURL('dashboard/dashboard.html?autoPrint=true')
         : 'dashboard/dashboard.html?autoPrint=true';
 
+      // Apertura de la pestaña a través de las APIs de Chrome:
       if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
         chrome.tabs.create({ url: reportUrl }, () => {
           if (chrome.runtime.lastError) {
@@ -2618,26 +3429,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // CUSTOM PAYLOAD MODAL HANDLERS
+  // ============================================================================
+  // GESTIÓN DE MODALES Y ACCESIBILIDAD (FOCUS TRAPPING WCAG 2.1)
+  // ============================================================================
+  // Variable de estado que almacena una referencia al elemento HTML que tenía
+  // el foco antes de abrir un cuadro modal. Esto permite restaurar la navegación
+  // por teclado exactamente donde el usuario la dejó al momento de cerrar el modal:
   let lastFocusedElement = null;
 
+  // ----------------------------------------------------------------------------
+  // FUNCIÓN: trapFocus
+  // ----------------------------------------------------------------------------
+  // PROPÓSITO:
+  // Implementar el patrón de accesibilidad "Focus Trap" requerido por los estándares
+  // WCAG 2.1 (Web Content Accessibility Guidelines). Impide que la navegación
+  // por teclado (tecla Tab) escape del modal abierto hacia el fondo de la página,
+  // creando un ciclo cerrado entre el primer y último elemento interactivo del diálogo.
+  //
+  // PARÁMETROS:
+  // - modalEl (HTMLElement): Elemento contenedor del diálogo modal.
+  // - e (KeyboardEvent): Evento de pulsación de tecla emitido por el navegador.
+  // RETORNO: Ninguno. Modifica el foco del cursor e intercepta la acción por defecto.
+  // ----------------------------------------------------------------------------
   function trapFocus(modalEl, e) {
+    // Si la tecla presionada no es 'Tab', no interferimos en el flujo normal:
     if (e.key !== 'Tab') return;
+
+    // Obtenemos todos los elementos interactivos enfocables del modal que no estén deshabilitados:
     const focusable = Array.from(modalEl.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.disabled);
     if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
 
+    const first = focusable[0]; // Primer elemento interactivo del modal
+    const last = focusable[focusable.length - 1]; // Último elemento interactivo del modal
+
+    // Si el usuario presiona Shift + Tab (navegación hacia atrás) y está en el primer elemento:
     if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
+      e.preventDefault(); // Prevenimos que el foco salte fuera del diálogo
+      last.focus();      // Movemos el cursor al último elemento enfocado
+    }
+    // Si el usuario presiona Tab simple (navegación hacia adelante) y está en el último elemento:
+    else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); // Prevenimos la salida del modal
+      first.focus();     // Movemos el cursor de regreso al primer elemento
     }
   }
 
-  // Global escape key listener for open modals in sidepanel
+  // ----------------------------------------------------------------------------
+  // ESCUCHADOR GLOBAL DE TECLADO: TECLA ESCAPE
+  // ----------------------------------------------------------------------------
+  // Permite cerrar cualquier diálogo modal activo al presionar la tecla física 'Escape',
+  // cumpliendo con el criterio de disipación accesible de contenido superpuesto:
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (customModal && customModal.style.display === 'flex') {
@@ -2648,16 +3489,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // ----------------------------------------------------------------------------
+  // MODAL DE CREACIÓN DE PRUEBAS PERSONALIZADAS (CUSTOM PAYLOAD)
+  // ----------------------------------------------------------------------------
+  // Abre el modal para que el usuario defina sus propias cargas útiles de auditoría:
   function openCustomModal() {
-    lastFocusedElement = document.activeElement;
-    customName.value = '';
-    customValue.value = '';
-    customDesc.value = '';
-    customIsInvalid.checked = true;
-    customModal.style.display = 'flex';
-    customName.focus();
+    lastFocusedElement = document.activeElement; // Guardamos el elemento activo previo
+    customName.value = '';                      // Limpiamos el nombre de la prueba
+    customValue.value = '';                     // Limpiamos el valor de entrada
+    customDesc.value = '';                      // Limpiamos la descripción explicativa
+    customIsInvalid.checked = true;             // Marcamos por defecto como caso inválido
+    customModal.style.display = 'flex';         // Hacemos visible el modal superpuesto
+    customName.focus();                         // Dirigimos el foco al primer campo de texto
   }
 
+  // Cierra el modal y devuelve el foco al elemento que detonó su apertura:
   function closeCustomModal() {
     customModal.style.display = 'none';
     if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
@@ -2665,25 +3511,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Asignamos los escuchadores para el ciclo de vida del modal de pruebas custom:
   customModal.addEventListener('keydown', (e) => trapFocus(customModal, e));
   btnOpenCustomModal.addEventListener('click', openCustomModal);
   btnCloseModal.addEventListener('click', closeCustomModal);
   btnCancelCustom.addEventListener('click', closeCustomModal);
 
+  // BOTÓN: btnSaveCustom (Guardado y Persistencia de Prueba Personalizada)
   btnSaveCustom.addEventListener('click', async () => {
+    // Obtenemos y saneamos las entradas del formulario modal:
     const name = customName.value.trim();
     const val = customValue.value;
     const cat = customCategory.value;
     const desc = customDesc.value.trim() || 'Prueba personalizada';
     const isInv = customIsInvalid.checked;
 
+    // Validación de campos requeridos indispensables:
     if (!name || val === undefined) {
       alert('Por favor ingresa un nombre y un valor para la prueba.');
       return;
     }
 
+    // Construcción del nuevo objeto payload personalizado:
     const newPayload = {
-      id: `custom_${Date.now()}`,
+      id: `custom_${Date.now()}`, // Identificador único temporal
       category: cat,
       name: name,
       payload: val,
@@ -2693,14 +3544,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       selected: true
     };
 
+    // Agregamos al arreglo de pruebas personalizadas:
     customPayloads.push(newPayload);
+
+    // Persistimos en chrome.storage.local:
     await saveCustomPayloads();
+
+    // Cerramos el modal:
     closeCustomModal();
 
+    // Re-renderizamos la lista de pruebas para reflejar la nueva entrada:
     renderPayloads();
   });
 
-  // VIEWER MODAL
+  // ----------------------------------------------------------------------------
+  // MODAL VISOR DE PAYLOADS EXTENSOS (VIEWER MODAL)
+  // ----------------------------------------------------------------------------
+  // Permite inspeccionar en detalle contenidos extensos (cargas útiles masivas, XSS
+  // largos, secuencias Unicode complejas) sin desbordar el diseño del panel:
   function showViewerModal(title, content) {
     lastFocusedElement = document.activeElement;
     viewerTitle.innerText = title;
@@ -2709,6 +3570,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnCloseViewer.focus();
   }
 
+  // Cierra el visor y restituye el foco del cursor:
   function closeViewerModal() {
     payloadViewerModal.style.display = 'none';
     if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
@@ -2716,10 +3578,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Escuchadores de eventos para el visor modal:
   payloadViewerModal.addEventListener('keydown', (e) => trapFocus(payloadViewerModal, e));
   btnCloseViewer.addEventListener('click', closeViewerModal);
   btnDismissViewer.addEventListener('click', closeViewerModal);
 
+  // Copia el contenido exhibido en el visor directamente al portapapeles:
   btnCopyViewer.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(viewerContent.innerText);
@@ -2729,18 +3593,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // ============================================================================
+  // FUNCIÓN UTILITARIA: escapeHtml
+  // ============================================================================
+  // PROPÓSITO:
+  // Mitigar riesgos de Cross-Site Scripting (XSS) y corrupción visual del DOM.
+  // Convierte caracteres especiales de sintaxis HTML en sus entidades mnemotécnicas
+  // seguras antes de interpolarlos en cadenas innerHTML.
+  //
+  // PARÁMETROS:
+  // - str (string|any): Cadena de texto potencialmente insegura o valor primitivo.
+  // RETORNO: (string) Cadena higienizada apta para renderizado seguro en el DOM.
+  // ============================================================================
   function escapeHtml(str) {
     if (typeof str !== 'string') return String(str || '');
     return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+      .replace(/&/g, '&amp;')   // Reemplaza ampersand (&)
+      .replace(/</g, '&lt;')    // Reemplaza menor que (<)
+      .replace(/>/g, '&gt;')    // Reemplaza mayor que (>)
+      .replace(/"/g, '&quot;')  // Reemplaza comillas dobles (")
+      .replace(/'/g, '&#039;'); // Reemplaza comillas simples (')
   }
 
-  // Initial Load
+  // ============================================================================
+  // SECUENCIA DE ARRANQUE INICIAL (BOOTSTRAPPING DEL SIDEPANEL)
+  // ============================================================================
+  // 1. Carga las pruebas personalizadas guardadas previamente en chrome.storage.local:
   await loadCustomPayloads();
+
+  // 2. Establece el nivel de profundidad de auditoría por defecto ('normal'):
   applyDepthTier('normal');
+
+  // 3. Renderiza la lista inicial de campos seleccionados (o estado vacío):
   renderSelectedFields();
 });
