@@ -1,25 +1,43 @@
 <!DOCTYPE html>
+<!-- ============================================================================
+     DOCUMENTO HTML: Panel Lateral de QA Form Validator (sidepanel.html)
+     PROPÓSITO: Proporcionar la interfaz de usuario completa para la extensión
+                de Chrome/Edge/Brave. Permite detectar campos, configurar suites
+                de prueba, ejecutar inyecciones automáticas y exportar reportes.
+     ============================================================================ -->
 <html lang="es">
 <head>
+  <!-- Codificación de caracteres estándar UTF-8 para soporte de tildes y caracteres multilingües -->
   <meta charset="UTF-8">
+  <!-- Viewport adaptable para mantener la escala adecuada dentro del panel lateral de Chromium -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QA Form Field Validator</title>
+  <!-- Hoja de estilos del panel lateral -->
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
+  <!-- Contenedor principal de la aplicación con disposición vertical (flex-column) -->
   <div class="app-container">
-    <!-- Header -->
+    
+    <!-- ==========================================================================
+         ENCABEZADO DE LA APLICACIÓN (app-header)
+         Incluye el logotipo vectorial, título, insignia de compatibilidad y el
+         botón para reiniciar el estado completo de la sesión.
+         ========================================================================== -->
     <header class="app-header">
       <div class="header-top">
         <div class="logo-area">
+          <!-- Icono SVG del visor/retícula de auditoría -->
           <div class="logo-icon" aria-hidden="true">
             <svg class="ui-icon ui-icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
           </div>
           <div>
             <h1>QA Form Validator</h1>
+            <!-- Indicador visual de compatibilidad con motores Chromium -->
             <span class="compatibility-badge">Edge • Brave • Chrome</span>
           </div>
         </div>
+        <!-- Botón de reinicio general: limpia campos seleccionados, resultados y configuraciones -->
         <button id="btn-reset-all" class="btn-icon" title="Reiniciar todo" aria-label="Reiniciar campos y resultados">
           <svg class="ui-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
         </button>
@@ -27,35 +45,43 @@
       <p class="header-desc">Verifica múltiples campos de un formulario acorde a su tipo, audita la acción de <strong>Guardar</strong> y genera tablas compatibles con <strong>Notion</strong>.</p>
     </header>
 
-    <!-- Multi-Field & Save Button Selection Section -->
+    <!-- ==========================================================================
+         SECCIÓN 1: SELECCIÓN DE CAMPOS Y FORMULARIO (selection-card)
+         Permite agregar campos individuales, detectar automáticamente el formulario
+         de la página o apuntar con el cursor a un contenedor modal específico.
+         ========================================================================== -->
     <section class="card selection-card">
       <div class="card-header">
         <h2>1. Campos a Probar del Formulario</h2>
+        <!-- Insignia numérica con la cantidad de campos actualmente cargados -->
         <span id="fields-count-badge" class="badge badge-idle">0 campos</span>
       </div>
 
-      <!-- Action buttons for field selection -->
+      <!-- Fila de botones de acción para añadir o detectar campos en la página web -->
       <div class="selection-actions-row">
+        <!-- Añadir campo individual apuntándolo con el cursor -->
         <button id="btn-pick-field" class="btn btn-primary" style="flex: 1;">
           <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
           <span id="pick-btn-text">Añadir campo</span>
         </button>
+        <!-- Detección automática por heurística del DOM del formulario activo -->
         <button id="btn-auto-detect-form" class="btn btn-secondary" title="Detecta automáticamente el formulario de la página">
           <svg class="ui-icon" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
           <span>Detectar formulario</span>
         </button>
+        <!-- Selección manual de un formulario o modal completo mediante clic visual -->
         <button id="btn-pick-form-click" class="btn btn-secondary" title="Apuntar con el cursor a un formulario o sector específico">
           <svg class="ui-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
           <span id="pick-form-btn-text">Apuntar formulario</span>
         </button>
       </div>
 
-      <!-- Empty state when no field selected -->
+      <!-- Estado vacío (Empty state): visible cuando todavía no se han cargado campos -->
       <div id="field-empty-state" class="empty-notice">
         <p>Añade campos haciendo clic en <strong>"Añadir campo"</strong>, presiona <strong>"Detectar formulario"</strong> o haz clic en <strong>"Apuntar formulario"</strong> para cargar los campos a evaluar.</p>
       </div>
 
-      <!-- Form Name Customization Box -->
+      <!-- Personalización del Título del Formulario (editable para reportes profesionales) -->
       <div id="form-name-box" class="form-name-box" style="display: none;">
         <label for="input-form-title" class="sub-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
           <span style="display: flex; align-items: center; gap: 4px; font-weight: 600; color: #cbd5e1;">
@@ -67,12 +93,12 @@
         <input type="text" id="input-form-title" class="form-name-input" placeholder="Ej. Formulario de Registro, Login, Checkout..." maxlength="80" title="Escribe aquí el nombre representativo del formulario para los reportes">
       </div>
 
-      <!-- Selected fields chips container -->
+      <!-- Contenedor de chips con cada uno de los campos seleccionados (inyectados por JS) -->
       <div id="selected-fields-list" class="fields-chips-wrap" style="display: none;">
-        <!-- Injected via JavaScript -->
+        <!-- Inyectado dinámicamente vía JavaScript (renderSelectedFields) -->
       </div>
 
-      <!-- Linked Save Button Subsection (Single Form Save Button) -->
+      <!-- Subsección: Botón de Guardar / Enviar vinculado al formulario -->
       <div id="save-button-box" class="save-button-box" style="display: none;">
         <div class="save-button-header">
           <span class="save-button-title">
@@ -84,13 +110,16 @@
         </p>
         <div class="save-form-row" id="single-save-button-row">
           <div class="save-form-row-body">
+            <!-- Píldora con el nombre del botón detectado -->
             <span id="save-btn-pill" class="pill pill-idle" title="No asignado">
               Auto / No asignado
             </span>
             <div class="save-form-actions">
+              <!-- Botón para iluminar con contorno verde el botón en la página web -->
               <button id="btn-inspect-save" class="btn-sm btn-subtle" title="Resaltar botón en la página" disabled style="display:none;">
                 <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="3"></circle></svg>Ver
               </button>
+              <!-- Botón para cambiar el botón de guardado apuntando con el cursor -->
               <button id="btn-change-save" class="btn-sm btn-outline" title="Seleccionar botón haciendo clic en la página">
                 <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg><span id="change-save-btn-text">Cambiar botón</span>
               </button>
@@ -99,7 +128,7 @@
         </div>
       </div>
 
-      <!-- Sibling / Required Fields Filler Subsection -->
+      <!-- Subsección: Relleno automático de campos hermanos requeridos -->
       <div id="sibling-fillers-box" class="sibling-fillers-box" style="display: none;">
         <div class="sibling-fillers-header">
           <span class="sibling-fillers-title">
@@ -113,12 +142,13 @@
         <p class="sub-desc" style="font-size: 10px; margin-bottom: 6px;">
           Evita que los demás campos obligatorios bloqueen el guardado. Puedes ajustar o regenerar sus valores válidos:
         </p>
+        <!-- Lista de campos hermanos con sus valores dummy generados -->
         <div id="sibling-fillers-list" class="sibling-fillers-list">
-          <!-- Populated via JavaScript -->
+          <!-- Inyectado dinámicamente vía JavaScript -->
         </div>
       </div>
 
-      <!-- Re-open flow for Collapsible / Modal forms (e.g. Cliente -> Editar -> Modal) -->
+      <!-- Subsección: Secuencia de Reapertura de Modales / Desplegables -->
       <div id="reopen-flow-box" class="reopen-flow-box">
         <div class="reopen-flow-header">
           <label class="checkbox-inline">
@@ -132,13 +162,16 @@
           <p class="sub-desc" style="font-size: 10px; margin-bottom: 6px;">
             Para formularios que se cierran al guardar. Apunta los clics para reabrirlo (ej. <em>Paso 1: Tarjeta de Cliente</em>, <em>Paso 2: Botón Editar</em>):
           </p>
+          <!-- Pasos grabados por el usuario para volver a abrir el modal -->
           <div id="reopen-steps-list" class="reopen-steps-list">
-            <!-- Steps populated via JS -->
+            <!-- Pasos inyectados por JavaScript -->
           </div>
           <div class="reopen-tools-row">
+            <!-- Botón para grabar un nuevo paso de clic en la pantalla -->
             <button id="btn-add-reopen-step" class="btn-sm btn-outline" style="font-size: 10px;">
               <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 3px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Apuntar paso de clic
             </button>
+            <!-- Botón para simular la reapertura y verificar que funciona antes de testear -->
             <button id="btn-test-reopen" class="btn-sm btn-subtle" style="font-size: 10px;" title="Probar que los pasos abren el formulario correctamente">
               <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 3px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>Probar apertura
             </button>
@@ -147,43 +180,55 @@
       </div>
     </section>
 
-    <!-- Test Suites Section -->
+    <!-- ==========================================================================
+         SECCIÓN 2: ENTRADAS Y CASOS DE PRUEBA (Test Suites & Depth Selector)
+         Permite filtrar por categorías, seleccionar niveles de profundidad
+         (Simple, Normal, Avanzado, Total) y crear casos de prueba propios.
+         ========================================================================== -->
     <section class="card">
       <div class="card-header">
         <h2>2. Entradas y Casos de Prueba</h2>
+        <!-- Insignia numérica de casos de prueba habilitados actualmente -->
         <span id="selected-count-badge" class="badge badge-info">0 pruebas</span>
       </div>
 
+      <!-- Nota informativa sobre la correspondencia entre tipo de campo y suites -->
       <div class="info-note">
         <svg class="ui-icon" viewBox="0 0 24 24" style="color: #38bdf8; margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
         <strong>Pruebas automáticas por tipo:</strong> Cada campo ejecutará la suite correspondiente a su naturaleza (Texto en campos de texto, Números en numéricos, y Fechas en campos de fecha).
       </div>
 
-      <!-- Depth Tier Selector -->
+      <!-- Selector de Nivel de Profundidad de Validación (Tier Selector) -->
       <div class="depth-selector-box">
         <div class="depth-selector-header">
           <span class="depth-title">
             <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line></svg>Profundidad de Validación:
           </span>
+          <!-- Etiqueta con el nivel activo actual -->
           <span id="depth-desc-badge" class="depth-desc-badge"><span class="status-dot status-dot-info" style="margin-right: 4px;"></span>Normal (Recomendado)</span>
         </div>
+        <!-- Grupo de botones segmentados para alternar entre niveles de profundidad -->
         <div class="depth-buttons-group" role="group" aria-label="Nivel de profundidad de validaciones">
+          <!-- Nivel Simple: Pruebas rápidas esenciales (Smoke testing) -->
           <button type="button" class="depth-btn" data-depth="simple" title="Pruebas esenciales y rápidas (Smoke test)">
             <span class="depth-btn-icon"><span class="status-dot status-dot-success"></span></span> Simple
           </button>
+          <!-- Nivel Normal: Batería estándar recomendada para reglas de negocio -->
           <button type="button" class="depth-btn active" data-depth="normal" title="Validaciones estándar de negocio más frecuentes">
             <span class="depth-btn-icon"><span class="status-dot status-dot-info"></span></span> Normal
           </button>
+          <!-- Nivel Avanzado: Casos de borde, desbordamientos y cadenas complejas -->
           <button type="button" class="depth-btn" data-depth="advanced" title="Pruebas exhaustivas y casos de borde">
             <span class="depth-btn-icon"><span class="status-dot status-dot-purple"></span></span> Avanzado
           </button>
+          <!-- Nivel Total: Batería máxima exhaustiva y pruebas de sobrecarga masiva -->
           <button type="button" class="depth-btn" data-depth="total" title="Batería completa y pruebas de sobrecarga">
             <span class="depth-btn-icon"><span class="status-dot status-dot-warning"></span></span> Total
           </button>
         </div>
       </div>
 
-      <!-- Categories Filter Tabs -->
+      <!-- Pestañas de Filtrado por Categoría Temática de Payloads -->
       <div class="category-tabs">
         <button class="tab-btn active" data-category="all">Todos</button>
         <button class="tab-btn" data-category="text"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" style="margin-right: 3px;"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>Texto</button>
@@ -195,30 +240,36 @@
         <button class="tab-btn" data-category="custom"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24" style="margin-right: 3px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Propios</button>
       </div>
 
-      <!-- Suites Controls -->
+      <!-- Herramientas de Selección y Añadido de Casos Propios -->
       <div class="suite-tools">
+        <!-- Seleccionar/Deseleccionar todos los casos visibles según el filtro -->
         <label class="checkbox-inline">
           <input type="checkbox" id="check-select-all" checked>
           <span>Seleccionar visibles</span>
         </label>
+        <!-- Abrir modal interactivo para definir un nuevo payload personalizado -->
         <button id="btn-open-custom-modal" class="btn-sm btn-outline">
           <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 3px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Añadir Input
         </button>
       </div>
 
-      <!-- Payloads List Container -->
+      <!-- Contenedor scrollable donde se renderizan las tarjetas de cada payload -->
       <div id="payloads-container" class="payloads-list">
-        <!-- Injected via JavaScript -->
+        <!-- Inyectado dinámicamente vía JavaScript (renderPayloadsList) -->
       </div>
     </section>
 
-    <!-- Execution Section with Save / Submit options -->
+    <!-- ==========================================================================
+         SECCIÓN 3: EJECUCIÓN AUTOMATIZADA (execution-card)
+         Configura el comportamiento del disparador de guardado, la velocidad
+         de la simulación de tecleo, tiempos de espera y barra de progreso.
+         ========================================================================== -->
     <section class="card execution-card">
       <div class="card-header">
         <h2>3. Ejecución Automatizada</h2>
       </div>
 
-      <!-- Submit / Save Toggle -->
+      <!-- Interruptor para activar la pulsación real del botón de Guardar en cada prueba -->
       <div class="save-execution-toggle">
         <label class="checkbox-inline highlight-toggle">
           <input type="checkbox" id="check-trigger-save" checked>
@@ -226,7 +277,9 @@
         </label>
       </div>
 
+      <!-- Cuadrícula de opciones de sincronización y velocidad de prueba -->
       <div class="execution-options-grid">
+        <!-- Velocidad general entre inyecciones consecutivas -->
         <div class="execution-options">
           <label for="execution-speed" class="sub-label">Velocidad general:</label>
           <select id="execution-speed" class="select-input">
@@ -236,6 +289,7 @@
           </select>
         </div>
 
+        <!-- Tiempo de espera post-guardado para permitir respuestas asíncronas / AJAX -->
         <div class="execution-options">
           <label for="submit-wait-time" class="sub-label">Espera post-guardar:</label>
           <select id="submit-wait-time" class="select-input">
@@ -246,6 +300,7 @@
         </div>
       </div>
 
+      <!-- Opción de seguridad: restaurar los valores iniciales al terminar la auditoría -->
       <div class="execution-options">
         <label class="checkbox-inline">
           <input type="checkbox" id="check-restore-value" checked>
@@ -253,12 +308,13 @@
         </label>
       </div>
 
+      <!-- Botón principal de lanzamiento de la batería de pruebas -->
       <button id="btn-run-tests" class="btn btn-success btn-block" disabled>
         <svg class="ui-icon" viewBox="0 0 24 24" style="fill: currentColor; stroke: none; margin-right: 4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
         <span id="run-btn-text">Iniciar Verificación de Campos</span>
       </button>
 
-      <!-- Progress bar -->
+      <!-- Barra de progreso con porcentaje en tiempo real y etiqueta del campo evaluado -->
       <div id="progress-container" class="progress-wrap" style="display: none;" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso de ejecución de pruebas">
         <div class="progress-info">
           <span id="progress-label">Probando...</span>
@@ -270,11 +326,17 @@
       </div>
     </section>
 
-    <!-- Report & Results Section -->
+    <!-- ==========================================================================
+         SECCIÓN 4: REPORTE DE RESULTADOS (results-card)
+         Muestra la evaluación en dos modos interactivos:
+           1. Vista Tabla: Detalle exhaustivo fila por fila con filtros y KPIs.
+           2. Vista Dashboard: Diagnóstico de robustez, medidor circular y riesgos.
+         ========================================================================== -->
     <section id="results-card" class="card" style="display: none;">
       <div class="card-header">
         <h2>4. Reporte de Resultados</h2>
         <div style="display: flex; align-items: center; gap: 8px;">
+          <!-- Alternador de Vistas: Modo Tabla vs Modo Dashboard de Riesgos -->
           <div class="view-toggle-group" role="tablist" aria-label="Modo de vista de resultados">
             <button id="btn-view-table" class="view-toggle-btn active" role="tab" aria-selected="true" title="Ver tabla detallada de resultados">
               <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="4" cy="6" r="1.5"></circle><circle cx="4" cy="12" r="1.5"></circle><circle cx="4" cy="18" r="1.5"></circle></svg>
@@ -285,13 +347,16 @@
               <span>Dashboard</span>
             </button>
           </div>
+          <!-- Botón para reiniciar/limpiar la tabla de resultados actual -->
           <button id="btn-clear-results" class="btn-subtle" title="Limpiar reporte">Limpiar</button>
         </div>
       </div>
 
-      <!-- Table View Container -->
+      <!-- ========================================================================
+           SUB-VISTA 1: TABLA DETALLADA DE AUDITORÍA (table-view-container)
+           ======================================================================== -->
       <div id="table-view-container">
-        <!-- Summary KPI Counters -->
+        <!-- Tarjetas de Métricas Clave (KPI Grid) -->
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-num" id="kpi-total">0</div>
@@ -311,7 +376,7 @@
           </div>
         </div>
 
-        <!-- Filter results bar -->
+        <!-- Barra de Filtros Rápidos por Estado y Campo -->
         <div class="results-filter-bar">
           <div class="filter-group">
             <span>Estado:</span>
@@ -322,6 +387,7 @@
             <button class="filter-chip" data-filter="risk"><span class="status-dot status-dot-danger" style="margin-right: 4px;"></span>Con Riesgo</button>
           </div>
 
+          <!-- Selector desplegable para filtrar los resultados de un campo específico -->
           <div class="filter-group">
             <label for="filter-field-select" class="sub-label">Campo:</label>
             <select id="filter-field-select" class="select-input" style="padding: 2px 6px; font-size: 10px;">
@@ -330,7 +396,7 @@
           </div>
         </div>
 
-        <!-- Results Table -->
+        <!-- Tabla HTML con los Resultados de las Inyecciones -->
         <div class="table-responsive">
           <table id="results-table" class="report-table">
             <caption class="sr-only">Resultados detallados de auditoría de campos</caption>
@@ -344,30 +410,35 @@
               </tr>
             </thead>
             <tbody id="results-tbody">
-              <!-- Populated via JavaScript -->
+              <!-- Filas inyectadas dinámicamente vía JavaScript (renderResultsTable) -->
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Dashboard View Container (Structured by Risk Type) -->
+      <!-- ========================================================================
+           SUB-VISTA 2: DASHBOARD ESTRUCTURADO POR RIESGO (dashboard-view-container)
+           ======================================================================== -->
       <div id="dashboard-view-container" style="display: none;">
-        <!-- Global Risk Score Banner -->
+        <!-- Tarjeta de Diagnóstico y Salud del Formulario -->
         <div class="dashboard-health-card">
           <div class="health-header">
             <span class="health-title">
               <svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
               Diagnóstico de Robustez del Formulario
             </span>
+            <!-- Insignia de nivel de riesgo global (Excelente, Aceptable, Crítico) -->
             <span id="dashboard-risk-level-badge" class="badge badge-idle">Calculando...</span>
           </div>
           <div class="health-body">
+            <!-- Círculo de puntuación porcentual de robustez (0 a 100%) -->
             <div class="health-score-circle">
               <span id="dashboard-score-val" class="score-number">--%</span>
               <span class="score-label">Robustez</span>
             </div>
             <div class="health-summary-text">
               <p id="dashboard-summary-msg">Inicia las pruebas para ver el análisis de riesgo estructurado.</p>
+              <!-- Etiquetas resumen de conteos por nivel de severidad -->
               <div class="health-mini-stats">
                 <span id="stat-critical-count" class="mini-tag tag-critical">0 Críticos</span>
                 <span id="stat-high-count" class="mini-tag tag-high">0 Altos</span>
@@ -377,18 +448,19 @@
             </div>
           </div>
 
-          <!-- Multi-segment Risk Distribution Progress Bar -->
+          <!-- Barra de Distribución Proporcional de Pruebas por Severidad -->
           <div class="risk-distribution-box">
             <div class="distribution-header">
               <span class="sub-label">Distribución de Pruebas por Severidad:</span>
             </div>
+            <!-- Barra multicolor segmentada que representa porcentajes acumulados -->
             <div id="dashboard-dist-bar" class="risk-distribution-bar" role="progressbar" aria-label="Distribución proporcional de riesgos">
               <div class="dist-seg seg-critical" style="width: 0%;" title="Seguridad (Crítico)"></div>
               <div class="dist-seg seg-high" style="width: 0%;" title="Capacidad DoS (Alto)"></div>
               <div class="dist-seg seg-medium" style="width: 0%;" title="Integridad / Formato (Medio)"></div>
               <div class="dist-seg seg-safe" style="width: 0%;" title="Conforme (Seguro)"></div>
             </div>
-            <!-- Enhanced Mini Breakdown Grid -->
+            <!-- Cuadrícula con el desglose exacto de conteo y porcentaje por color -->
             <div class="sidepanel-dist-breakdown" id="sidepanel-dist-breakdown">
               <div class="sp-dist-item"><span class="legend-dot" style="background:#ef4444;"></span> <span class="sp-dist-name">Crítico:</span> <strong id="sp-dist-crit-val">0 (0%)</strong></div>
               <div class="sp-dist-item"><span class="legend-dot" style="background:#f43f5e;"></span> <span class="sp-dist-name">Alto:</span> <strong id="sp-dist-high-val">0 (0%)</strong></div>
@@ -398,28 +470,36 @@
           </div>
         </div>
 
-        <!-- Structured Risk Categories Accordion List -->
+        <!-- Lista Acordeón de Grupos Estructurados por Riesgo -->
         <div id="dashboard-risk-groups" class="dashboard-risk-groups">
-          <!-- Populated dynamically via renderDashboardView() -->
+          <!-- Inyectado dinámicamente vía JavaScript (renderDashboardView) -->
         </div>
       </div>
 
-      <!-- Export Toolbar (With Dashboard and Notion buttons) -->
+      <!-- ========================================================================
+           BARRA DE HERRAMIENTAS DE EXPORTACIÓN Y REPORTES
+           Permite abrir el dashboard completo, copiar para Notion, Markdown o CSV.
+           ======================================================================== -->
       <div class="export-toolbar">
         <div class="export-label">Exportar / Visualizar:</div>
         <div class="export-buttons">
+          <!-- Abrir dashboard visual en pestaña independiente de Chromium -->
           <button id="btn-open-dashboard" class="btn btn-primary btn-sm" title="Abrir dashboard ejecutivo interactivo en pestaña completa">
             <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>Abrir Dashboard
           </button>
+          <!-- Copiar al portapapeles en formato HTML enriquecido compatible con Notion (Ctrl+V) -->
           <button id="btn-copy-notion" class="btn btn-notion btn-sm" title="Copia la tabla en formato enriquecido para pegar directamente en Notion con Ctrl+V">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path><path d="M15 9h6"></path><path d="M15 15h6"></path></svg>Copiar para Notion
+            <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><rect x="3" y="18" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path><path d="M15 9h6"></path><path d="M15 15h6"></path></svg>Copiar para Notion
           </button>
+          <!-- Copiar la tabla en formato texto Markdown con sintaxis GFM -->
           <button id="btn-copy-markdown" class="btn btn-secondary btn-sm" title="Copiar tabla en formato Markdown">
             <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Copiar Markdown
           </button>
+          <!-- Exportar archivo de valores separados por coma compatible con Excel -->
           <button id="btn-export-csv" class="btn btn-secondary btn-sm" title="Descargar como archivo CSV para Excel">
             <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>Descargar CSV
           </button>
+          <!-- Ventana de impresión limpia para guardar como documento PDF -->
           <button id="btn-print-report" class="btn btn-secondary btn-sm" title="Abrir informe HTML imprimible o PDF">
             <svg class="ui-icon" viewBox="0 0 24 24" style="margin-right: 4px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>Imprimir / PDF
           </button>
@@ -427,7 +507,11 @@
       </div>
     </section>
 
-    <!-- Custom Payload Modal -->
+    <!-- ==========================================================================
+         MODAL 1: DEFINICIÓN DE PAYLOAD PERSONALIZADO (custom-modal)
+         Permite al usuario ingresar cadenas especiales no contempladas en las
+         suites por defecto y clasificarlas por severidad esperada.
+         ========================================================================== -->
     <div id="custom-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="custom-modal-title">
       <div class="modal-content">
         <div class="modal-header">
@@ -473,7 +557,11 @@
       </div>
     </div>
 
-    <!-- Payload Details Viewer Modal -->
+    <!-- ==========================================================================
+         MODAL 2: VISOR DE DETALLES DEL PAYLOAD (payload-viewer-modal)
+         Muestra el contenido íntegro y sin recortes de cadenas muy extensas,
+         scripts de inyección SQL/XSS o payloads binarios con botón de copiado.
+         ========================================================================== -->
     <div id="payload-viewer-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="viewer-title">
       <div class="modal-content">
         <div class="modal-header">
@@ -483,18 +571,7 @@
         <div class="modal-body">
           <div class="form-group">
             <label>Contenido Completo:</label>
-            <pre id="viewer-content" class="code-box"></pre>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button id="btn-copy-viewer" class="btn btn-secondary">Copiar Valor</button>
-          <button id="btn-dismiss-viewer" class="btn btn-primary">Cerrar</button>
-        </div>
-      </div>
-    </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Contenido Completo:</label>
+            <!-- Contenedor preformateado con scroll horizontal -->
             <pre id="viewer-content" class="code-box"></pre>
           </div>
         </div>
@@ -506,6 +583,7 @@
     </div>
   </div>
 
+  <!-- Script principal del panel lateral -->
   <script src="sidepanel.js"></script>
 </body>
 </html>
