@@ -366,16 +366,35 @@
   </div>
 
   <script>
-    // Handlers para Formulario 1
+    // ============================================================================
+    // LÓGICA DE VALIDACIÓN SIMULADA PARA PRUEBAS DE AUTOMATIZACIÓN QA
+    // ============================================================================
+    // PROPÓSITO:
+    // Este script simula el comportamiento de validación de una aplicación web real,
+    // interceptando los eventos 'submit' de los 3 formularios de prueba.
+    // Permite al validador de campos (QA Form Validator) detectar si una entrada
+    // maliciosa o inválida es aceptada erróneamente o rechazada con mensajes de error.
+    // ============================================================================
+
+    // ----------------------------------------------------------------------------
+    // FORMULARIO 1: Datos Personales (qa-form-personales)
+    // ----------------------------------------------------------------------------
+    // Referencias a los elementos del formulario y a los carteles de notificación:
     const form1 = document.getElementById('qa-form-personales');
     const errBanner1 = document.getElementById('global-error-banner-1');
     const succBanner1 = document.getElementById('global-success-banner-1');
 
+    // Escuchador del evento de envío (submit) del primer formulario:
     form1.addEventListener('submit', (e) => {
+      // e.preventDefault(): Detiene la recarga por defecto de la página web
+      // para permitir que validemos los campos asíncronamente mediante JavaScript:
       e.preventDefault();
+
+      // Ocultamos cualquier banner previo de error o éxito:
       errBanner1.style.display = 'none';
       succBanner1.style.display = 'none';
 
+      // Captura de los elementos de entrada y de sus contenedores visuales (.form-group):
       const inputId = document.getElementById('input-identificacion');
       const groupIdentificacion = document.getElementById('group-identificacion');
       const inputNombre = document.getElementById('input-nombre');
@@ -385,17 +404,19 @@
       const inputTipoCuenta = document.getElementById('input-tipo-cuenta');
       const groupTipoCuenta = document.getElementById('group-tipo-cuenta');
 
+      // Limpiamos las marcas visuales de error previas:
       groupIdentificacion.classList.remove('has-error');
       groupNombre.classList.remove('has-error');
       groupEdad.classList.remove('has-error');
       if (groupTipoCuenta) groupTipoCuenta.classList.remove('has-error');
 
+      // Extracción y saneamiento inicial de valores:
       const idVal = inputId.value.trim();
       const nombreVal = inputNombre.value.trim();
       const edadVal = parseInt(inputEdad.value, 10);
       const tipoCuentaVal = inputTipoCuenta ? inputTipoCuenta.value : '';
 
-      // Validación de Nombre obligatorio
+      // Regla 1: Validación de Nombre obligatorio (no vacío):
       if (!nombreVal) {
         groupNombre.classList.add('has-error');
         errBanner1.innerText = 'Error al Guardar: El Nombre del Cliente es obligatorio.';
@@ -403,7 +424,7 @@
         return false;
       }
 
-      // Validación de Tipo de Cuenta obligatorio
+      // Regla 2: Validación de Tipo de Cuenta obligatorio (debe seleccionar una opción):
       if (inputTipoCuenta && !tipoCuentaVal) {
         groupTipoCuenta.classList.add('has-error');
         errBanner1.innerText = 'Error al Guardar: Debe seleccionar un Tipo de Cuenta.';
@@ -411,7 +432,7 @@
         return false;
       }
 
-      // Validación de límite de 10 dígitos en identificación
+      // Regla 3: Validación de longitud máxima en Identificación (máximo 10 caracteres):
       if (idVal.length > 10) {
         groupIdentificacion.classList.add('has-error');
         errBanner1.innerText = 'Error al Guardar: La identificación tiene ' + idVal.length + ' caracteres y excede el límite máximo de 10 dígitos.';
@@ -419,12 +440,13 @@
         return false;
       }
 
-      // Validación de Sitio Web (URL)
+      // Regla 4: Validación de Formato de Sitio Web (URL segura obligatoria con https://):
       const inputSitioWeb = document.getElementById('input-sitio-web');
       const groupSitioWeb = document.getElementById('group-sitio-web');
       if (groupSitioWeb) groupSitioWeb.classList.remove('has-error');
       if (inputSitioWeb && inputSitioWeb.value.trim() !== '') {
         const urlVal = inputSitioWeb.value.trim();
+        // Rechazamos esquemas inseguros o payloads como 'javascript:alert(1)':
         if (!urlVal.startsWith('https://') || urlVal.includes(' ') || urlVal.startsWith('javascript:')) {
           if (groupSitioWeb) groupSitioWeb.classList.add('has-error');
           errBanner1.innerText = 'Error al Guardar: El sitio web debe comenzar con https:// y no contener espacios ni esquemas inseguros.';
@@ -433,12 +455,13 @@
         }
       }
 
-      // Validación de Slug Personalizado
+      // Regla 5: Validación de Slug Personalizado (solo letras minúsculas, números y guiones):
       const inputSlug = document.getElementById('input-slug');
       const groupSlug = document.getElementById('group-slug');
       if (groupSlug) groupSlug.classList.remove('has-error');
       if (inputSlug && inputSlug.value.trim() !== '') {
         const slugVal = inputSlug.value.trim();
+        // Expresión regular: ^[a-z0-9-]+$ garantiza sintaxis amigable para URLs:
         if (!/^[a-z0-9-]+$/.test(slugVal)) {
           if (groupSlug) groupSlug.classList.add('has-error');
           errBanner1.innerText = 'Error al Guardar: El slug solo permite letras minúsculas, números y guiones.';
@@ -447,7 +470,7 @@
         }
       }
 
-      // Validación de Términos y Condiciones obligatorio
+      // Regla 6: Validación de Casilla de Términos y Condiciones obligatoria:
       const checkTerminos = document.getElementById('check-terminos');
       const groupTerminos = document.getElementById('group-terminos');
       if (groupTerminos) groupTerminos.classList.remove('has-error');
@@ -459,12 +482,15 @@
         return false;
       }
 
+      // Éxito: Todas las reglas fueron superadas satisfactoriamente:
       succBanner1.innerText = '¡Datos Personales guardados con éxito!';
       succBanner1.style.display = 'block';
       return true;
     });
 
-    // Handlers para Formulario 2
+    // ----------------------------------------------------------------------------
+    // FORMULARIO 2: Dirección y Envío (qa-form-envio)
+    // ----------------------------------------------------------------------------
     const form2 = document.getElementById('qa-form-envio');
     const errBanner2 = document.getElementById('global-error-banner-2');
     const succBanner2 = document.getElementById('global-success-banner-2');
@@ -489,6 +515,7 @@
       const cpVal = inputCp.value.trim();
       const fechaVal = inputFecha.value;
 
+      // Regla A: Dirección obligatoria:
       if (!dirVal) {
         groupDir.classList.add('has-error');
         errBanner2.innerText = 'Error al Guardar: La dirección es obligatoria.';
@@ -496,6 +523,7 @@
         return false;
       }
 
+      // Regla B: Código postal de exactamente 5 dígitos numéricos:
       if (cpVal && (!/^\d{5}$/.test(cpVal))) {
         groupCp.classList.add('has-error');
         errBanner2.innerText = 'Error al Guardar: El código postal debe ser numérico de 5 dígitos.';
@@ -503,6 +531,7 @@
         return false;
       }
 
+      // Regla C: Fecha de entrega no anterior al año 2024:
       if (fechaVal && fechaVal < '2024-01-01') {
         groupFecha.classList.add('has-error');
         errBanner2.innerText = 'Error al Guardar: La fecha de entrega no puede ser anterior a 2024.';
@@ -510,12 +539,16 @@
         return false;
       }
 
+      // Éxito en Formulario 2:
       succBanner2.innerText = '¡Dirección y Envío guardados con éxito!';
       succBanner2.style.display = 'block';
       return true;
     });
 
-    // Handlers para Formulario 3 (Desplegable / Drawer de Cliente)
+    // ----------------------------------------------------------------------------
+    // FORMULARIO 3: Desplegable / Drawer de Edición de Cliente (qa-form-cliente)
+    // ----------------------------------------------------------------------------
+    // Simula formularios en paneles laterales o modales que se cierran al guardar:
     const cardCliente = document.getElementById('card-cliente-carlos');
     const btnEditarCliente = document.getElementById('btn-editar-cliente-carlos');
     const drawer = document.getElementById('customer-drawer');
@@ -524,23 +557,28 @@
     const errBanner3 = document.getElementById('global-error-banner-3');
     const succBanner3 = document.getElementById('global-success-banner-3');
 
+    // Abre el panel lateral desplegable:
     function openDrawer() {
       drawer.style.display = 'block';
       errBanner3.style.display = 'none';
       succBanner3.style.display = 'none';
     }
 
+    // Cierra el panel lateral desplegable:
     function closeDrawer() {
       drawer.style.display = 'none';
     }
 
+    // Eventos de apertura y cierre del drawer:
     cardCliente.addEventListener('click', openDrawer);
     btnEditarCliente.addEventListener('click', (e) => {
+      // Evitamos propagación del clic para no duplicar el evento del contenedor:
       e.stopPropagation();
       openDrawer();
     });
     btnCerrarDrawer.addEventListener('click', closeDrawer);
 
+    // Validación del envío del formulario dentro del drawer:
     formCliente.addEventListener('submit', (e) => {
       e.preventDefault();
       errBanner3.style.display = 'none';
@@ -557,6 +595,7 @@
       const nomVal = inputNombre.value.trim();
       const telVal = inputTel.value.trim();
 
+      // Regla X: Nombre de cliente obligatorio:
       if (!nomVal) {
         groupNombre.classList.add('has-error');
         errBanner3.innerText = 'Error al Guardar: El nombre es obligatorio.';
@@ -564,6 +603,7 @@
         return false;
       }
 
+      // Regla Y: Teléfono máximo 10 dígitos:
       if (telVal.length > 10) {
         groupTel.classList.add('has-error');
         errBanner3.innerText = 'Error al Guardar: El teléfono excede los 10 dígitos permitidos.';
@@ -571,10 +611,12 @@
         return false;
       }
 
+      // Éxito en Formulario 3:
       succBanner3.innerText = '¡Cliente guardado con éxito!';
       succBanner3.style.display = 'block';
 
-      // CIERRA AUTOMÁTICAMENTE EL CAJÓN TRAS GUARDAR (Comportamiento real)
+      // CIERRE AUTOMÁTICO TRAS GUARDAR (Comportamiento realista de paneles SPA):
+      // Demuestra la capacidad del paso 'Reapertura' de la extensión para reabrir el formulario:
       setTimeout(() => {
         closeDrawer();
       }, 250);
