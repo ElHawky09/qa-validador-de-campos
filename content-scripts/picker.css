@@ -1,44 +1,102 @@
-/* QA Form Validator - Element Picker Overlay Styles */
+/* ============================================================================
+   ESTILOS VISUALES DEL SELECTOR INTERACTIVO DE ELEMENTOS (PICKER OVERLAY)
+   ============================================================================
+   PROPÓSITO DIDÁCTICO:
+   Este archivo CSS define la capa visual inyectada directamente en las páginas web
+   auditadas por el script de contenido (content-scripts/picker.js). Proporciona
+   retroalimentación gráfica en tiempo real cuando el usuario pasa el cursor sobre
+   campos de entrada o botones, resalta el elemento seleccionado y renderiza
+   tanto el tooltip flotante con información técnica como el banner superior
+   de instrucciones con soporte accesible de teclado.
+   ============================================================================ */
 
+/* ----------------------------------------------------------------------------
+   CLASE: .qa-picker-hover-highlight
+   ----------------------------------------------------------------------------
+   Efecto visual al pasar el cursor (hover) sobre un campo de entrada individual
+   (input, textarea o select) durante la selección de campos a auditar.
+   ---------------------------------------------------------------------------- */
 .qa-picker-hover-highlight {
+  /* Contorno discontinuo azul de 2 píxeles para delimitar la caja del elemento */
   outline: 2px dashed #2563eb !important;
+  /* Separación de 3 píxeles entre el contorno y el borde nativo del input */
   outline-offset: 3px !important;
+  /* Resplandor exterior difuso semitransparente que aumenta el contraste en cualquier fondo */
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25) !important;
+  /* Cursor en forma de cruz de precisión (mira telescópica) para indicar selección activa */
   cursor: crosshair !important;
+  /* Transición suave de 100 milisegundos para suavizar la aparición del contorno */
   transition: outline 0.1s ease !important;
 }
 
+/* ----------------------------------------------------------------------------
+   CLASE: .qa-form-hover-highlight
+   ----------------------------------------------------------------------------
+   Efecto visual al pasar el cursor sobre un formulario completo (<form>) o sobre
+   un botón de guardado (type=submit/button). Utiliza un tono azul brillante y cursor pointer.
+   ---------------------------------------------------------------------------- */
 .qa-form-hover-highlight {
+  /* Contorno más grueso (3px) para resaltar contenedores de mayor tamaño */
   outline: 3px dashed #3b82f6 !important;
   outline-offset: 4px !important;
   box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.3) !important;
+  /* Cursor de mano interactiva para indicar que el elemento completo es clickeable */
   cursor: pointer !important;
   transition: all 0.1s ease !important;
 }
 
+/* ----------------------------------------------------------------------------
+   CLASE: .qa-picker-selected-highlight
+   ----------------------------------------------------------------------------
+   Efecto visual de confirmación cuando un elemento ha sido seleccionado con éxito.
+   Aplica un borde verde esmeralda y dispara una animación de pulso expansivo.
+   ---------------------------------------------------------------------------- */
 .qa-picker-selected-highlight {
+  /* Contorno sólido verde esmeralda que comunica éxito y validación positiva */
   outline: 3px solid #10b981 !important;
   outline-offset: 3px !important;
   box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.3) !important;
+  /* Animación CSS que emite una onda de pulso durante 1.5 segundos con aceleración ease-out */
   animation: qa-pulse-selected 1.5s ease-out;
 }
 
+/* ----------------------------------------------------------------------------
+   ANIMACIÓN: @keyframes qa-pulse-selected
+   ----------------------------------------------------------------------------
+   Define los fotogramas clave de la onda expansiva alrededor del elemento seleccionado.
+   La sombra inicia pegada al borde y se expande gradualmente mientras se desvanece su opacidad.
+   ---------------------------------------------------------------------------- */
 @keyframes qa-pulse-selected {
   0% {
+    /* Inicio: sombra compacta sin desplazamiento pero con opacidad del 60% */
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
   }
   70% {
+    /* Pico intermedio: la sombra se expande a 10px de radio y se vuelve transparente */
     box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
   }
   100% {
+    /* Final: colapso total de la onda a radio 0 sin interferir visualmente */
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }
 }
 
+/* ----------------------------------------------------------------------------
+   ID: #qa-picker-tooltip
+   ----------------------------------------------------------------------------
+   Etiqueta flotante que sigue dinámicamente las coordenadas del cursor del ratón.
+   Exhibe el nombre técnico del campo, su tipo y si es requerido en el formulario.
+   ---------------------------------------------------------------------------- */
 #qa-picker-tooltip {
+  /* Posicionamiento fijo respecto a la ventana del navegador (viewport) */
   position: fixed;
+  /* Índice Z máximo en sistemas de 32 bits (2^31 - 1) para garantizar que flote
+     por encima de modales, headers fijos, iframes o canvases de la página web */
   z-index: 2147483647;
+  /* CRÍTICO: pointer-events: none hace al tooltip 'invisible' ante eventos de ratón,
+     evitando que interfiera con los eventos mouseover/click del elemento subyacente */
   pointer-events: none;
+  /* Paleta oscura de alto contraste con tipografía legible y sombras volumétricas */
   background: #0f172a;
   color: #f8fafc;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -48,12 +106,14 @@
   border-radius: 6px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.2);
   border: 1px solid #334155;
+  /* Disposición flexbox para alinear iconos, insignias y textos en una sola fila */
   display: flex;
   align-items: center;
   gap: 6px;
   line-height: 1.2;
 }
 
+/* Sub-elemento insignia dentro del tooltip (ejemplo: 'INPUT', 'SELECT', 'TEXTAREA') */
 #qa-picker-tooltip .qa-badge {
   background: #2563eb;
   color: white;
@@ -64,17 +124,27 @@
   text-transform: uppercase;
 }
 
+/* ----------------------------------------------------------------------------
+   ID: #qa-picker-banner
+   ----------------------------------------------------------------------------
+   Píldora flotante superior centrada horizontalmente que notifica al usuario
+   que el modo de selección está activo y le indica cómo cancelar con la tecla ESC.
+   ---------------------------------------------------------------------------- */
 #qa-picker-banner {
+  /* Posicionamiento fijo anclado a la parte superior de la ventana */
   position: fixed;
   top: 14px;
+  /* Centrado horizontal exacto mediante left: 50% y traslación inversa en X (-50%) */
   left: 50%;
   transform: translateX(-50%);
+  /* Nivel de apilamiento máximo para sobresalir de cualquier elemento de la página */
   z-index: 2147483647;
   background: #1e293b;
   color: #f8fafc;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13px;
   padding: 8px 18px;
+  /* Bordes completamente redondeados en forma de píldora (pill shape) */
   border-radius: 9999px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   border: 1px solid #3b82f6;
@@ -82,9 +152,11 @@
   align-items: center;
   gap: 10px;
   cursor: default;
+  /* Evita que el usuario seleccione el texto accidentalmente al interactuar */
   user-select: none;
 }
 
+/* Representación gráfica de teclas de teclado físico (<kbd>) dentro del banner */
 #qa-picker-banner kbd {
   background: #334155;
   color: #e2e8f0;
