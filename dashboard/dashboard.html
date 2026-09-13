@@ -1,27 +1,59 @@
 <!DOCTYPE html>
+<!-- =================================================================================================
+     ARCHIVO: dashboard/dashboard.html
+     PROPÓSITO: Estructura HTML de la página completa del Dashboard Ejecutivo de Auditoría QA.
+     ARQUITECTURA: Manifest V3 de Chromium (página nativa chrome-extension://).
+     
+     ¿QUÉ CONTIENE ESTE ARCHIVO?
+     1. Encabezado principal (<header class="dash-header">): Título, metadatos y botones de exportación/impresión.
+     2. Estado vacío (<div id="empty-state">): Mensaje orientador cuando no hay auditoría previa ejecutada.
+     3. Contenido principal (<main id="main-content">):
+        - Cuadrícula de KPIs (<section class="kpi-grid">): Métricas de robustez y severidades.
+        - Panel de distribución (<section class="dist-panel">): Espectro continuo, Donut Chart SVG y barras.
+        - Barra de herramientas (<section class="toolbar-section">): Búsqueda, filtros y selector de vista.
+        - Vista de Acordeones (<section id="categories-view-container">): Grupos colapsables por categoría.
+        - Vista de Tabla (<section id="table-view-container">): Tabla tabular de hallazgos con insignias.
+     4. Pie de página (<footer>): Metadatos y firma del sistema.
+     5. Carga de script externo (<script src="dashboard.js">): Lógica de renderizado y control.
+================================================================================================= -->
 <html lang="es">
 <head>
+  <!-- Juego de caracteres UTF-8: Permite acentos, símbolos ortográficos y caracteres internacionales -->
   <meta charset="utf-8">
+  <!-- Viewport responsive: Garantiza escalabilidad visual adecuada en diversas resoluciones de pantalla -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Título mostrado en la pestaña del navegador -->
   <title>Dashboard Ejecutivo de Auditoría QA</title>
+  <!-- Hoja de estilos externa para diseño oscuro en pantalla y estilos limpios de impresión PDF (@media print) -->
   <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
+  <!-- Contenedor general centrado de la interfaz del dashboard -->
   <div class="dashboard-wrap">
-    <!-- Header -->
+    
+    <!-- =============================================================================================
+         1. ENCABEZADO DEL DASHBOARD (HEADER)
+         Muestra la identidad del reporte, metadatos del formulario auditado y botones de acción rápida.
+    ============================================================================================= -->
     <header class="dash-header">
       <div class="dash-title-block">
+        <!-- Etiqueta decorativa superior -->
         <div class="dash-badge-tag">Auditoría Estructurada</div>
+        <!-- Título principal -->
         <h1 class="dash-title">Dashboard Ejecutivo de Riesgos y Calidad</h1>
+        <!-- Metadatos dinámicos: Se pueblan en tiempo real desde dashboard.js con nombre del form, campos y fecha -->
         <div class="dash-meta" id="dash-meta-info">
           Cargando datos de auditoría...
         </div>
       </div>
+      <!-- Barra de botones de acción: Oculta en impresión con la clase "no-print" -->
       <div class="dash-actions no-print">
+        <!-- Botón para copiar el JSON estructurado al portapapeles -->
         <button id="btn-copy-json" class="btn-action btn-export" title="Copiar informe en formato JSON estructurado">
           <svg class="action-icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           <span id="btn-copy-json-text">Copiar JSON</span>
         </button>
+        <!-- Botón para disparar el diálogo nativo de impresión o guardado como PDF -->
         <button id="btn-print-pdf" class="btn-action btn-print" title="Imprimir informe o guardar en PDF">
           <svg class="action-icon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
           <span>Imprimir / PDF</span>
@@ -29,7 +61,10 @@
       </div>
     </header>
 
-    <!-- Empty State -->
+    <!-- =============================================================================================
+         2. ESTADO VACÍO (EMPTY STATE)
+         Se muestra únicamente si se abre el dashboard sin haber ejecutado ninguna auditoría previa.
+    ============================================================================================= -->
     <div id="empty-state" class="empty-state" style="display: none;">
       <div class="empty-icon-box">
         <svg class="empty-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
@@ -38,35 +73,48 @@
       <p>Abre el panel lateral de la extensión, selecciona o detecta un formulario y ejecuta las pruebas para visualizar el análisis estructurado en este dashboard.</p>
     </div>
 
-    <!-- Main Content Container -->
+    <!-- =============================================================================================
+         3. CONTENEDOR PRINCIPAL DEL DASHBOARD (MAIN CONTENT)
+         Se vuelve visible en cuanto dashboard.js detecta y procesa datos válidos de auditoría.
+    ============================================================================================= -->
     <main id="main-content" style="display: none;">
-      <!-- KPI Executive Grid -->
+      
+      <!-- -------------------------------------------------------------------------------------------
+           SECCIÓN: CUADRÍCULA DE KPIS EJECUTIVOS (CARDS DE MÉTRICAS)
+           6 tarjetas interactivas que resumen la postura general de seguridad del formulario.
+      ------------------------------------------------------------------------------------------- -->
       <section class="kpi-grid">
+        <!-- Tarjeta 1: Puntuación de Robustez Global (0 a 100%) -->
         <div class="kpi-card card-score" id="kpi-card-score">
           <div class="kpi-card-header">Índice de Robustez</div>
           <div class="kpi-card-value" id="kpi-score-val">0%</div>
           <div class="kpi-card-footer" id="kpi-score-level">Calculando...</div>
         </div>
+        <!-- Tarjeta 2: Hallazgos de Seguridad Crítica (Inyecciones de código, XSS, SQLi, \0) -->
         <div class="kpi-card card-critical">
           <div class="kpi-card-header">Seguridad (Crítico)</div>
           <div class="kpi-card-value" id="kpi-critical-val">0</div>
           <div class="kpi-card-footer">Inyecciones XSS, SQLi, \0</div>
         </div>
+        <!-- Tarjeta 3: Hallazgos de Capacidad y DoS (Buffer overflows, cargas de 1k/5k chars sin maxlength) -->
         <div class="kpi-card card-high">
           <div class="kpi-card-header">Capacidad (Alto)</div>
           <div class="kpi-card-value" id="kpi-high-val">0</div>
           <div class="kpi-card-footer">Sobrecargas y DoS</div>
         </div>
+        <!-- Tarjeta 4: Hallazgos de Integridad y Formato (Espacios en blanco, caracteres invisibles, reglas) -->
         <div class="kpi-card card-medium">
           <div class="kpi-card-header">Formato & Negocio</div>
           <div class="kpi-card-value" id="kpi-medium-val">0</div>
           <div class="kpi-card-footer">Unicode, Espacios, Reglas</div>
         </div>
+        <!-- Tarjeta 5: Pruebas Conformes y Seguras (Validaciones activas o entradas legítimas válidas) -->
         <div class="kpi-card card-safe">
           <div class="kpi-card-header">Defensas Conformes</div>
           <div class="kpi-card-value" id="kpi-safe-val">0</div>
           <div class="kpi-card-footer">Restringidas o Estándar</div>
         </div>
+        <!-- Tarjeta 6: Total acumulado de evaluaciones efectuadas -->
         <div class="kpi-card card-total">
           <div class="kpi-card-header">Total Evaluaciones</div>
           <div class="kpi-card-value" id="kpi-total-val">0</div>
@@ -74,8 +122,12 @@
         </div>
       </section>
 
-      <!-- Specialized Visual Risk Distribution Panel -->
+      <!-- -------------------------------------------------------------------------------------------
+           SECCIÓN: DISTRIBUCIÓN VISUAL ESPECIALIZADA DE RIESGOS POR SEVERIDAD
+           Combina una barra de flujo continua, un gráfico circular Donut SVG y 4 tarjetas de barras.
+      ------------------------------------------------------------------------------------------- -->
       <section class="dist-panel">
+        <!-- Encabezado del panel de distribución con icono, título y badge de diagnóstico -->
         <div class="dist-header">
           <div class="dist-header-title-wrap">
             <svg class="dist-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -87,10 +139,11 @@
               <span class="dist-desc">Proporción analítica por nivel de impacto y criticidad técnica</span>
             </div>
           </div>
+          <!-- Mensaje resumen de salud -->
           <span class="dist-subtitle" id="dist-health-msg">Diagnóstico general</span>
         </div>
 
-        <!-- Continuous Spectrum Flow Bar -->
+        <!-- Barra continua de espectro proporcional superior -->
         <div class="dist-bar-track-wrap">
           <div class="dist-bar-track">
             <div id="dist-bar-crit" class="bar-seg seg-critical" style="width: 0%;" title="Seguridad (Crítico)"></div>
@@ -100,21 +153,21 @@
           </div>
         </div>
 
-        <!-- Dual Specialized Visualizations: Circular Donut Chart + Detailed Severity Bars -->
+        <!-- Cuadrícula responsive de doble componente: Donut circular a la izquierda, barras a la derecha -->
         <div class="dist-charts-grid">
           
-          <!-- Column 1: Interactive SVG Donut Chart -->
+          <!-- COLUMNA 1: Gráfico Circular Vectorial Donut SVG interactivo -->
           <div class="chart-col-donut">
             <div class="donut-chart-wrap">
               <svg class="donut-svg" viewBox="0 0 200 200" width="180" height="180" role="img" aria-label="Gráfico circular de distribución de severidad">
-                <!-- Track background circle -->
+                <!-- Círculo base de riel oscuro (fondo) -->
                 <circle cx="100" cy="100" r="68" class="donut-bg-circle" />
-                <!-- Dynamic Segments -->
+                <!-- Segmentos dinámicos trazados con stroke-dasharray en dashboard.js -->
                 <circle id="donut-seg-crit" cx="100" cy="100" r="68" class="donut-slice slice-critical" />
                 <circle id="donut-seg-high" cx="100" cy="100" r="68" class="donut-slice slice-high" />
                 <circle id="donut-seg-med" cx="100" cy="100" r="68" class="donut-slice slice-medium" />
                 <circle id="donut-seg-safe" cx="100" cy="100" r="68" class="donut-slice slice-safe" />
-                <!-- Donut Center Content -->
+                <!-- Centro del anillo con valor de robustez, etiqueta y total -->
                 <g class="donut-center-group">
                   <text x="100" y="88" text-anchor="middle" id="donut-score-val" class="donut-text-val">0%</text>
                   <text x="100" y="105" text-anchor="middle" id="donut-score-lbl" class="donut-text-lbl">ROBUSTEZ</text>
@@ -122,6 +175,7 @@
                 </g>
               </svg>
             </div>
+            <!-- Leyenda cuadrante debajo del Donut con porcentajes dinámicos -->
             <div class="donut-legend-tags">
               <span class="donut-tag-item"><span class="legend-dot" style="background:#ef4444;"></span> Seguridad (<span id="donut-crit-pct">0%</span>)</span>
               <span class="donut-tag-item"><span class="legend-dot" style="background:#f43f5e;"></span> Capacidad (<span id="donut-high-pct">0%</span>)</span>
@@ -130,10 +184,10 @@
             </div>
           </div>
 
-          <!-- Column 2: Detailed Severity Horizontal Bar Cards -->
+          <!-- COLUMNA 2: Tarjetas Analíticas de Barras de Severidad con contexto técnico -->
           <div class="chart-col-bars">
             
-            <!-- Item 1: Seguridad (Crítico) -->
+            <!-- Tarjeta de Severidad 1: Seguridad e Inyecciones (Crítico) -->
             <div class="sev-bar-card sev-card-critical">
               <div class="sev-card-top">
                 <div class="sev-card-meta">
@@ -150,7 +204,7 @@
               <div class="sev-card-desc">Falta de filtrado en entradas frente a inyecciones XSS, SQL o vectores de escape.</div>
             </div>
 
-            <!-- Item 2: Capacidad (Alto) -->
+            <!-- Tarjeta de Severidad 2: Capacidad y Resistencia DoS (Alto) -->
             <div class="sev-bar-card sev-card-high">
               <div class="sev-card-top">
                 <div class="sev-card-meta">
@@ -167,7 +221,7 @@
               <div class="sev-card-desc">Admisión de sobrecarga masiva (1,000 / 5,000 caracteres) sin límite maxlength preventivo.</div>
             </div>
 
-            <!-- Item 3: Integridad / Formato (Medio) -->
+            <!-- Tarjeta de Severidad 3: Integridad y Lógica de Negocio (Medio) -->
             <div class="sev-bar-card sev-card-medium">
               <div class="sev-card-top">
                 <div class="sev-card-meta">
@@ -184,7 +238,7 @@
               <div class="sev-card-desc">Omisión de recorte .trim(), falta de restricción alfabética o caracteres invisibles de evasión.</div>
             </div>
 
-            <!-- Item 4: Conforme / Seguro -->
+            <!-- Tarjeta de Severidad 4: Validaciones Efectivas y Seguras (Conforme) -->
             <div class="sev-bar-card sev-card-safe">
               <div class="sev-card-top">
                 <div class="sev-card-meta">
@@ -205,12 +259,17 @@
         </div>
       </section>
 
-      <!-- Filter and View Controls -->
+      <!-- -------------------------------------------------------------------------------------------
+           SECCIÓN: BARRA DE HERRAMIENTAS (BÚSQUEDA, FILTROS Y CONMUTADOR DE VISTA)
+           Permite explorar hallazgos de forma interactiva (oculta en PDF/impresión con "no-print").
+      ------------------------------------------------------------------------------------------- -->
       <section class="toolbar-section no-print">
+        <!-- Buscador en tiempo real por texto -->
         <div class="search-box-wrap">
           <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           <input type="text" id="search-input" class="search-input" placeholder="Buscar por campo, prueba, carga o recomendación...">
         </div>
+        <!-- Píldoras para filtrar por categoría -->
         <div class="filter-pills-wrap">
           <button class="pill-btn active" data-filter="all">Todos</button>
           <button class="pill-btn" data-filter="security">Seguridad</button>
@@ -219,6 +278,7 @@
           <button class="pill-btn" data-filter="logic">Lógica / Formato</button>
           <button class="pill-btn" data-filter="conforme">Conformes</button>
         </div>
+        <!-- Conmutador para alternar entre vista de Acordeones y vista de Tabla -->
         <div class="view-switch-wrap">
           <button id="btn-view-categories" class="view-mode-btn active" title="Ver por categorías de riesgo">
             <svg class="view-icon" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
@@ -231,12 +291,18 @@
         </div>
       </section>
 
-      <!-- View: Categorized Accordions -->
+      <!-- -------------------------------------------------------------------------------------------
+           VISTA 1: ACORDEONES POR CATEGORÍA DE RIESGO
+           Se puebla dinámicamente desde dashboard.js mediante renderCategories().
+      ------------------------------------------------------------------------------------------- -->
       <section id="categories-view-container" class="categories-view">
         <div id="risk-categories-root"></div>
       </section>
 
-      <!-- View: Detailed Table -->
+      <!-- -------------------------------------------------------------------------------------------
+           VISTA 2: TABLA DETALLADA DE AUDITORÍA
+           Se muestra al conmutar a "Tabla". Diseñada para análisis exhaustivo y exportación a PDF.
+      ------------------------------------------------------------------------------------------- -->
       <section id="table-view-container" class="table-view" style="display: none;">
         <div class="table-card">
           <div class="table-scroll">
@@ -251,6 +317,7 @@
                   <th style="width: 17%;">Recomendación Técnica</th>
                 </tr>
               </thead>
+              <!-- El cuerpo de la tabla se genera dinámicamente en dashboard.js mediante renderTable() -->
               <tbody id="audit-table-body">
               </tbody>
             </table>
@@ -259,13 +326,16 @@
       </section>
     </main>
 
-    <!-- Footer -->
+    <!-- =============================================================================================
+         4. PIE DE PÁGINA (FOOTER)
+    ============================================================================================= -->
     <footer class="dash-footer">
       <div>QA Form Field Validator &bull; Motor de Diagnósticos Granular v1.0.0</div>
       <div class="footer-sub">Generado bajo arquitectura nativa Google Chrome Manifest V3</div>
     </footer>
   </div>
 
+  <!-- Script principal del dashboard: Se enlaza al final del documento para carga no bloqueante -->
   <script src="dashboard.js"></script>
 </body>
 </html>
