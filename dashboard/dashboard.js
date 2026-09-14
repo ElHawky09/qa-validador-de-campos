@@ -169,7 +169,7 @@ function setupUIEventListeners() {
   const btnPrintPdf = document.getElementById('btn-print-pdf');
   if (btnPrintPdf) {
     btnPrintPdf.addEventListener('click', () => {
-      window.print(); // Invoca el diálogo nativo de impresión del sistema operativo
+      window.print(); // Invoca el diálogo nativo de impresión del sistema operativo (genera exclusivamente el formato de categorías).
     });
   }
 

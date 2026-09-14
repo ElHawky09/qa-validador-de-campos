@@ -1401,97 +1401,28 @@ body {
     border: 1px solid #a7f3d0 !important;
   }
 
-  /* Detailed Table in Print */
-  .audit-table th {
-    background: #f1f5f9 !important;
-    color: #0f172a !important;
-    border-bottom: 2px solid #cbd5e1 !important;
+  /* ==========================================================================
+     VISTA EXCLUSIVA EN IMPRESIÓN / PDF: FORMATO DE CATEGORÍAS
+     Se fuerza que el PDF siempre se genere en el formato estructurado de categorías
+     (el más completo) y se elimina por completo el formato de PDF de tabla.
+     Incluso si el usuario tiene seleccionada la vista de Tabla en la interfaz interactiva,
+     el documento PDF generado imprimirá únicamente la vista de categorías.
+     ========================================================================== */
+  #categories-view-container {
+    display: block !important;
   }
 
-  .audit-table td {
-    border-bottom: 1px solid #e2e8f0 !important;
-    color: #0f172a !important;
+  #table-view-container,
+  .table-view {
+    display: none !important;
   }
 
-  .audit-table td code {
-    background: #f1f5f9 !important;
-    color: #0f172a !important;
-    border: 1px solid #e2e8f0 !important;
+  .cat-section {
+    display: block !important;
   }
 
-  .table-card {
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 8px !important;
-  }
-
-  /* Table Category Badges in Print */
-  .cat-pill {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    font-weight: 700 !important;
-    border-radius: 4px !important;
-    padding: 3px 7px !important;
-    font-size: 10px !important;
-  }
-
-  .cat-pill-dot {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .cat-pill-security {
-    background: #fee2e2 !important;
-    color: #b91c1c !important;
-    border: 1px solid #fca5a5 !important;
-  }
-
-  .cat-pill-capacity {
-    background: #ffe4e6 !important;
-    color: #be123c !important;
-    border: 1px solid #fda4af !important;
-  }
-
-  .cat-pill-integrity,
-  .cat-pill-logic {
-    background: #fef3c7 !important;
-    color: #b45309 !important;
-    border: 1px solid #fcd34d !important;
-  }
-
-  .cat-pill-safe {
-    background: #d1fae5 !important;
-    color: #047857 !important;
-    border: 1px solid #a7f3d0 !important;
-  }
-
-  /* Table Row Borders and Tints in Print */
-  .audit-table tbody tr.row-cat-security {
-    border-left: 6px solid #ef4444 !important;
-    background: #fff5f5 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .audit-table tbody tr.row-cat-capacity {
-    border-left: 6px solid #f43f5e !important;
-    background: #fff1f2 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .audit-table tbody tr.row-cat-integrity,
-  .audit-table tbody tr.row-cat-format_logic {
-    border-left: 6px solid #f59e0b !important;
-    background: #fffdf0 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .audit-table tbody tr.row-cat-conforme {
-    border-left: 6px solid #10b981 !important;
-    background: #f0fdf4 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  .finding-card {
+    display: block !important;
   }
 
   .dash-footer {
