@@ -351,15 +351,7 @@ function renderSpecializedDistribution(metrics, p, totalTests, score) {
     donutTotalTests.textContent = `${totalTests} ${totalTests === 1 ? 'Prueba' : 'Pruebas'}`;
   }
 
-  // Etiquetas con porcentajes bajo el Donut
-  const elCritPct = document.getElementById('donut-crit-pct');
-  const elHighPct = document.getElementById('donut-high-pct');
-  const elMedPct = document.getElementById('donut-med-pct');
-  const elSafePct = document.getElementById('donut-safe-pct');
-  if (elCritPct) elCritPct.textContent = `${p.criticos}%`;
-  if (elHighPct) elHighPct.textContent = `${p.altos}%`;
-  if (elMedPct) elMedPct.textContent = `${p.medios}%`;
-  if (elSafePct) elSafePct.textContent = `${p.seguros}%`;
+
 
   // Círculos SVG de cada segmento
   const segCrit = document.getElementById('donut-seg-crit');
