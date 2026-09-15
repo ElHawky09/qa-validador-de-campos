@@ -316,9 +316,10 @@ function Convert-CommitToChangelogItem {
     $cleanSubject = Remove-Emojis $Subject
     $cleanBody    = Remove-Emojis $Body
 
-    # Omitir confirmaciones de fusion, ramas o meta-confirmaciones de release
+    # Omitir confirmaciones de fusion, ramas, meta-confirmaciones de release o del propio changelog
     if ($cleanSubject -match '^(?:merge|checkout|branch)\b' -or
         $cleanSubject -match '^(?:chore\(release\)|release(?:\([^)]*\))?|bump(?:\([^)]*\))?)\b' -or
+        $cleanSubject -match '^(?:docs|chore|style|ci)\(changelog\):' -or
         $cleanSubject -match '\[skip changelog\]' -or $cleanBody -match '\[skip changelog\]') {
         return $null
     }
