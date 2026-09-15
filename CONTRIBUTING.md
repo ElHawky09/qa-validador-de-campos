@@ -271,7 +271,9 @@ Para prevenir ambigüedades y garantizar análisis automatizados limpios:
 
 ### Verificación Obligatoria Mediante Script Automatizado (check_js.ps1)
 
-Antes de efectuar cualquier confirmación (`git commit`) o solicitar la integración de código, es **mandatorio** ejecutar la verificación automatizada de balance de delimitadores en todos los archivos `.js` del repositorio.
+Antes de efectuar cualquier confirmación (`git commit`) o solicitar la integración de código, es **mandatorio** ejecutar la verificación automatizada de balance de delimitadores en todos los archivos `.js` del repositorio y la integridad estricta de `manifest.json`.
+
+El script de verificación se encuentra ubicado físicamente en la raíz del repositorio bajo el nombre [`check_js.ps1`](check_js.ps1).
 
 #### Instrucciones de Ejecución en PowerShell
 Abra una consola de PowerShell en la raíz del proyecto y ejecute:
@@ -280,7 +282,7 @@ powershell -ExecutionPolicy Bypass -File .\check_js.ps1
 ```
 
 #### Código Fuente del Script de Verificación (check_js.ps1)
-En caso de requerir su ejecución directa, auditoría o integración en entornos de integración continua, el algoritmo de inspección estructurado es el siguiente:
+En caso de requerir su ejecución directa, auditoría o integración en entornos de integración continua (CI/CD), el algoritmo de inspección estructurado provisto en `check_js.ps1` es el siguiente:
 
 ```powershell
 # ==============================================================================
@@ -288,8 +290,7 @@ En caso de requerir su ejecución directa, auditoría o integración en entornos
 # Proyecto: QA Form Field Validator
 # ==============================================================================
 
-$repoRoot = $PSScriptRoot
-if (-not $repoRoot) { $repoRoot = Get-Location }
+$repoRoot = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
 
 $jsFiles = Get-ChildItem -Path $repoRoot -Recurse -Filter *.js | Where-Object { $_.FullName -notmatch '\\\.git\\' }
 $hasError = $false
@@ -320,16 +321,35 @@ foreach ($file in $jsFiles) {
     }
 }
 
+# Verificacion estricta de manifest.json (Chromium Manifest V3)
+$manifestPath = Join-Path $repoRoot "manifest.json"
+if (Test-Path $manifestPath) {
+    Write-Host "`nArchivo: manifest.json"
+    $manifestText = [System.IO.File]::ReadAllText($manifestPath)
+    if ($manifestText -match '//' -or $manifestText -match '/\*') {
+        Write-Host "  ==> ERROR: Comentarios detectados en manifest.json (prohibidos en Chromium)" -ForegroundColor Red
+        $hasError = $true
+    } else {
+        try {
+            $null = ConvertFrom-Json -InputObject $manifestText -ErrorAction Stop
+            Write-Host "  ==> JSON ESTRICTO SIN COMENTARIOS OK" -ForegroundColor Green
+        } catch {
+            Write-Host "  ==> ERROR: manifest.json no es un JSON valido: $_" -ForegroundColor Red
+            $hasError = $true
+        }
+    }
+}
+
 if ($hasError) {
-    Write-Host "`nFallo de verificacion: Existen archivos JavaScript con delimitadores desbalanceados.`n" -ForegroundColor Red
+    Write-Host "`nFallo de verificacion: Existen componentes con errores sintacticos o desbalance.`n" -ForegroundColor Red
     exit 1
 } else {
-    Write-Host "`nVerificacion exitosa: Todos los archivos JavaScript mantienen balance perfecto de delimitadores.`n" -ForegroundColor Green
+    Write-Host "`nVerificacion exitosa: Todos los archivos verificados mantienen balance perfecto y sintaxis integra.`n" -ForegroundColor Green
     exit 0
 }
 ```
 
-**Criterio de Rechazo:** Ningún Pull Request que presente desbalances en sus archivos JavaScript será admitido para su fusión.
+**Criterio de Rechazo:** Ningún Pull Request que presente desbalances en sus archivos JavaScript o comentarios en `manifest.json` será admitido para su fusión.
 
 ### Prohibición Taxativa de Comentarios en manifest.json
 
