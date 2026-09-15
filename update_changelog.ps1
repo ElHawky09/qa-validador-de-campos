@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # Script de Automatizacion de Registro de Cambios (Changelog) y Control de Versiones
 # Proyecto: QA Form Field Validator
 # Estandares: Keep a Changelog 1.1.0 y Semantic Versioning 2.0.0 (SemVer)
@@ -14,7 +14,7 @@ param(
     [string]$ReleaseVersion,
 
     [Parameter(ParameterSetName = 'Bump', Mandatory = $true)]
-    [ValidateSet('major', 'minor', 'patch')]
+    [ValidateSet('major', 'minor', 'patch', 'auto')]
     [string]$Bump,
 
     [Parameter(ParameterSetName = 'GenerateHistory')]
@@ -42,6 +42,12 @@ param(
     [string]$ManifestFile = 'manifest.json',
 
     [Parameter()]
+    [switch]$CreateTag,
+
+    [Parameter()]
+    [switch]$Force,
+
+    [Parameter()]
     [switch]$DryRun
 )
 
@@ -62,8 +68,8 @@ $EmojiPattern = '[\uD83C-\uD83F][\uDC00-\uDFFF]|[\u2600-\u27BF]|[\u2300-\u23FF]|
 # Patron de validacion para Semantic Versioning 2.0.0
 $SemVerPattern = '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
 
-# Cadenas con acentos y caracteres especiales espanoles mediante codigos de caracter
-$script:CatAnadido      = 'A' + [char]0x00F1 + 'adido'
+# Cadenas normativas con caracteres especiales espanoles mediante codigos de escape
+$script:CatAnadido       = 'A' + [char]0x00F1 + 'adido'
 $script:CatDocumentacion = 'Documentaci' + [char]0x00F3 + 'n'
 $CategoryOrder = @($script:CatAnadido, 'Cambiado', 'Corregido', 'Seguridad', $script:CatDocumentacion)
 
@@ -102,17 +108,60 @@ function Test-SemVerFormat {
     return ($Version -match $SemVerPattern)
 }
 
+function Compare-SemVer {
+    param(
+        [string]$VersionA,
+        [string]$VersionB
+    )
+    if (-not ($VersionA -match '^(\d+)\.(\d+)\.(\d+)')) {
+        throw "Version A invalida para comparacion SemVer: $VersionA"
+    }
+    [int]$majA = [int]$matches[1]
+    [int]$minA = [int]$matches[2]
+    [int]$patA = [int]$matches[3]
+
+    if (-not ($VersionB -match '^(\d+)\.(\d+)\.(\d+)')) {
+        throw "Version B invalida para comparacion SemVer: $VersionB"
+    }
+    [int]$majB = [int]$matches[1]
+    [int]$minB = [int]$matches[2]
+    [int]$patB = [int]$matches[3]
+
+    if ($majA -ne $majB) { return ($majA - $majB) }
+    if ($minA -ne $minB) { return ($minA - $minB) }
+    return ($patA - $patB)
+}
+
 function Get-NextSemVer {
     param(
         [string]$CurrentVersion,
-        [string]$Type
+        [string]$Type,
+        [array]$PendingCommits = @()
     )
     if ($CurrentVersion -match '^(\d+)\.(\d+)\.(\d+)') {
         [int]$major = [int]$matches[1]
         [int]$minor = [int]$matches[2]
         [int]$patch = [int]$matches[3]
 
-        switch ($Type.ToLower()) {
+        $resolvedType = $Type.ToLower()
+        if ($resolvedType -eq 'auto') {
+            $hasBreaking = $false
+            $hasFeat = $false
+            foreach ($c in $PendingCommits) {
+                if ($c.IsBreaking) { $hasBreaking = $true }
+                if ($c.Type -in @('feat', 'feature')) { $hasFeat = $true }
+            }
+            if ($hasBreaking) {
+                $resolvedType = 'major'
+            } elseif ($hasFeat) {
+                $resolvedType = 'minor'
+            } else {
+                $resolvedType = 'patch'
+            }
+            Write-Host "  [AUTO] Tipo de incremento detectado automaticamente: $resolvedType" -ForegroundColor Cyan
+        }
+
+        switch ($resolvedType) {
             'major' { return "$($major + 1).0.0" }
             'minor' { return "$major.$($minor + 1).0" }
             'patch' { return "$major.$minor.$($patch + 1)" }
@@ -134,8 +183,8 @@ function Get-ManifestData {
     }
     $rawText = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
 
-    # Validacion estricta: prohibicion de comentarios en Chromium Manifest V3
-    if ($rawText -match '//' -or $rawText -match '/\*') {
+    # Prohibicion de comentarios en Chromium Manifest V3 (sin falsos positivos en URLs http/https)
+    if ($rawText -match '(?m)^\s*//' -or $rawText -match '(?m)^\s*/\*' -or $rawText -match '(?<!https?:)//') {
         throw "manifest.json contiene comentarios de codigo (no admitidos en Chromium)"
     }
 
@@ -165,7 +214,7 @@ function Update-ManifestVersionSafe {
     $manifest = Get-ManifestData -Path $Path
     $rawText  = $manifest.Raw
 
-    # Sustitucion segura de la clave version preservando espaciado y estructura
+    # Sustitucion segura de la clave version como propiedad JSON exacta
     $regexPattern = '("version"\s*:\s*)"[^"]+"'
     if (-not ($rawText -match $regexPattern)) {
         throw "No se localizo la propiedad 'version' en manifest.json para su actualizacion"
@@ -204,7 +253,7 @@ function Get-GitRepoUrl {
         $remoteOutput = git -C $Dir remote get-url origin 2>$null
         if ($remoteOutput) {
             $cleaned = $remoteOutput.Trim()
-            if ($cleaned -match '^git@([^:]+):(.+)\.git$') {
+            if ($cleaned -match '^git@([^:]+):(.+?)(?:\.git)?$') {
                 return "https://$($matches[1])/$($matches[2])"
             }
             if ($cleaned.EndsWith('.git')) {
@@ -222,26 +271,33 @@ function Get-GitCommitList {
         [string]$From,
         [string]$To
     )
-    $gitArgs = @('log', '--reverse', '--format=%H|%as|%s')
+    # Emplea delimitadores ASCII seguros: Record Separator (0x1e) y Unit Separator (0x1f)
+    $formatArg = '--format=%H%x1f%as%x1f%s%x1f%b%x1e'
+    $gitArgs = @('log', '--reverse', $formatArg)
     if ($From) {
         $gitArgs += "$From..$To"
     } else {
         $gitArgs += $To
     }
 
-    $rawLines = git -C $Dir @gitArgs 2>$null
+    $rawOutput = git -C $Dir @gitArgs 2>$null
+    if (-not $rawOutput) { return @() }
+
+    $allText = ($rawOutput -join "`n")
+    $records = $allText -split [char]0x1e
     $commits = @()
 
-    foreach ($line in $rawLines) {
-        if ([string]::IsNullOrWhiteSpace($line)) { continue }
-        $parts = $line -split '\|', 3
-        if ($parts.Count -lt 3) { continue }
+    foreach ($record in $records) {
+        if ([string]::IsNullOrWhiteSpace($record)) { continue }
+        $fields = $record -split [char]0x1f
+        if ($fields.Count -lt 3) { continue }
 
-        $hash    = $parts[0].Trim()
-        $date    = $parts[1].Trim()
-        $subject = $parts[2].Trim()
+        $hash    = $fields[0].Trim()
+        $date    = $fields[1].Trim()
+        $subject = $fields[2].Trim()
+        $body    = if ($fields.Count -ge 4) { $fields[3].Trim() } else { '' }
 
-        $parsed = Convert-CommitToChangelogItem -Hash $hash -Date $date -Subject $subject
+        $parsed = Convert-CommitToChangelogItem -Hash $hash -Date $date -Subject $subject -Body $body
         if ($parsed) {
             $commits += $parsed
         }
@@ -254,34 +310,48 @@ function Convert-CommitToChangelogItem {
     param(
         [string]$Hash,
         [string]$Date,
-        [string]$Subject
+        [string]$Subject,
+        [string]$Body = ''
     )
-    # Limpieza rigurosa de emojis en el mensaje de confirmacion
     $cleanSubject = Remove-Emojis $Subject
+    $cleanBody    = Remove-Emojis $Body
 
-    $type  = ''
-    $scope = ''
-    $desc  = ''
+    # Omitir confirmaciones de fusion, ramas o meta-confirmaciones de release
+    if ($cleanSubject -match '^(?:merge|checkout|branch)\b' -or
+        $cleanSubject -match '^(?:chore\(release\)|release(?:\([^)]*\))?|bump(?:\([^)]*\))?)\b' -or
+        $cleanSubject -match '\[skip changelog\]' -or $cleanBody -match '\[skip changelog\]') {
+        return $null
+    }
 
-    # Patron Conventional Commits: tipo(alcance): descripcion
+    $type       = ''
+    $scope      = ''
+    $desc       = ''
+    $isBreaking = $false
+
+    # Deteccion de cambios disruptivos en cuerpo
+    if ($cleanBody -match '(?m)^BREAKING[\s-]CHANGE:\s*(.+)$') {
+        $isBreaking = $true
+    }
+
+    # Patron Conventional Commits: tipo(alcance)!: descripcion
     if ($cleanSubject -match '^(?<type>[a-zA-Z]+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?:\s*(?<desc>.+)$') {
         $type  = $matches['type'].ToLower()
         $scope = if ($matches['scope']) { $matches['scope'].Trim().ToLower() } else { '' }
         $desc  = $matches['desc'].Trim()
+        if ($matches['breaking']) {
+            $isBreaking = $true
+        }
     } else {
-        # Commits sin prefijo convencional estructurado
         $desc = $cleanSubject.Trim()
         if ($desc -match '^Initial commit') {
             $type = 'feat'
             $desc = 'Version inicial de la plataforma QA Form Field Validator'
-        } elseif ($desc -match '^(?:merge|checkout|branch)') {
-            return $null
         } else {
             $type = 'chore'
         }
     }
 
-    # Normalizacion tipografica: primera letra en mayuscula y puntuacion final
+    # Normalizacion tipografica: mayuscula inicial y punto final
     if ($desc.Length -gt 0) {
         $firstChar = $desc.Substring(0, 1).ToUpper()
         $tail = if ($desc.Length -gt 1) { $desc.Substring(1) } else { '' }
@@ -291,9 +361,9 @@ function Convert-CommitToChangelogItem {
         }
     }
 
-    # Mapeo normativo a categorias de Keep a Changelog 1.1.0
+    # Mapeo normativo a categorias Keep a Changelog 1.1.0
     $category = 'Cambiado'
-    if ($cleanSubject -match '\b(?:csp|seguridad|security|vulnerab|cve)\b') {
+    if ($type -in @('sec', 'security') -or $cleanSubject -match '\b(?:csp|seguridad|security|vulnerab|cve)\b') {
         $category = 'Seguridad'
     } elseif ($type -in @('feat', 'feature')) {
         $category = $script:CatAnadido
@@ -313,47 +383,39 @@ function Convert-CommitToChangelogItem {
         Scope       = $scope
         Description = $desc
         Category    = $category
+        IsBreaking  = $isBreaking
         RawSubject  = $cleanSubject
     }
 }
 
 function Format-MarkdownBullet {
     param($Item)
+    $breakingPrefix = if ($Item.IsBreaking) { '**[CAMBIO DISRUPTIVO]** ' } else { '' }
     if ($Item.Scope) {
-        return "- **$($Item.Scope):** $($Item.Description)"
+        return "- **$($Item.Scope):** $breakingPrefix$($Item.Description)"
     } else {
-        return "- $($Item.Description)"
+        return "- $breakingPrefix$($Item.Description)"
     }
 }
 
 # ------------------------------------------------------------------------------
-# 6. Funciones de Estructuracion de CHANGELOG.md
+# 6. Funciones de Estructuracion y Parseo de CHANGELOG.md
 # ------------------------------------------------------------------------------
-
-function Get-ChangelogExistingDescriptions {
-    param([string]$Content)
-    $lines = $Content -split "`r?`n"
-    $descriptions = @()
-    foreach ($line in $lines) {
-        if ($line -match '^\s*-\s+(?:\*\*[^*]+\*\*:\s*)?(.+)$') {
-            $descriptions += $matches[1].Trim()
-        }
-    }
-    return ,$descriptions
-}
 
 function Get-ChangelogReleases {
     param([string]$Content)
     $lines = $Content -split "`r?`n"
     $releases = @()
-    foreach ($line in $lines) {
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]
         if ($line -match '^##\s*\[([^\]]+)\](?:\s*-\s*(\d{4}-\d{2}-\d{2}))?') {
             $ver = $matches[1].Trim()
             $dt  = if ($matches[2]) { $matches[2].Trim() } else { '' }
             if ($ver -ne 'Sin publicar' -and $ver -ne 'Unreleased') {
                 $releases += [PSCustomObject]@{
-                    Version = $ver
-                    Date    = $dt
+                    Version   = $ver
+                    Date      = $dt
+                    LineIndex = $i
                 }
             }
         }
@@ -361,67 +423,123 @@ function Get-ChangelogReleases {
     return ,$releases
 }
 
-function Test-CommitIsRecordedInChangelog {
-    param(
-        [string]$ChangelogContent,
-        $Commit
-    )
-    # Comprobar coincidencia por hash corto
-    if ($ChangelogContent -match [regex]::Escape($Commit.ShortHash)) {
-        return $true
+function Parse-SectionCategoryMap {
+    param([string[]]$SectionLines)
+    $catMap = [ordered]@{}
+    foreach ($c in $CategoryOrder) {
+        $catMap[$c] = [System.Collections.Generic.List[string]]::new()
     }
-    # Comprobar coincidencia por descripcion
-    if ($ChangelogContent -match [regex]::Escape($Commit.Description)) {
-        return $true
-    }
-    # Comprobar coincidencia por palabras clave del asunto
-    $subj = $Commit.RawSubject.Trim().ToLower()
-    if ($subj.Length -gt 18) {
-        $sample = $subj.Substring(0, [Math]::Min(28, $subj.Length))
-        if ($ChangelogContent.ToLower().Contains($sample)) {
-            return $true
+
+    $currentCategory = $null
+    foreach ($line in $SectionLines) {
+        $trimmed = $line.Trim()
+        if ($trimmed -match '^###\s+(.+)$') {
+            $matchedHeader = $matches[1].Trim()
+            $canonical = $CategoryOrder | Where-Object { $_ -ieq $matchedHeader }
+            if ($canonical) {
+                $currentCategory = $canonical
+            } else {
+                $currentCategory = $matchedHeader
+                if (-not $catMap.Contains($currentCategory)) {
+                    $catMap[$currentCategory] = [System.Collections.Generic.List[string]]::new()
+                }
+            }
+            continue
+        }
+
+        if ($trimmed -match '^-\s+(.+)$') {
+            $bulletText = $trimmed
+            if ($currentCategory) {
+                $catMap[$currentCategory].Add($bulletText)
+            } else {
+                $catMap['Cambiado'].Add($bulletText)
+            }
         }
     }
-    return $false
+
+    return $catMap
 }
 
-function Build-VersionMarkdownBlock {
+function Format-CategoryMapToBlock {
     param(
-        [string]$VersionHeading,
-        [array]$Items
+        [string]$Heading,
+        $CategoryMap
     )
-    $blockLines = @($VersionHeading, "")
-    $grouped = @{}
-    foreach ($cat in $CategoryOrder) {
-        $grouped[$cat] = @()
-    }
+    $blockLines = @($Heading, "")
+    $hasEntries = $false
 
-    foreach ($item in $Items) {
-        $cat = $item.Category
-        if (-not $grouped.ContainsKey($cat)) {
-            $grouped[$cat] = @()
-        }
-        $grouped[$cat] += $item
-    }
-
-    $hasContent = $false
     foreach ($cat in $CategoryOrder) {
-        $catItems = $grouped[$cat]
-        if ($catItems -and $catItems.Count -gt 0) {
-            $hasContent = $true
+        if ($CategoryMap.Contains($cat) -and $CategoryMap[$cat].Count -gt 0) {
+            $hasEntries = $true
             $blockLines += "### $cat"
-            foreach ($item in $catItems) {
-                $blockLines += (Format-MarkdownBullet -Item $item)
+            foreach ($bullet in $CategoryMap[$cat]) {
+                $blockLines += $bullet
             }
             $blockLines += ""
         }
     }
 
-    if (-not $hasContent) {
-        return @($VersionHeading, "")
+    foreach ($key in $CategoryMap.Keys) {
+        if ($key -notin $CategoryOrder -and $CategoryMap[$key].Count -gt 0) {
+            $hasEntries = $true
+            $blockLines += "### $key"
+            foreach ($bullet in $CategoryMap[$key]) {
+                $blockLines += $bullet
+            }
+            $blockLines += ""
+        }
+    }
+
+    if (-not $hasEntries) {
+        return @($Heading, "")
     }
 
     return $blockLines
+}
+
+function Get-ReleasedDescriptions {
+    param([string]$Content)
+    $lines = $Content -split "`r?`n"
+    $firstRelIndex = -1
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -match '^##\s*\[(?!Sin publicar|Unreleased)[^\]]+\]') {
+            $firstRelIndex = $i
+            break
+        }
+    }
+
+    if ($firstRelIndex -lt 0) { return @() }
+
+    $releasedLines = $lines[$firstRelIndex..($lines.Count - 1)]
+    $descriptions = @()
+    foreach ($line in $releasedLines) {
+        if ($line -match '^\s*-\s+(?:\*\*[^*]+\*\*:\s*)?(.+)$') {
+            $descText = $matches[1].Trim().TrimEnd('.').ToLower()
+            $descriptions += $descText
+        }
+    }
+    return ,$descriptions
+}
+
+function Test-ItemMatchesCommit {
+    param(
+        [string]$BulletText,
+        $Commit
+    )
+    if ([string]::IsNullOrWhiteSpace($BulletText)) { return $false }
+    $normBullet = $BulletText.ToLower()
+    $normDesc   = $Commit.Description.TrimEnd('.').ToLower()
+
+    if ($normBullet.Contains($normDesc)) {
+        return $true
+    }
+    if ($Commit.Scope -and $normBullet.Contains("**$($Commit.Scope.ToLower()):**")) {
+        $sample = if ($normDesc.Length -gt 15) { $normDesc.Substring(0, 15) } else { $normDesc }
+        if ($normBullet.Contains($sample)) {
+            return $true
+        }
+    }
+    return $false
 }
 
 function Build-ComparisonLinks {
@@ -466,48 +584,17 @@ function Invoke-ChangelogUpdate {
         throw "CHANGELOG.md no existe en $Path. Ejecute con -GenerateFromHistory para inicializarlo."
     }
 
-    $content = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
+    $content  = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
     $releases = Get-ChangelogReleases -Content $content
-    $latestTag = if ($releases.Count -gt 0) { "v$($releases[0].Version)" } else { '' }
+    $lines    = $content -split "`r?`n"
 
-    # Verificar si existe etiqueta Git para la ultima version registrada
-    $tagExists = $false
-    if ($latestTag) {
-        $checkTag = git -C $Root tag -l $latestTag 2>$null
-        if ($checkTag -and $checkTag.Trim() -eq $latestTag) {
-            $tagExists = $true
-        }
-    }
-
-    $allCommits = @()
-    if ($tagExists) {
-        $allCommits = Get-GitCommitList -Dir $Root -From $latestTag -To 'HEAD'
-    } else {
-        $candidates = Get-GitCommitList -Dir $Root -From '' -To 'HEAD'
-        foreach ($cand in $candidates) {
-            if (-not (Test-CommitIsRecordedInChangelog -ChangelogContent $content -Commit $cand)) {
-                $allCommits += $cand
-            }
-        }
-    }
-
-    if ($allCommits.Count -eq 0) {
-        Write-Host "  [INFO] No se detectaron confirmaciones pendientes por registrar." -ForegroundColor Green
-        Write-Host "  La seccion [Sin publicar] se encuentra al dia con el historial de Git.`n" -ForegroundColor Green
-        return
-    }
-
-    Write-Host "  Se identificaron $($allCommits.Count) confirmaciones pendientes." -ForegroundColor Yellow
-
-    # Extraer secciones del changelog existente
-    $lines = $content -split "`r?`n"
-    $unreleasedIndex = -1
+    $unreleasedIndex   = -1
     $firstReleaseIndex = -1
 
     for ($i = 0; $i -lt $lines.Count; $i++) {
         if ($lines[$i] -match '^##\s*\[Sin publicar\]') {
             $unreleasedIndex = $i
-        } elseif ($unreleasedIndex -ge 0 -and $lines[$i] -match '^##\s*\[[^\]]+\]' -and $firstReleaseIndex -lt 0) {
+        } elseif ($unreleasedIndex -ge 0 -and $lines[$i] -match '^##\s*\[(?!Sin publicar|Unreleased)[^\]]+\]' -and $firstReleaseIndex -lt 0) {
             $firstReleaseIndex = $i
         }
     }
@@ -516,11 +603,82 @@ function Invoke-ChangelogUpdate {
         throw "No se localizo la seccion '## [Sin publicar]' en $Path"
     }
 
-    # Contenido restante desde la primera version
-    $tailLines = if ($firstReleaseIndex -gt 0) { $lines[$firstReleaseIndex..($lines.Count - 1)] } else { @() }
+    # 1. Parsear elementos existentes en [Sin publicar]
+    $unreleasedEndIndex = if ($firstReleaseIndex -gt 0) { $firstReleaseIndex - 1 } else { $lines.Count - 1 }
+    $existingUnreleasedLines = if ($unreleasedEndIndex -ge ($unreleasedIndex + 1)) {
+        $lines[($unreleasedIndex + 1)..$unreleasedEndIndex]
+    } else {
+        @()
+    }
+    $unreleasedCatMap = Parse-SectionCategoryMap -SectionLines $existingUnreleasedLines
 
-    # Generar bloque de cambios no publicados
-    $unreleasedBlock = Build-VersionMarkdownBlock -VersionHeading "## [Sin publicar]" -Items $allCommits
+    # 2. Obtener confirmaciones candidatas de Git
+    $latestTag = if ($releases.Count -gt 0) { "v$($releases[0].Version)" } else { '' }
+    $tagExists = $false
+    if ($latestTag) {
+        $checkTag = git -C $Root tag -l $latestTag 2>$null
+        if ($checkTag -and $checkTag.Trim() -eq $latestTag) {
+            $tagExists = $true
+        }
+    }
+
+    $gitCommits = @()
+    if ($tagExists) {
+        $gitCommits = Get-GitCommitList -Dir $Root -From $latestTag -To 'HEAD'
+    } else {
+        $releasedDescs = Get-ReleasedDescriptions -Content $content
+        $allCandidates = Get-GitCommitList -Dir $Root -From '' -To 'HEAD'
+        foreach ($cand in $allCandidates) {
+            $candDesc = $cand.Description.TrimEnd('.').ToLower()
+            $isAlreadyReleased = $false
+            foreach ($rd in $releasedDescs) {
+                if ($rd -eq $candDesc -or ($cand.Scope -and $rd.Contains($candDesc))) {
+                    $isAlreadyReleased = $true
+                    break
+                }
+            }
+            if (-not $isAlreadyReleased) {
+                $gitCommits += $cand
+            }
+        }
+    }
+
+    # 3. Incorporar confirmaciones no registradas en el mapa preservando lo existente
+    $newCommitsCount = 0
+    foreach ($commit in $gitCommits) {
+        $alreadyPresent = $false
+        foreach ($catKey in $unreleasedCatMap.Keys) {
+            foreach ($bullet in $unreleasedCatMap[$catKey]) {
+                if (Test-ItemMatchesCommit -BulletText $bullet -Commit $commit) {
+                    $alreadyPresent = $true
+                    break
+                }
+            }
+            if ($alreadyPresent) { break }
+        }
+
+        if (-not $alreadyPresent) {
+            $targetCat = $commit.Category
+            $bulletText = Format-MarkdownBullet -Item $commit
+            if (-not $unreleasedCatMap.Contains($targetCat)) {
+                $unreleasedCatMap[$targetCat] = [System.Collections.Generic.List[string]]::new()
+            }
+            $unreleasedCatMap[$targetCat].Add($bulletText)
+            $newCommitsCount++
+        }
+    }
+
+    if ($newCommitsCount -eq 0) {
+        Write-Host "  [INFO] No se detectaron confirmaciones pendientes por registrar." -ForegroundColor Green
+        Write-Host "  La seccion [Sin publicar] se encuentra al dia con el historial de Git.`n" -ForegroundColor Green
+        return
+    }
+
+    Write-Host "  Se integraron $newCommitsCount confirmaciones nuevas a [Sin publicar] preservando entradas previas." -ForegroundColor Yellow
+
+    # 4. Reconstruir CHANGELOG.md
+    $unreleasedBlock = Format-CategoryMapToBlock -Heading "## [Sin publicar]" -CategoryMap $unreleasedCatMap
+    $tailLines = if ($firstReleaseIndex -gt 0) { $lines[$firstReleaseIndex..($lines.Count - 1)] } else { @() }
 
     $newLines = @()
     $newLines += $lines[0..($unreleasedIndex - 1)]
@@ -546,6 +704,8 @@ function Invoke-ChangelogRelease {
         [string]$Root,
         [string]$Url,
         [string]$NewVer,
+        [switch]$ShouldCreateTag,
+        [switch]$IsForce,
         [switch]$IsDryRun
     )
     Write-Host "`nEjecutando procedimiento de lanzamiento para la version $NewVer..." -ForegroundColor Cyan
@@ -559,23 +719,33 @@ function Invoke-ChangelogRelease {
         throw "CHANGELOG.md no existe en $Path"
     }
 
-    # Paso 1: Sincronizar manifest.json
-    Write-Host "Paso 1: Sincronizacion de manifest.json..." -ForegroundColor Gray
-    $null = Update-ManifestVersionSafe -Path $MPath -NewVersion $NewVer -IsDryRun:$IsDryRun
+    $manifest = Get-ManifestData -Path $MPath
+    $currentVer = $manifest.Version
 
-    # Paso 2: Actualizar CHANGELOG.md
-    Write-Host "Paso 2: Promocion de cambios bajo version [$NewVer]..." -ForegroundColor Gray
-    $content = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
-    $lines   = $content -split "`r?`n"
+    # Validacion estricta SemVer: la nueva version debe ser estrictamente superior a la actual
+    $compResult = Compare-SemVer -VersionA $NewVer -VersionB $currentVer
+    if ($compResult -le 0) {
+        throw "La version de lanzamiento '$NewVer' debe ser estrictamente mayor que la version actual '$currentVer' segun SemVer 2.0.0"
+    }
 
-    $unreleasedIndex = -1
+    $content  = [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
+    $releases = Get-ChangelogReleases -Content $content
+
+    foreach ($rel in $releases) {
+        if ($rel.Version -eq $NewVer) {
+            throw "La version '$NewVer' ya se encuentra formalmente registrada en CHANGELOG.md"
+        }
+    }
+
+    $lines = $content -split "`r?`n"
+    $unreleasedIndex   = -1
     $firstReleaseIndex = -1
-    $linksStartIndex = -1
+    $linksStartIndex   = -1
 
     for ($i = 0; $i -lt $lines.Count; $i++) {
         if ($lines[$i] -match '^##\s*\[Sin publicar\]') {
             $unreleasedIndex = $i
-        } elseif ($unreleasedIndex -ge 0 -and $lines[$i] -match '^##\s*\[[^\]]+\]' -and $firstReleaseIndex -lt 0) {
+        } elseif ($unreleasedIndex -ge 0 -and $lines[$i] -match '^##\s*\[(?!Sin publicar|Unreleased)[^\]]+\]' -and $firstReleaseIndex -lt 0) {
             $firstReleaseIndex = $i
         }
         if ($lines[$i] -match '^\[[^\]]+\]:\s*http') {
@@ -587,72 +757,130 @@ function Invoke-ChangelogRelease {
         throw "No se localizo la seccion '## [Sin publicar]' en $Path"
     }
 
-    $existingReleases = Get-ChangelogReleases -Content $content
-    $today = (Get-Date).ToString('yyyy-MM-dd')
-
-    # Extraer contenido no publicado existente
-    $unreleasedBodyLines = @()
-    $endUnreleased = if ($firstReleaseIndex -gt 0) { $firstReleaseIndex - 1 } else { $lines.Count - 1 }
-    if ($endUnreleased -gt $unreleasedIndex) {
-        $unreleasedBodyLines = $lines[($unreleasedIndex + 1)..$endUnreleased]
+    # 1. Extraer elementos de [Sin publicar]
+    $unreleasedEndIndex = if ($firstReleaseIndex -gt 0) { $firstReleaseIndex - 1 } else { $lines.Count - 1 }
+    $existingUnreleasedLines = if ($unreleasedEndIndex -ge ($unreleasedIndex + 1)) {
+        $lines[($unreleasedIndex + 1)..$unreleasedEndIndex]
+    } else {
+        @()
     }
+    $releaseCatMap = Parse-SectionCategoryMap -SectionLines $existingUnreleasedLines
 
-    $hasUnreleasedContent = $false
-    foreach ($ubl in $unreleasedBodyLines) {
-        if ($ubl -match '^\s*-\s+') {
-            $hasUnreleasedContent = $true
-            break
+    # 2. Integrar tambien cualquier commit pendiente en Git antes de cerrar la release
+    $latestTag = if ($releases.Count -gt 0) { "v$($releases[0].Version)" } else { '' }
+    $tagExists = $false
+    if ($latestTag) {
+        $checkTag = git -C $Root tag -l $latestTag 2>$null
+        if ($checkTag -and $checkTag.Trim() -eq $latestTag) {
+            $tagExists = $true
         }
     }
 
-    # Si la seccion [Sin publicar] estaba vacia, analizar commits pendientes de Git
-    $releaseItemsBlock = @()
-    if (-not $hasUnreleasedContent) {
-        $allCommits = Get-GitCommitList -Dir $Root -From '' -To 'HEAD'
-        $unreleasedCommits = @()
-        foreach ($commit in $allCommits) {
-            if (-not (Test-CommitIsRecordedInChangelog -ChangelogContent $content -Commit $commit)) {
-                $unreleasedCommits += $commit
+    $pendingGitCommits = @()
+    if ($tagExists) {
+        $pendingGitCommits = Get-GitCommitList -Dir $Root -From $latestTag -To 'HEAD'
+    } else {
+        $releasedDescs = Get-ReleasedDescriptions -Content $content
+        $allCandidates = Get-GitCommitList -Dir $Root -From '' -To 'HEAD'
+        foreach ($cand in $allCandidates) {
+            $candDesc = $cand.Description.TrimEnd('.').ToLower()
+            $isAlreadyReleased = $false
+            foreach ($rd in $releasedDescs) {
+                if ($rd -eq $candDesc -or ($cand.Scope -and $rd.Contains($candDesc))) {
+                    $isAlreadyReleased = $true
+                    break
+                }
+            }
+            if (-not $isAlreadyReleased) {
+                $pendingGitCommits += $cand
             }
         }
-        $releaseItemsBlock = Build-VersionMarkdownBlock -VersionHeading "## [$NewVer] - $today" -Items $unreleasedCommits
-    } else {
-        # Promocionar lineas existentes bajo el nuevo encabezado
-        $releaseItemsBlock = @("## [$NewVer] - $today", "") + $unreleasedBodyLines
     }
 
-    # Construir nueva lista de versiones
-    $updatedReleases = @([PSCustomObject]@{ Version = $NewVer; Date = $today }) + $existingReleases
+    foreach ($commit in $pendingGitCommits) {
+        $alreadyPresent = $false
+        foreach ($catKey in $releaseCatMap.Keys) {
+            foreach ($bullet in $releaseCatMap[$catKey]) {
+                if (Test-ItemMatchesCommit -BulletText $bullet -Commit $commit) {
+                    $alreadyPresent = $true
+                    break
+                }
+            }
+            if ($alreadyPresent) { break }
+        }
 
-    # Lineas del encabezado
-    $newHeader = $lines[0..($unreleasedIndex - 1)]
+        if (-not $alreadyPresent) {
+            $targetCat = $commit.Category
+            $bulletText = Format-MarkdownBullet -Item $commit
+            if (-not $releaseCatMap.Contains($targetCat)) {
+                $releaseCatMap[$targetCat] = [System.Collections.Generic.List[string]]::new()
+            }
+            $releaseCatMap[$targetCat].Add($bulletText)
+        }
+    }
 
-    # Cuerpo de versiones existentes
+    # Verificar que existan cambios para formalizar
+    $totalReleaseItems = 0
+    foreach ($catKey in $releaseCatMap.Keys) {
+        $totalReleaseItems += $releaseCatMap[$catKey].Count
+    }
+
+    if ($totalReleaseItems -eq 0 -and -not $IsForce) {
+        throw "No hay cambios pendientes en [Sin publicar] ni en Git para formalizar en la version $NewVer. Especifique -Force si desea emitir una version sin modificaciones."
+    }
+
+    # Paso 1: Sincronizar manifest.json
+    Write-Host "Paso 1: Sincronizacion de manifest.json a version $NewVer..." -ForegroundColor Gray
+    $null = Update-ManifestVersionSafe -Path $MPath -NewVersion $NewVer -IsDryRun:$IsDryRun
+
+    # Paso 2: Construir bloque de nueva version
+    Write-Host "Paso 2: Formalizacion de cambios bajo version [$NewVer]..." -ForegroundColor Gray
+    $today = (Get-Date).ToString('yyyy-MM-dd')
+    $newVersionBlock = Format-CategoryMapToBlock -Heading "## [$NewVer] - $today" -CategoryMap $releaseCatMap
+
+    # Paso 3: Reconstruir enlaces y ensamblar
+    $updatedReleases = @([PSCustomObject]@{ Version = $NewVer; Date = $today }) + $releases
+    $newLinks = Build-ComparisonLinks -BaseUrl $Url -Releases $updatedReleases
+
+    $headerLines = $lines[0..($unreleasedIndex - 1)]
+
     $bodyFromFirstRelease = @()
     $contentLimit = if ($linksStartIndex -gt 0) { $linksStartIndex - 1 } else { $lines.Count - 1 }
     if ($firstReleaseIndex -gt 0 -and $firstReleaseIndex -le $contentLimit) {
         $bodyFromFirstRelease = $lines[$firstReleaseIndex..$contentLimit]
     }
 
-    # Nuevos enlaces de comparacion
-    $newLinks = Build-ComparisonLinks -BaseUrl $Url -Releases $updatedReleases
-
     $assembledLines = @()
-    $assembledLines += $newHeader
+    $assembledLines += $headerLines
     $assembledLines += "## [Sin publicar]"
     $assembledLines += ""
-    $assembledLines += $releaseItemsBlock
+    $assembledLines += $newVersionBlock
     $assembledLines += $bodyFromFirstRelease
     $assembledLines += ""
     $assembledLines += $newLinks
 
     $finalText = ($assembledLines -join "`r`n").TrimEnd() + "`r`n"
-    Assert-NoEmojisInContent -Content $finalText -ContextName "CHANGELOG.md tras lanzamiento"
+    Assert-NoEmojisInContent -Content $finalText -ContextName "CHANGELOG.md tras release"
 
     if (-not $IsDryRun) {
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($Path, $finalText, $utf8NoBom)
-        Write-Host "  [EXITO] Version $NewVer registrada y CHANGELOG.md estructurado correctamente.`n" -ForegroundColor Green
+        Write-Host "  [EXITO] Version $NewVer registrada y CHANGELOG.md estructurado correctamente." -ForegroundColor Green
+
+        if ($ShouldCreateTag) {
+            try {
+                $tagName = "v$NewVer"
+                git -C $Root tag -a $tagName -m "Release $tagName" 2>$null
+                Write-Host "  [OK] Etiqueta Git $tagName creada localmente con exito." -ForegroundColor Green
+            } catch {
+                Write-Host "  [AVISO] No se pudo crear la etiqueta Git automaticamente: $_" -ForegroundColor Yellow
+            }
+        }
+        Write-Host "`nPara completar el ciclo de distribucion ejecute:" -ForegroundColor Cyan
+        Write-Host "  git add manifest.json CHANGELOG.md" -ForegroundColor Gray
+        Write-Host "  git commit -m `"chore(release): formalizar version $NewVer`"" -ForegroundColor Gray
+        Write-Host "  git tag -a v$NewVer -m `"Release v$NewVer`"" -ForegroundColor Gray
+        Write-Host "  git push origin main --tags`n" -ForegroundColor Gray
     } else {
         Write-Host "  [DRY-RUN] Registro de version simulado con exito.`n" -ForegroundColor Yellow
     }
@@ -684,7 +912,21 @@ function Invoke-ChangelogGenerateFromHistory {
         ""
     )
 
-    $versionBlock = Build-VersionMarkdownBlock -VersionHeading "## [$Ver] - $today" -Items $commits
+    $catMap = [ordered]@{}
+    foreach ($c in $CategoryOrder) {
+        $catMap[$c] = [System.Collections.Generic.List[string]]::new()
+    }
+
+    foreach ($commit in $commits) {
+        $cat = $commit.Category
+        if (-not $catMap.Contains($cat)) {
+            $catMap[$cat] = [System.Collections.Generic.List[string]]::new()
+        }
+        $bullet = Format-MarkdownBullet -Item $commit
+        $catMap[$cat].Add($bullet)
+    }
+
+    $versionBlock = Format-CategoryMapToBlock -Heading "## [$Ver] - $today" -CategoryMap $catMap
     $linksBlock   = Build-ComparisonLinks -BaseUrl $Url -Releases @([PSCustomObject]@{ Version = $Ver; Date = $today })
 
     $allLines = $headerLines + $versionBlock + @("") + $linksBlock
@@ -746,6 +988,9 @@ function Invoke-ChangelogVerify {
         if ($releases.Count -eq 0) {
             $failures += "CHANGELOG.md no contiene ninguna version formal registrada"
         } else {
+            $seenVersions = [System.Collections.Generic.HashSet[string]]::new()
+            $previousVersion = $null
+
             foreach ($rel in $releases) {
                 if (-not (Test-SemVerFormat $rel.Version)) {
                     $failures += "La version '[$($rel.Version)]' no cumple con la especificacion SemVer 2.0.0"
@@ -753,8 +998,22 @@ function Invoke-ChangelogVerify {
                 if ($rel.Date -and -not ($rel.Date -match '^\d{4}-\d{2}-\d{2}$')) {
                     $failures += "La fecha '$($rel.Date)' para la version $($rel.Version) no cumple formato ISO YYYY-MM-DD"
                 }
+                if ($seenVersions.Contains($rel.Version)) {
+                    $failures += "Version duplicada detectada en CHANGELOG.md: [$($rel.Version)]"
+                } else {
+                    $seenVersions.Add($rel.Version) | Out-Null
+                }
+
+                # Validar orden cronologico inverso (descendente)
+                if ($previousVersion) {
+                    $diff = Compare-SemVer -VersionA $previousVersion -VersionB $rel.Version
+                    if ($diff -le 0) {
+                        $failures += "Orden cronologico incorrecto: version [$previousVersion] no es mayor que [$($rel.Version)]"
+                    }
+                }
+                $previousVersion = $rel.Version
             }
-            Write-Host "  [OK] $($releases.Count) versiones formalizadas bajo estandar SemVer 2.0.0" -ForegroundColor Green
+            Write-Host "  [OK] $($releases.Count) versiones formalizadas bajo estandar SemVer 2.0.0 en orden cronologico" -ForegroundColor Green
         }
 
         # 1.4 Categorias reconocidas
@@ -770,8 +1029,16 @@ function Invoke-ChangelogVerify {
         if (-not ($content -match '\[Sin publicar\]:\s*https?://')) {
             $failures += "CHANGELOG.md no define el enlace de comparacion al pie para [Sin publicar]"
         } else {
-            Write-Host "  [OK] Enlaces de comparacion Markdown validados al pie del documento" -ForegroundColor Green
+            Write-Host "  [OK] Enlace de comparacion para [Sin publicar] validado" -ForegroundColor Green
         }
+
+        foreach ($rel in $releases) {
+            $escapedVer = [regex]::Escape($rel.Version)
+            if (-not ($content -match "\[$escapedVer\]:\s*https?://")) {
+                $failures += "CHANGELOG.md no define el enlace de referencia al pie para la version [$($rel.Version)]"
+            }
+        }
+        Write-Host "  [OK] Todos los enlaces de referencia de versiones verificados al pie" -ForegroundColor Green
     }
 
     # 2. Verificacion de manifest.json
@@ -787,7 +1054,7 @@ function Invoke-ChangelogVerify {
             Write-Host "  [OK] Cero emojis detectados en manifest.json" -ForegroundColor Green
         }
 
-        if ($rawM -match '//' -or $rawM -match '/\*') {
+        if ($rawM -match '(?m)^\s*//' -or $rawM -match '(?m)^\s*/\*' -or $rawM -match '(?<!https?:)//') {
             $failures += "manifest.json contiene comentarios no permitidos en Chromium Manifest V3"
         } else {
             Write-Host "  [OK] Ausencia total de comentarios en manifest.json" -ForegroundColor Green
@@ -857,12 +1124,17 @@ switch ($PSCmdlet.ParameterSetName) {
     }
     'Bump' {
         $currentManifest = Get-ManifestData -Path $manifestPath
-        $calculatedVersion = Get-NextSemVer -CurrentVersion $currentManifest.Version -Type $Bump
+        $pendingCommitsForBump = @()
+        if ($Bump -eq 'auto') {
+            $contentForBump = if (Test-Path $changelogPath) { [System.IO.File]::ReadAllText($changelogPath, [System.Text.Encoding]::UTF8) } else { '' }
+            $pendingCommitsForBump = Get-GitCommitList -Dir $repoRoot -From '' -To 'HEAD'
+        }
+        $calculatedVersion = Get-NextSemVer -CurrentVersion $currentManifest.Version -Type $Bump -PendingCommits $pendingCommitsForBump
         Write-Host "Calculado incremento de version tipo '$Bump': $($currentManifest.Version) ==> $calculatedVersion" -ForegroundColor Yellow
-        Invoke-ChangelogRelease -Path $changelogPath -MPath $manifestPath -Root $repoRoot -Url $effectiveRepoUrl -NewVer $calculatedVersion -IsDryRun:$DryRun
+        Invoke-ChangelogRelease -Path $changelogPath -MPath $manifestPath -Root $repoRoot -Url $effectiveRepoUrl -NewVer $calculatedVersion -ShouldCreateTag:$CreateTag -IsForce:$Force -IsDryRun:$DryRun
     }
     'Release' {
-        Invoke-ChangelogRelease -Path $changelogPath -MPath $manifestPath -Root $repoRoot -Url $effectiveRepoUrl -NewVer $ReleaseVersion -IsDryRun:$DryRun
+        Invoke-ChangelogRelease -Path $changelogPath -MPath $manifestPath -Root $repoRoot -Url $effectiveRepoUrl -NewVer $ReleaseVersion -ShouldCreateTag:$CreateTag -IsForce:$Force -IsDryRun:$DryRun
     }
     'GenerateHistory' {
         Invoke-ChangelogGenerateFromHistory -Path $changelogPath -Root $repoRoot -Url $effectiveRepoUrl -Ver $TargetVersion -IsDryRun:$DryRun

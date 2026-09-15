@@ -176,16 +176,20 @@ El archivo [`CHANGELOG.md`](CHANGELOG.md) se apega rigurosamente al estándar in
 Abra una consola de PowerShell en la raíz del repositorio y utilice los siguientes comandos según corresponda:
 
 ```powershell
-# 1. Actualizar la seccion [Sin publicar] a partir de los commits pendientes en Git:
+# 1. Actualizar la seccion [Sin publicar] a partir de los commits pendientes en Git (preservando entradas previas):
 powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1
 
-# 2. Registrar y formalizar una nueva version especificando la version SemVer:
-powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -ReleaseVersion "1.1.0"
+# 2. Registrar y formalizar una nueva version especificando la version SemVer (opcionalmente creando etiqueta Git):
+powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -ReleaseVersion "1.1.0" -CreateTag
 
-# 3. Incrementar version automaticamente por tipo semantico (patch, minor, major):
+# 3. Incrementar version por tipo semantico (patch, minor, major) o deteccion automatica segun commits:
 powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -Bump minor
+powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -Bump auto -CreateTag
 
-# 4. Auditar la conformidad de CHANGELOG.md, SemVer, manifest.json y ausencia de emojis:
+# 4. Simular cambios sin escribir en disco (Dry-Run):
+powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -Bump patch -DryRun
+
+# 5. Auditar la conformidad de CHANGELOG.md, SemVer, manifest.json y ausencia de emojis:
 powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -Verify
 ```
 

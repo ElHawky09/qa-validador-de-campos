@@ -39,7 +39,7 @@ $manifestPath = Join-Path $repoRoot "manifest.json"
 if (Test-Path $manifestPath) {
     Write-Host "`nArchivo: manifest.json"
     $manifestText = [System.IO.File]::ReadAllText($manifestPath)
-    if ($manifestText -match '//' -or $manifestText -match '/\*') {
+    if ($manifestText -match '(?m)^\s*//' -or $manifestText -match '(?m)^\s*/\*' -or $manifestText -match '(?<!https?:)//') {
         Write-Host "  ==> ERROR: Comentarios detectados en manifest.json (prohibidos en Chromium)" -ForegroundColor Red
         $hasError = $true
     } else {

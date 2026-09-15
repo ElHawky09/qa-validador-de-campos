@@ -28,7 +28,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **dashboard:** Enriquecer distribucion visual de riesgos con grafico circular Donut SVG y tarjetas de barras detalladas por severidad.
 
 ### Cambiado
-- Replace emojis with modern minimalist SVG icons and clean UI design.
+- Reemplazar emojis con iconos SVG minimalistas y diseño limpio de interfaz.
 - **sidepanel:** Agregar estilos de badges diferenciados para lógica, formato, integridad y capacidad.
 - **sample:** Añadir casos de prueba para campos de URL y slug en test-sample.html.
 - **forms:** Simplificar a soporte estricto de un solo formulario y un solo boton de guardado.
