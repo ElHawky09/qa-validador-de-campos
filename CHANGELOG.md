@@ -12,6 +12,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 
 ### Corregido
 - **versioning:** Preservar cambios previos en sin publicar, blindar semver y robustecer verificacion.
+- **automation:** Omitir confirmaciones meta de changelog para prevenir bucle de registro.
 
 ## [1.0.0] - 2026-09-15
 
