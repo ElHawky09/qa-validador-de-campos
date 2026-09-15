@@ -14,6 +14,7 @@
    - [Bifurcación y Configuración del Repositorio](#bifurcación-y-configuración-del-repositorio)
    - [Nomenclatura Estricta de Ramas](#nomenclatura-estricta-de-ramas)
    - [Estándar de Mensajes de Confirmación (Conventional Commits)](#estándar-de-mensajes-de-confirmación-conventional-commits)
+   - [Automatización de Registro de Cambios y Versionado (update_changelog.ps1)](#automatización-de-registro-de-cambios-y-versionado-update_changelogps1)
    - [Preparación y Envío de Solicitudes de Extracción (Pull Requests)](#preparación-y-envío-de-solicitudes-de-extracción-pull-requests)
 5. [Estándares Arquitectónicos y Directivas de Código](#5-estándares-arquitectónicos-y-directivas-de-código)
    - [Arquitectura Nativa Chromium Manifest V3](#arquitectura-nativa-chromium-manifest-v3)
@@ -152,6 +153,40 @@ feat(sidepanel): incorporar persistencia de selectores en almacenamiento local
 fix(picker): resolver fuga de escuchadores de eventos al cancelar con tecla Escape
 docs(contributing): documentar protocolo de balance de delimitadores y script check_js
 refactor(dashboard): desacoplar renderizador trigonométrico de gráfico Donut
+```
+
+### Automatización de Registro de Cambios y Versionado (update_changelog.ps1)
+
+El proyecto cuenta con un script nativo en PowerShell ([`update_changelog.ps1`](update_changelog.ps1)) para la gestión automatizada del historial de cambios y la sincronización de versiones, operando con total independencia de Node.js, npm o herramientas de empaquetado externas.
+
+El archivo [`CHANGELOG.md`](CHANGELOG.md) se apega rigurosamente al estándar internacional **Keep a Changelog (v1.1.0)** y al modelo de **Semantic Versioning (SemVer 2.0.0)**.
+
+#### Directivas Normativas del Registro de Cambios
+- **Cero Emojis:** El archivo `CHANGELOG.md`, los scripts y las notas de versión tienen prohibición absoluta de emojis o pictogramas informales, manteniendo un tono técnico, formal y corporativo.
+- **Categorías Estándar:** Las confirmaciones Git redactadas bajo Conventional Commits se clasifican automáticamente en las siguientes secciones formales en español:
+  - `Añadido`: Nuevas características, capacidades o vectores de prueba (`feat`).
+  - `Cambiado`: Modificaciones en comportamiento existente, optimizaciones o estilos (`refactor`, `style`, `perf`, `chore`, `test`).
+  - `Corregido`: Correcciones de defectos, excepciones o desajustes de inyección (`fix`).
+  - `Seguridad`: Mitigaciones de vulnerabilidades, cumplimiento CSP o blindaje de extensiones (`sec`, `security`, o alusiones a CSP).
+  - `Documentación`: Adición o perfeccionamiento de manuales, guías y comentarios didácticos (`docs`).
+- **Sincronización Estricta con manifest.json:** Toda versión liberada actualiza de forma atómica y segura la propiedad `"version"` en `manifest.json` preservando la sintaxis JSON estricta y la prohibición de comentarios.
+
+#### Comandos de Operación en PowerShell
+
+Abra una consola de PowerShell en la raíz del repositorio y utilice los siguientes comandos según corresponda:
+
+```powershell
+# 1. Actualizar la seccion [Sin publicar] a partir de los commits pendientes en Git:
+powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1
+
+# 2. Registrar y formalizar una nueva version especificando la version SemVer:
+powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -ReleaseVersion "1.1.0"
+
+# 3. Incrementar version automaticamente por tipo semantico (patch, minor, major):
+powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -Bump minor
+
+# 4. Auditar la conformidad de CHANGELOG.md, SemVer, manifest.json y ausencia de emojis:
+powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -Verify
 ```
 
 ### Preparación y Envío de Solicitudes de Extracción (Pull Requests)
@@ -435,6 +470,7 @@ Para que un Pull Request sea formalmente aceptado y fusionado en la rama `main`,
 - [ ] **Validación en Entornos Reales:** Se constató el comportamiento correcto frente a frameworks web modernos y la ausencia de errores en la consola de Chromium.
 - [ ] **Estilo Estricto sin Emojis:** Todo archivo modificado, commit y descripción de PR carece de emojis o pictogramas.
 - [ ] **Historial Git Impecable:** Mensajes de confirmación redactados bajo el estándar Conventional Commits y rama sincronizada mediante rebase contra `upstream/main`.
+- [ ] **Registro de Cambios y Versionado Sincronizado:** El archivo `CHANGELOG.md` y la clave de versión en `manifest.json` han sido auditados satisfactoriamente mediante `update_changelog.ps1 -Verify`, garantizando apego a Keep a Changelog 1.1.0, SemVer 2.0.0 y ausencia total de emojis.
 
 ---
 

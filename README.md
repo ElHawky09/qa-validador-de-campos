@@ -48,6 +48,7 @@
     - [11.11. Deslinde por Modificaciones, Bifurcaciones y Distribuciones de Terceros](#1111-deslinde-por-modificaciones-bifurcaciones-y-distribuciones-de-terceros)
     - [11.12. Cláusula de Divisibilidad, Integración y Subsistencia](#1112-cláusula-de-divisibilidad-integración-y-subsistencia)
 12. [Licencia](#12-licencia)
+13. [Historial de Versiones y Registro de Cambios](#13-historial-de-versiones-y-registro-de-cambios)
 
 ---
 
@@ -255,6 +256,10 @@ Permite validar y demostrar el 100% de las funciones operativas en un entorno lo
 ```
 qa-form-validator/
 ├── manifest.json              # Configuración de permisos, APIs y metadatos Manifest V3
+├── CHANGELOG.md              # Registro cronológico estructurado bajo Keep a Changelog 1.1.0 y SemVer 2.0.0
+├── check_js.ps1              # Script de auditoría de delimitadores e integridad sintáctica de manifest.json
+├── update_changelog.ps1       # Script nativo de automatización de registro de cambios y sincronización de versiones
+├── CONTRIBUTING.md           # Guía corporativa de contribución, directivas arquitectónicas y flujo Git
 ├── service-worker.js          # Coordinador en segundo plano, menús contextuales y apertura de Side Panel
 ├── content-scripts/
 │   ├── picker.js              # Script inyectado: inspección visual, sincronización DOM y desvío de alert()
@@ -372,6 +377,14 @@ qa-form-validator/
 Este proyecto se distribuye bajo los términos de la **Licencia MIT**. Para mayores detalles sobre los términos de cesión de derechos de autor, consulte el archivo [LICENSE](LICENSE).
 
 Las disposiciones legales, términos de uso ético, exenciones de responsabilidad e indemnidades estipuladas en la sección [11. Aviso Legal, Términos de Uso y Exención Exhaustiva de Responsabilidad](#11-aviso-legal-términos-de-uso-y-exención-exhaustiva-de-responsabilidad) complementan y detallan el alcance de la Licencia MIT, rigiendo con carácter vinculante sobre cualquier uso, distribución o modificación de este software.
+
+---
+
+## 13. Historial de Versiones y Registro de Cambios
+
+Para consultar el registro cronológico integral de todas las capacidades incorporadas, correcciones técnicas, directivas de seguridad y optimizaciones arquitectónicas, consulte el archivo [`CHANGELOG.md`](CHANGELOG.md).
+
+El control de versiones y el registro de cambios se encuentran automatizados mediante el script nativo en PowerShell [`update_changelog.ps1`](update_changelog.ps1), rigiéndose estrictamente por las especificaciones internacionales **Keep a Changelog (v1.1.0)** y **Semantic Versioning (SemVer 2.0.0)**. Para consultar los procedimientos operativos de actualización y directivas de ingeniería, refiérase a la [Guía de Contribución](CONTRIBUTING.md).
 
 ---
 
