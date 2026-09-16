@@ -29,6 +29,9 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **docs:** Saneamiento estructural de README.md: desvincular contrato legal extenso hacia TERMS.md, incorporar enlaces a PRIVACY.md y SECURITY.md, y precisar inferencia de backend a partir de señales observables.
 
 ### Corregido
+- **routing:** Desacoplar campos de correo electrónico de heurística de URLs cuando el placeholder o etiqueta contenga términos como dominio, garantizando asignación exclusiva de pruebas de email (SEC2-H04).
+- **validation:** Respetar atributo novalidate en formulario y formnovalidate en botón antes de marcar bloqueo de guardado por errores nativos HTML5 en picker (SEC2-H14).
+- **heuristics:** Soportar generación inteligente de datos de prueba para atributos pattern con sufijo alfabético en picker (SEC2-H16).
 - **taxonomy:** Sustituir identificador tipográfico erróneo num_letters por num_non_numeric en filtros de campos numéricos (SEC2-H01).
 - **diagnostics:** Detectar superación de maxlength declarado en persistencia y emitir hallazgo de severidad Alta (res-capacity) en lugar de Conforme (SEC2-H05).
 - **diagnostics:** Corregir falso reporte de "Restringido en Campo" en Caso 5 cuando hubo intento de guardado pero el formulario no fue bloqueado a pesar del error HTML5 (SEC2-H14).

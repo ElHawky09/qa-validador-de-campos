@@ -1084,9 +1084,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     selectedFields.forEach(field => {
       const fType = (field.type || 'text').toLowerCase();
       const isSlug = !!field.isSlugField || /\bslug\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
-      const isUrl = !isSlug && (!!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`));
-      const isNumericText = fType === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
       const isEmail = fType === 'email' || /\b(email|correo|mail)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isUrl = !isSlug && !isEmail && (fType === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password'].includes(fType) && (!!field.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`))));
+      const isNumericText = fType === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
 
       let applicable = [];
       if (isUrl) {
@@ -1399,9 +1399,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
           } catch {
             // Fallback heurístico local si falla la comunicación IPC:
-            const isUrl = !!f.isUrlField || f.type === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|slug|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
-            const isSlug = /\bslug\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
-            if (isSlug) {
+            const isSlug = !!f.isSlugField || /\bslug\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
+            const isEmail = f.type === 'email' || /\b(email|correo|mail)\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
+            const isUrl = !isSlug && !isEmail && (f.type === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password'].includes(f.type) && (!!f.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`))));
+            if (isEmail) {
+              f.fillerValue = `usuario.qa${Math.floor(100 + Math.random() * 900)}@test.com`;
+            } else if (isSlug) {
               f.fillerValue = 'recurso-qa-valido-' + Math.floor(100 + Math.random() * 900);
             } else if (isUrl) {
               f.fillerValue = 'https://qa.ejemplo.com/recurso-' + Math.floor(100 + Math.random() * 900);
@@ -1949,9 +1952,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // Heurística avanzada para determinar si el campo representa una URL, slug, número semántico o email:
       const isSlug = !!field.isSlugField || /\bslug\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
-      const isUrl = !isSlug && (!!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`));
-      const isNumericText = fType === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
       const isEmail = fType === 'email' || /\b(email|correo|mail)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isUrl = !isSlug && !isEmail && (fType === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password'].includes(fType) && (!!field.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`))));
+      const isNumericText = fType === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
 
       if (isUrl) {
         // En campos de URL se aplican pruebas de protocolo, XSS en esquemas, byte nulo y espacios en blanco.
@@ -2142,7 +2145,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       // Pausa configurable entre pruebas para permitir que los scripts del sitio respiren y no saturen la CPU:
-      await new Promise(r => setTimeout(r, delayMs));
+      if (!isTestRunCancelled) {
+        await new Promise(r => setTimeout(r, delayMs));
+      }
     }
 
     // Remueve el destello activo de todos los chips de campo:
@@ -2289,6 +2294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Si la longitud resultante en el campo es inferior a la del payload inyectado:
     // Excluimos del diagnóstico de truncamiento la reducción normalizada de ceros a la izquierda en inputs nativos type="number" (SEC2-H08):
     const isNumberLeadingZerosNormalized = fType === 'number' &&
+      resVal !== '' &&
       (testItem.id === 'num_leading_zeros' || /^0+\d+$/.test(payload)) &&
       Number(resVal) === Number(payload);
 
@@ -2409,7 +2415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           recommendation = 'Filtrar caracteres de control y formato Unicode (rangos \\u200B-\\u200D, \\uFEFF) mediante expresión regular o normalización previa al almacenamiento.';
         } 
         // Caso C: Cadena excesiva de dígitos en campo alfabético (nombres, títulos) (SEC2-H06)
-        else if ((testItem.id === 'txt_15_digits' || (typeof payload === 'string' && /^\d{10,}$/.test(payload))) && field.type !== 'number' && field.type !== 'tel' && field.type !== 'textarea' && !isNumericText && !/\b(comentario|direccion|nota|address|comment|desc|detalles|mensaje|message|street|calle|observacion)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`)) {
+        else if ((testItem.id === 'txt_15_digits' || (typeof payload === 'string' && /^\d{10,}$/.test(payload))) && fType !== 'number' && fType !== 'tel' && fType !== 'textarea' && field.tag !== 'textarea' && !isNumericText && !/\b(comentario|direccion|nota|address|comment|desc|detalles|mensaje|message|street|calle|observacion)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`)) {
           status = 'warning';
           badgeText = 'Regla de Negocio (Formato)';
           badgeClass = 'res-format';
@@ -2422,7 +2428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           badgeText = 'Riesgo de Capacidad (DoS / Búfer)';
           badgeClass = 'res-capacity';
           detail = `El formulario aceptó y guardó una carga extensa de ${resLen} caracteres sin aplicar límite maxlength ni validación de longitud máxima en frontend o backend.`;
-          recommendation = field.type === 'textarea'
+          recommendation = (fType === 'textarea' || field.tag === 'textarea')
             ? 'Definir atributo maxlength en HTML y restringir rígidamente en el backend (ej. límite de 2,000 a 5,000 caracteres para áreas multilínea) para mitigar sobrecarga de memoria y denegación de servicio.'
             : 'Definir atributo maxlength en HTML y restringir rígidamente en el backend (ej. máximo 100-150 caracteres para nombres o datos breves) para mitigar desbordamientos y denegación de servicio.';
         } 
@@ -2594,7 +2600,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           status = 'risk';
           badgeText = 'Límite Maxlength Superado';
           badgeClass = 'res-capacity';
-          detail = `El formulario aceptó y guardó ${resLen} caracteres, superando la longitud máxima declarada en HTML (maxlength="${field.maxLength}"). No se recortó ni validó en frontend ni backend.`;
+          detail = triggerSave
+            ? `El formulario aceptó y guardó ${resLen} caracteres, superando la longitud máxima declarada en HTML (maxlength="${field.maxLength}"). No se recortó ni validó en frontend ni backend.`
+            : `El campo aceptó ${resLen} caracteres, superando la longitud máxima declarada en HTML (maxlength="${field.maxLength}"). No se recortó en frontend.`;
           recommendation = 'Garantizar que el atributo maxlength impida el ingreso en frontend y validar rígidamente en el backend que la longitud no exceda el límite permitido.';
         } else {
           status = 'conforme';

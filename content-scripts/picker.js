@@ -495,6 +495,7 @@
     
     // Si el tipo nativo de HTML5 es 'url', confirmación inmediata
     if (type === 'url') return true;
+    if (type === 'email' || type === 'number' || type === 'date' || type === 'datetime-local' || type === 'month' || type === 'tel' || type === 'password' || type === 'checkbox' || type === 'radio' || type === 'file') return false;
 
     // Recopilamos todas las pistas textuales del campo para análisis de palabras clave
     const name = (el.name || '').toLowerCase();
@@ -503,6 +504,9 @@
     const label = getElementLabel(el).toLowerCase();
     const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
     const allText = `${name} ${id} ${placeholder} ${label} ${ariaLabel}`;
+
+    // Si contiene semántica explícita de correo electrónico, se descarta como campo URL
+    if (/\b(email|correo|mail)\b/i.test(allText)) return false;
 
     // Expresión regular multilingüe para detectar términos asociados a enlaces web
     return /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(allText);
@@ -578,10 +582,11 @@
 
     // CASO 2: Expresiones regulares comunes en el atributo pattern
     if (pattern) {
+      if (/\[0-9\]\{4\}-[A-Za-z]{2}/.test(pattern) || /\[0-9\]\{4\}-\[A-Z\]\{2\}/.test(pattern)) return '1234-AB';
       if (/\[0-9\]\{8\}|\\d\{8\}/.test(pattern)) return '12345678';
       if (/\[0-9\]\{5\}|\\d\{5\}/.test(pattern)) return '28001';
       if (/\[A-Za-z0-9\]\{5\}/.test(pattern)) return 'AB123';
-      if (/\[0-9\]\{4\}|\\d\{4\}/.test(pattern)) return '2025';
+      if (/^(?:\[0-9\]\{4\}|\\d\{4\})$/.test(pattern)) return '2025';
     }
 
     // CASO 3: Correo electrónico (formato estándar RFC 5322 con dominio de prueba)
@@ -1814,6 +1819,8 @@
         const newErrors = postSubmitErrors.filter(err => !initialErrors.includes(err));
 
         // Determinamos si el guardado fue bloqueado por validaciones
+        const formHasNoValidate = !!(activeForm && activeForm.noValidate) || !!(btnToClick && btnToClick.formNoValidate);
+
         if (lastCapturedAlert) {
           saveBlocked = true;
           saveErrorMessage = `Alerta del sitio (alert): "${lastCapturedAlert}"`;
@@ -1821,11 +1828,15 @@
           saveBlocked = true;
           saveErrorMessage = newErrors.join(' | ');
         } else if (el.validity && !el.validity.valid) {
-          saveBlocked = true;
-          saveErrorMessage = el.validationMessage || 'Validación HTML5 impidió el guardado';
+          if (!formHasNoValidate) {
+            saveBlocked = true;
+            saveErrorMessage = el.validationMessage || 'Validación HTML5 impidió el guardado';
+          }
         } else if (el.form && typeof el.form.checkValidity === 'function' && !el.form.checkValidity()) {
-          saveBlocked = true;
-          saveErrorMessage = 'El formulario indicó estado inválido al guardar';
+          if (!formHasNoValidate) {
+            saveBlocked = true;
+            saveErrorMessage = 'El formulario indicó estado inválido al guardar';
+          }
         }
       }
 
