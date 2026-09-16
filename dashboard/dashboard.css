@@ -957,6 +957,22 @@ body {
   color: #64748b;
 }
 
+.footer-legal {
+  margin-top: 8px;
+}
+
+.footer-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.footer-link:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
 /* Print Stylesheet */
 @media print {
   * {
@@ -1429,5 +1445,10 @@ body {
     border-top: 1px solid #cbd5e1 !important;
     color: #64748b !important;
     padding: 12px 0 !important;
+  }
+
+  .footer-link {
+    color: #475569 !important;
+    text-decoration: underline !important;
   }
 }

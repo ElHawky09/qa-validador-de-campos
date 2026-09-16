@@ -271,9 +271,11 @@ qa-form-validator/
 ├── dashboard/
 │   ├── dashboard.html         # Consola ejecutiva de análisis y visualización avanzada
 │   ├── dashboard.css          # Estilos de presentación y reglas especializadas de impresión (@media print)
-│   └── dashboard.js           # Controlador lógico del dashboard (gráficos SVG, filtros, reactividad)
+│   ├── dashboard.js           # Controlador lógico del dashboard (gráficos SVG, filtros, reactividad)
+│   └── terms.html             # Interfaz nativa de Términos y Condiciones de Uso y Exención de Responsabilidad
 ├── test-sample.html           # Entorno de pruebas local para validación funcional del validador
 ├── LICENSE                    # Términos de licenciamiento de código abierto (MIT License)
+├── TERMS.md                   # Documento legal corporativo de Términos de Servicio y Exención de Responsabilidad
 └── README.md                  # Documentación técnica, manual operativo y cláusulas legales
 ```
 
