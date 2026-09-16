@@ -426,30 +426,30 @@
            SUB-VISTA 2: DASHBOARD ESTRUCTURADO POR RIESGO (dashboard-view-container)
            ======================================================================== -->
       <div id="dashboard-view-container" style="display: none;">
-        <!-- Tarjeta de Diagnóstico y Salud del Formulario -->
+        <!-- Tarjeta de Diagnóstico de Resiliencia del Formulario -->
         <div class="dashboard-health-card">
           <div class="health-header">
             <span class="health-title">
               <svg class="ui-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-              Diagnóstico de Robustez del Formulario
+              Índice de Resiliencia Heurística
             </span>
             <!-- Insignia de nivel de riesgo global (Excelente, Aceptable, Crítico) -->
             <span id="dashboard-risk-level-badge" class="badge badge-idle">Calculando...</span>
           </div>
           <div class="health-body">
-            <!-- Círculo de puntuación porcentual de robustez (0 a 100%) -->
+            <!-- Círculo de puntuación porcentual de resiliencia (0 a 100%) -->
             <div class="health-score-circle">
               <span id="dashboard-score-val" class="score-number">--%</span>
-              <span class="score-label">Robustez</span>
+              <span class="score-label">Resiliencia</span>
             </div>
             <div class="health-summary-text">
               <p id="dashboard-summary-msg">Inicia las pruebas para ver el análisis de riesgo estructurado.</p>
               <!-- Etiquetas resumen de conteos por nivel de severidad -->
               <div class="health-mini-stats">
-                <span id="stat-critical-count" class="mini-tag tag-critical">0 Críticos</span>
+                <span id="stat-critical-count" class="mini-tag tag-critical">0 Prioritarios</span>
                 <span id="stat-high-count" class="mini-tag tag-high">0 Altos</span>
                 <span id="stat-medium-count" class="mini-tag tag-medium">0 Medios</span>
-                <span id="stat-safe-count" class="mini-tag tag-safe">0 Seguros</span>
+                <span id="stat-safe-count" class="mini-tag tag-safe">0 Conformes</span>
               </div>
             </div>
           </div>
@@ -461,16 +461,16 @@
             </div>
             <!-- Barra multicolor segmentada que representa porcentajes acumulados -->
             <div id="dashboard-dist-bar" class="risk-distribution-bar" role="progressbar" aria-label="Distribución proporcional de riesgos">
-              <div class="dist-seg seg-critical" style="width: 0%;" title="Seguridad (Crítico)"></div>
-              <div class="dist-seg seg-high" style="width: 0%;" title="Capacidad DoS (Alto)"></div>
-              <div class="dist-seg seg-medium" style="width: 0%;" title="Integridad / Formato (Medio)"></div>
-              <div class="dist-seg seg-safe" style="width: 0%;" title="Conforme (Seguro)"></div>
+              <div class="dist-seg seg-critical" style="width: 0%;" title="Seguridad (Atención Prioritaria)"></div>
+              <div class="dist-seg seg-high" style="width: 0%;" title="Capacidad de Búfer (Alto)"></div>
+              <div class="dist-seg seg-medium" style="width: 0%;" title="Integridad y Formato (Medio)"></div>
+              <div class="dist-seg seg-safe" style="width: 0%;" title="Validación Conforme (Seguro)"></div>
             </div>
             <!-- Cuadrícula con el desglose exacto de conteo y porcentaje por color -->
             <div class="sidepanel-dist-breakdown" id="sidepanel-dist-breakdown">
-              <div class="sp-dist-item"><span class="legend-dot" style="background:#ef4444;"></span> <span class="sp-dist-name">Crítico:</span> <strong id="sp-dist-crit-val">0 (0%)</strong></div>
-              <div class="sp-dist-item"><span class="legend-dot" style="background:#f43f5e;"></span> <span class="sp-dist-name">Alto:</span> <strong id="sp-dist-high-val">0 (0%)</strong></div>
-              <div class="sp-dist-item"><span class="legend-dot" style="background:#f59e0b;"></span> <span class="sp-dist-name">Medio:</span> <strong id="sp-dist-med-val">0 (0%)</strong></div>
+              <div class="sp-dist-item"><span class="legend-dot" style="background:#ef4444;"></span> <span class="sp-dist-name">Seguridad:</span> <strong id="sp-dist-crit-val">0 (0%)</strong></div>
+              <div class="sp-dist-item"><span class="legend-dot" style="background:#f43f5e;"></span> <span class="sp-dist-name">Capacidad:</span> <strong id="sp-dist-high-val">0 (0%)</strong></div>
+              <div class="sp-dist-item"><span class="legend-dot" style="background:#f59e0b;"></span> <span class="sp-dist-name">Integridad:</span> <strong id="sp-dist-med-val">0 (0%)</strong></div>
               <div class="sp-dist-item"><span class="legend-dot" style="background:#10b981;"></span> <span class="sp-dist-name">Conforme:</span> <strong id="sp-dist-safe-val">0 (0%)</strong></div>
             </div>
           </div>
@@ -519,7 +519,7 @@
     <footer class="app-footer">
       <div class="footer-meta">QA Form Field Validator &bull; v1.0.0 &bull; Manifest V3</div>
       <div class="footer-legal">
-        <a id="link-sidepanel-terms" href="../dashboard/terms.html" class="footer-legal-link" title="Consultar Términos y Condiciones de Uso, Exención de Responsabilidad y Política Ética">Términos y Condiciones de Uso</a>
+        <a id="link-sidepanel-terms" href="../dashboard/terms.html" class="footer-legal-link" title="Consultar Términos y Condiciones de Uso, Privacidad y Seguridad">Términos, Privacidad & Seguridad</a>
       </div>
     </footer>
 

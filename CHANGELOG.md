@@ -8,8 +8,16 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 ## [Sin publicar]
 
 ### Añadido
+- **privacy:** Incorporar Política de Privacidad corporativa independiente (PRIVACY.md) detallando procesamiento estrictamente local, cero telemetría y directivas de datos sintéticos.
+- **security:** Incorporar Política de Seguridad y Divulgación Coordinada de Vulnerabilidades (SECURITY.md) con procedimiento formal de reporte y canal confidencial.
+- **ui:** Incorporar banner de alcance heurístico y advertencia técnica en la Consola Ejecutiva (dashboard.html y dashboard.css).
 - **versioning:** Incorporar CHANGELOG.md segun Keep a Changelog y automatizacion de versionado con update_changelog.ps1.
 - **sidepanel:** Integrar acceso a Terminos y Condiciones en encabezado y pie de pagina.
+
+### Cambiado
+- **legal:** Reestructurar integralmente TERMS.md y dashboard/terms.html: sustituir límite monetario de 0.00 USD por limitación proporcional, eliminar aceptación irrevocable, acotar indemnización y armonizar con la Licencia MIT oficial.
+- **diagnostics:** Reformular taxonomía técnica de severidad y métricas: transicionar de severidad crítica a atención prioritaria y de score absoluto a Índice de Resiliencia Heurística en sidepanel.js, sidepanel.html, dashboard.js y dashboard.html.
+- **docs:** Saneamiento estructural de README.md: desvincular contrato legal extenso hacia TERMS.md, incorporar enlaces a PRIVACY.md y SECURITY.md, y precisar inferencia de backend a partir de señales observables.
 
 ### Corregido
 - **versioning:** Preservar cambios previos en sin publicar, blindar semver y robustecer verificacion.
@@ -18,6 +26,9 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **engine:** Eliminar contaminación cruzada de custom payloads, desvincular slug de URLs y añadir heurística numérica en campos de texto.
 - **lab:** Incorporar validación condicional de edad en test-sample.html y ajustar semántica ISO de fecha invertida.
 - **ui:** Preservar status-dot en badge de profundidad y añadir opción de URLs en modal de nuevos inputs.
+
+### Seguridad
+- **auditing:** Auditar código fuente frente a fuga de datos: verificar ausencia de telemetría, transmisiones de red o llamadas remotas en service worker, content scripts, panel lateral y dashboard.
 
 ### Documentación
 - **legal:** Incorporar TERMS.md, vista terms.html y enlace en pie de pagina del dashboard.

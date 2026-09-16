@@ -1,156 +1,152 @@
 # Términos y Condiciones de Uso, Exención de Responsabilidad y Política de Uso Ético
 
-**Plataforma QA Form Field Validator**  
-*Documento Legal Corporativo de Términos de Servicio, Limitación de Responsabilidad y Condiciones de Uso*  
-*Última actualización: 16 de septiembre de 2026*
+**QA Form Field Validator**  
+*Documento Legal Corporativo de Términos de Servicio, Condiciones de Uso y Exención de Responsabilidad*  
+*Última actualización: Septiembre de 2026*
 
 ---
 
-## 1. Identificación, Ámbito de Aplicación y Aceptación Vinculante
+## 1. Identificación del Titular y Ámbito de Aplicación
 
-El presente documento establece los Términos y Condiciones de Uso (en adelante, los "Términos") que rigen el acceso, descarga, instalación, ejecución, copia, modificación y uso de la extensión de navegador web, código fuente, scripts complementarios, interfaces, documentación y archivos asociados denominados colectivamente **QA Form Field Validator** (en adelante, el "Software").
+El presente documento establece los Términos y Condiciones de Uso (en adelante, los "Términos") que rigen el acceso, descarga, instalación, ejecución y uso de la extensión de navegador web, código fuente, scripts complementarios, interfaces, documentación y archivos asociados denominados colectivamente **QA Form Field Validator** (en adelante, el "Software").
 
-Al descargar, instalar, habilitar, ejecutar o interactuar con el Software de cualquier forma, usted (en adelante, el "Usuario" o el "Operador") manifiesta de manera expresa, voluntaria, informada e irrevocable que ha leído, comprendido y aceptado en su totalidad las presentes condiciones, quedando jurídicamente vinculado por las mismas.
+### 1.1. Información del Mantenedor del Proyecto
+- **Titular / Mantenedor:** ElHawky09 (y el equipo de desarrollo de QA Form Field Validator).
+- **Repositorio Oficial:** [https://github.com/ElHawky09/qa-validador-de-campos](https://github.com/ElHawky09/qa-validador-de-campos)
+- **Buzón de Contacto Legal y Regulatorio:** `legal@qaformvalidator.org`
+- **Buzón de Reportes de Seguridad:** `security@qaformvalidator.org`
 
-**SI USTED NO ESTÁ DE ACUERDO CON LA TOTALIDAD DE ESTOS TÉRMINOS Y CONDICIONES, O NO CUENTA CON LA CAPACIDAD LEGAL O AUTORIZACIÓN PARA OBLIGARSE A ELLOS, DEBE ABSTENERSE DE INSTALAR, EJECUTAR O UTILIZAR EL SOFTWARE Y PROCEDER A SU ELIMINACIÓN INMEDIATA DE TODOS SUS DISPOSITIVOS Y SISTEMAS.**
-
----
-
-## 2. Naturaleza del Software y Finalidad Estrictamente Defensiva
-
-El Software es una herramienta de ingeniería de calidad y diagnóstico técnico distribuida a título gratuito y bajo licencia de código abierto. Su propósito primordial consiste en asistir a ingenieros de Aseguramiento de Calidad (Quality Assurance - QA), desarrolladores web y auditores de resiliencia en la verificación funcional y validación de campos de entrada en aplicaciones web bajo entornos controlados.
-
-El Software se proporciona con carácter puramente instrumental y orientativo para fortalecer los mecanismos defensivos del software frente a entradas anómalas, valores límite y defectos de validación en el cliente y servidor.
+### 1.2. Ámbito Subjetivo
+El término "Usuario" u "Operador" designa a cualquier persona física o jurídica que descargue, instale, ejecute, configure o interactúe técnica u operativamente con el Software.
 
 ---
 
-## 3. Principio de Autorización Previa y Uso Exclusivamente Ético
+## 2. Aceptación de los Términos
 
-1. **Requisito Indispensable de Autorización:** El Usuario reconoce y acepta que únicamente está autorizado a ejecutar las funciones, cargas útiles (*payloads*) y pruebas de inyección automatizadas del Software sobre:
-   - Sistemas, aplicaciones, dominios y redes de los cuales el Usuario sea el propietario legítimo exclusivo.
-   - Sistemas respecto de los cuales el Usuario cuente con una autorización previa, expresa, formal, escrita y vigente otorgada por el titular legítimo de los derechos de administración y seguridad.
-2. **Prohibición de Actividades Maliciosas o No Autorizadas:** Queda terminantemente prohibido utilizar el Software para realizar escaneos no consentidos, evaluaciones de penetración sobre terceros sin contrato previo, denegaciones de servicio (DoS), ataques de inyección destructivos, explotación de vulnerabilidades con fines lesivos o cualquier actividad susceptible de vulnerar la confidencialidad, integridad o disponibilidad de sistemas de información ajenos.
+Al acceder, descargar, instalar, habilitar o utilizar el Software de cualquier forma, el Usuario reconoce haber leído, comprendido y aceptado en su integridad las presentes condiciones, en la medida en que resulten legalmente aplicables conforme a la legislación de su jurisdicción.
 
----
-
-## 4. Exclusión Total de Responsabilidad por Daños
-
-En la máxima medida permitida por las leyes aplicables, **los autores, desarrolladores originales, contribuidores, mantenedores y distribuidores del Software NO serán responsables bajo ninguna circunstancia, teoría legal o causa de acción (sea de naturaleza contractual, extracontractual, cuasidelictual, responsabilidad civil objetiva, negligencia o cualquier otra) por ningún daño, pérdida, costo o perjuicio**, incluyendo pero no limitándose a:
-
-1. **Daños Directos, Indirectos o Incidentales:** Pérdida de beneficios, lucro cesante, interrupción de actividades comerciales o productivas, daño reputacional o pérdida de contratos.
-2. **Pérdida o Corrupción de Datos:** Alteración, borrado accidental, sobrescritura, polución o corrupción de bases de datos, registros transaccionales, logs o ficheros de configuración como consecuencia del envío de payloads de prueba o ejecución de transacciones de guardado.
-3. **Afectación de Disponibilidad y Caídas de Servicio:** Degradación de rendimiento, desbordamiento de memoria (OOM), colapso de subprocesos, cuelgues del servidor web o caídas totales de servicio (*Denial of Service*) ocasionadas por la inyección de cadenas masivas, datos de longitud extrema o caracteres atípicos.
-4. **Activación de Contramedidas de Seguridad:** Bloqueos automáticos de cuentas, inclusión de direcciones IP en listas negras (*IP blacklisting*), activación de eventos o alertas de severidad en Cortafuegos de Aplicaciones Web (WAF), Sistemas de Detección/Prevención de Intrusiones (IDS/IPS) o Centros de Operaciones de Seguridad (SOC).
-5. **Costes de Mitigación y Peritaje:** Gastos derivados de investigaciones forenses, restauración de copias de seguridad, consultoría de respuesta a incidentes, honorarios de abogados o costas judiciales.
-6. **Sanciones y Multas:** Sanciones administrativas, multas regulatorias impuestas por autoridades de protección de datos o requerimientos indemnizatorios interpuestos por terceros.
+Si usted no está de acuerdo con las estipulaciones aquí contenidas, o carece de la capacidad legal necesaria para obligarse a ellas, debe abstenerse de instalar, ejecutar o utilizar el Software y proceder a su desinstalación inmediata de sus dispositivos y navegadores web.
 
 ---
 
-## 5. Límite Cuantitativo Máximo de Responsabilidad (Monetary Liability Cap)
+## 3. Naturaleza del Software y Finalidad Estrictamente Defensiva
 
-En el supuesto excepcional de que cualquier tribunal judicial, panel arbitral o autoridad administrativa con jurisdicción vinculante determinara que alguna de las cláusulas de exención de responsabilidad del presente documento resulta nula, inoponible o contraria al orden público:
+El Software es una herramienta de ingeniería de software y control de calidad distribuida a título gratuito y bajo licencia de código abierto. Su propósito primordial consiste en asistir a ingenieros de Aseguramiento de Calidad (Quality Assurance - QA), desarrolladores web y analistas de resiliencia en la verificación técnica y validación funcional de campos de entrada web en entornos debidamente controlados.
 
-**La responsabilidad civil acumulada, conjunta y agregada de los autores, desarrolladores y colaboradores frente al Usuario o cualquier tercero, por cualquier concepto, reclamación o daño derivado de o relacionado con el Software, no excederá bajo ninguna circunstancia de la suma fija e improrrogable de $0.00 USD (cero dólares de los Estados Unidos de América) o su equivalente exacto a cero en cualquier moneda de curso legal.**
+El Software se proporciona con carácter puramente instrumental y orientativo para robustecer los mecanismos preventivos del software frente a entradas anómalas, valores límite y defectos de validación en las capas del cliente y del servidor.
 
-Esta limitación monetaria constituye un elemento esencial del acuerdo en atención a la naturaleza estrictamente gratuita y sin fines de lucro del suministro del Software.
+### Inexistencia de Certificación Oficial de Seguridad
+Los diagnósticos, métricas heurísticas de resiliencia (Score de Robustez), desgloses de riesgo y recomendaciones técnicas generados por el Software tienen un propósito analítico y orientativo. Bajo ninguna circunstancia constituyen una certificación oficial de seguridad informática, ni garantizan el cumplimiento o conformidad con estándares y normativas tales como PCI-DSS, ISO/IEC 27001, SOC 2, HIPAA, ENS, RGPD ni regulaciones análogas. El Software no sustituye revisiones manuales exhaustivas de código fuente, auditorías de arquitectura ni pruebas de penetración profesionales.
 
 ---
 
-## 6. Provisión "TAL CUAL" (AS IS) y Exclusión Integral de Garantías
+## 4. Principio de Autorización Previa y Uso Exclusivamente Autorizado
 
-1. **Descargo de Garantías:** El Software se suministra **"TAL CUAL" (*AS IS*)** y **"SEGÚN DISPONIBILIDAD" (*AS AVAILABLE*)**, sin garantías de ningún tipo, explícitas o implícitas, legales, consuetudinarias o de cualquier otra índole.
-2. **Renuncia Expresa a Garantías Implícitas:** Los creadores y colaboradores renuncian expresamente a toda garantía de comerciabilidad (*merchantability*), idoneidad para un propósito determinado (*fitness for a particular purpose*), no infracción de derechos de terceros (*non-infringement*), y garantías derivadas de usos del tráfico o del curso ordinario de las operaciones.
+### 4.1. Requisito Indispensable de Autorización
+Queda expresamente estipulado como condición esencial de uso que el Operador únicamente ejecutará el Software y sus vectores de prueba sobre:
+1. Sistemas, aplicaciones, dominios y redes respecto de los cuales el Usuario sea el titular legítimo exclusivo.
+2. Sistemas de terceros sobre los cuales el Usuario cuente con una autorización previa, expresa, formal, escrita y plenamente vigente otorgada por los titulares legítimos de los derechos de administración y seguridad.
+
+### 4.2. Prohibición de Actividades No Autorizadas o Maliciosas
+Queda terminantemente prohibido utilizar el Software para realizar escaneos no consentidos, evaluaciones de penetración sobre terceros sin autorización escrita, ataques de denegación de servicio (DoS), inyecciones destructivas en entornos de producción ajenos, explotación lesiva de vulnerabilidades o cualquier conducta susceptible de vulnerar la confidencialidad, integridad o disponibilidad de sistemas de información de terceros.
+
+### 4.3. Deberes de Mitigación y Asunción de Riesgo Operativo
+El Usuario asume de forma consciente, plena e individual los riesgos inherentes a la ejecución de pruebas dinámicas de entrada sobre aplicaciones web. El Usuario se obliga formalmente a:
+- **Confinamiento en Entornos Seguros:** Realizar las auditorías única y exclusivamente en entornos de desarrollo, preproducción (*staging*) o laboratorios aislados.
+- **Respaldos Previos Verificados:** Garantizar la disponibilidad y restauración verificada de copias de seguridad completas (*backups*) de bases de datos y configuraciones antes de iniciar cualquier batería de pruebas.
+- **Supervisión Continua:** Monitorear en tiempo real las transacciones y peticiones emitidas hacia los servidores de destino para suspender inmediatamente las pruebas en caso de comportamiento anómalo.
+- **Prohibición de Uso con Datos Reales:** Abstenerse de utilizar credenciales reales, tokens de acceso, secretos corporativos, números de tarjeta bancaria ni datos de carácter personal reales durante las pruebas; emplear exclusivamente datos y cuentas sintéticas.
+- **Prevención de Efectos Irreversibles:** No ejecutar pruebas automatizadas sobre endpoints o formularios vinculados a pasarelas de pago reales, servicios de mensajería SMS facturables, o componentes transaccionales con consecuencias financieras o legales irreversibles.
+
+---
+
+## 5. Provisión "TAL CUAL" (AS IS) y Exclusión de Garantías
+
+En la máxima medida permitida por la legislación aplicable:
+
+1. **Suministro TAL CUAL:** El Software y su documentación se suministran "TAL CUAL" (*AS IS*) y "SEGÚN DISPONIBILIDAD" (*AS AVAILABLE*), sin garantías de ninguna naturaleza, explícitas, implícitas, legales o convencionales.
+2. **Exclusión de Garantías Implícitas:** Los Autores y mantenedores renuncian expresamente a toda garantía implícita de comerciabilidad (*merchantability*), idoneidad para un propósito determinado (*fitness for a particular purpose*) y no infracción de derechos de terceros (*non-infringement*).
 3. **Ausencia de Infalibilidad:** No se garantiza que las funciones del Software satisfagan las necesidades específicas del Usuario, que la operación sea ininterrumpida o libre de errores (*bugs*), ni que se detecten la totalidad de las vulnerabilidades o fallos de validación existentes en los formularios analizados.
-4. **Inexistencia de Certificación de Seguridad:** El Software es un asistente analítico complementario de diagnóstico heurístico. **Bajo ninguna circunstancia otorga, implica ni constituye una certificación oficial de seguridad, ni garantiza el cumplimiento o conformidad con estándares y normativas tales como PCI-DSS, ISO/IEC 27001, SOC 2, HIPAA, ENS, RGPD ni marcos regulatorios equivalentes.**
+
+Estas exclusiones se aplican en la medida máxima permitida por la legislación aplicable, sin menoscabo de aquellos derechos irrenunciables que asistan al Usuario en su jurisdicción.
 
 ---
 
-## 7. Inexistencia de Asesoramiento Profesional y Prohibición de Confianza Legítima (Non-Reliance)
+## 6. Limitación de Responsabilidad y Cláusula de Cuantía
 
-1. **Naturaleza Informativa:** Los diagnósticos de severidad, las puntuaciones cuantitativas de robustez (*Score*), los gráficos visuales y las sugerencias técnicas generadas por el Software tienen carácter meramente orientativo, automatizado y estadístico.
-2. **Inexistencia de Relación de Asesoría:** Ningún resultado emitido por el Software constituye asesoría jurídica, peritaje informático, certificación técnica o dictamen profesional vinculante.
-3. **Prohibición de Confianza Legítima (*Non-Reliance*):** El Usuario y sus representados se comprometen formalmente a no invocar ni justificar, ante ningún tribunal, cliente, aseguradora o autoridad reguladora, que actuaron bajo confianza legítima en los resultados emitidos por el Software para eludir sus deberes de diligencia debida, auditoría exhaustiva y revisión manual independiente de código.
+En la máxima medida permitida por el ordenamiento jurídico aplicable, los Autores, mantenedores, colaboradores y distribuidores del Software no serán responsables por ningún daño directo, indirecto, incidental, especial, ejemplar, punitivo o consecuencial (incluyendo lucro cesante, interrupción comercial, corrupción o pérdida de datos, degradación de disponibilidad, costos de mitigación pericial o sanciones administrativas) derivado del uso, mal uso o imposibilidad de uso del Software.
 
----
+### 6.1. Limitación Monetaria Máxima
+En el supuesto de que cualquier autoridad judicial o arbitral con jurisdicción vinculante determinara la existencia de responsabilidad civil imputable a los Autores derivada del Software, la responsabilidad civil acumulada y total de los Autores frente al Usuario se limitará al importe efectivamente pagado por el Usuario por el Software durante los doce (12) meses anteriores al hecho que origine la reclamación, o a una cuantía máxima nominal de diez dólares estadounidenses ($10.00 USD) en caso de que el Software haya sido obtenido y utilizado a título gratuito.
 
-## 8. Responsabilidad Exclusiva del Operador y Asunción Integral de Riesgos
-
-El Usuario asume de forma consciente, plena, personal e indelegable todos los riesgos inherentes a la ejecución de pruebas de estrés, inyecciones de payloads y validaciones dinámicas sobre navegadores y aplicaciones web.
-
-El Usuario se obliga formalmente a:
-1. **Confinamiento en Entornos Seguros:** Realizar las evaluaciones única y exclusivamente en entornos de desarrollo, preproducción (*staging*) o laboratorios de prueba aislados.
-2. **Respaldo Previo Verificado:** Asegurar la disponibilidad y verificación funcional de copias de seguridad completas (*backups*) de todas las bases de datos, sistemas y archivos antes de iniciar cualquier batería de pruebas.
-3. **Supervisión Continua:** Monitorear en tiempo real las peticiones y transacciones generadas hacia los servidores de destino para suspender inmediatamente las pruebas en caso de comportamiento anómalo.
+### 6.2. Salvedad General de Normas Imperativas
+Nada de lo dispuesto en estos Términos pretende excluir o limitar una responsabilidad o derecho que no pueda excluirse o limitarse válidamente conforme a la legislación imperativa aplicable (incluyendo supuestos de dolo, conducta intencional, negligencia grave o derechos irrenunciables de los consumidores).
 
 ---
 
-## 9. Exención por Cargos de APIs, Servicios de Terceros y Bloqueos de Red
+## 7. Régimen de Licencia y Relación con la Licencia MIT
 
-Los formularios web auditados pueden estar vinculados a componentes, APIs facturables o pasarelas de pago de terceros (incluyendo de forma enunciativa: Stripe, PayPal, Twilio, SendGrid, Amazon Web Services, Google Cloud Platform, Microsoft Azure u otros proveedores).
+El código fuente del Software se distribuye bajo los términos de la **Licencia MIT oficial** (consulte el archivo [LICENSE](LICENSE)).
 
-Los autores del Software quedan totalmente exonerados de cualquier responsabilidad respecto de:
-1. Facturaciones, tarifas, cobros por consumo de llamadas API o costos financieros devengados por transacciones generadas automática o manualmente mediante el Software.
-2. Bloqueos, suspensiones de servicio o revocación de credenciales impuestas por proveedores externos derivadas de la detección de tráfico anómalo o sospechoso generado por el Usuario.
+La Licencia MIT concede expresamente amplios derechos de uso, copia, modificación, fusión, publicación, distribución, sublicenciamiento y venta de copias del Software, sujeto únicamente a la conservación del aviso de derechos de autor y de la licencia original.
+
+Los presentes Términos regulan las condiciones de uso de la distribución oficial de la extensión, la política ética de uso autorizado y el deslinde de responsabilidades operativas. **Ninguna disposición de estos Términos tiene por objeto restringir, condicionar o revocar los derechos concedidos por la Licencia MIT sobre el código fuente.**
 
 ---
 
-## 10. Cumplimiento Normativo y Delitos Informáticos
+## 8. Resolución de Disputas y Acciones Colectivas
 
-El Usuario garantiza que su utilización del Software se ajustará en todo momento a las leyes penales, administrativas y civiles aplicables en su jurisdicción y en la jurisdicción donde se alojen los servidores auditados.
+En la medida permitida por la legislación aplicable en la jurisdicción correspondiente, las controversias derivadas del uso del Software se resolverán de conformidad con los mecanismos de resolución de disputas legalmente aplicables de forma individual entre las partes, sin perjuicio de los derechos sustantivos o procesales que no puedan ser renunciados conforme a las normas imperativas de protección al consumidor o del ordenamiento público correspondiente.
 
-El Usuario reconoce que el acceso no autorizado o la alteración indebida de sistemas informáticos constituye delito tipificado, entre otros ordenamientos, por:
+---
+
+## 9. Indemnización Acotada (Hold Harmless)
+
+El Usuario se compromete a mantener en paz y a salvo a los Autores, desarrolladores y mantenedores del Software frente a cualquier acción legal, reclamación judicial o administrativa, pérdida, daño o gasto razonable de defensa jurídica derivado directamente de:
+1. La utilización no autorizada, fraudulenta o ilícita del Software por parte del Usuario;
+2. El incumplimiento demostrado de las obligaciones de autorización previa estipuladas en estos Términos;
+3. La infracción de derechos de propiedad intelectual, privacidad o seguridad de sistemas de terceros cometida por el Usuario; o
+4. La distribución por parte del Usuario de versiones alteradas del Software que incorporen elementos lesivos.
+
+La presente obligación de indemnización no será exigible en la medida en que la reclamación derive de dolo o conducta imputable legalmente a los propios Autores que resulte inasegurable conforme a derecho.
+
+---
+
+## 10. Cumplimiento Normativo y Legislación Aplicable
+
+El Usuario es el único responsable de conocer y cumplir todas las leyes civiles, administrativas y penales vigentes en la jurisdicción desde la cual opera y en aquellas donde se encuentren alojados los servidores, redes y bases de datos evaluados.
+
+A título meramente orientativo e informativo, se recuerda que el acceso no autorizado o la alteración indebida de sistemas informáticos ajenos puede constituir infracción o delito bajo normativas tales como:
 - **Estados Unidos:** Computer Fraud and Abuse Act (CFAA, 18 U.S.C. § 1030).
-- **Unión Europea:** Directiva 2013/40/UE del Parlamento Europeo y del Consejo.
-- **Convenio de Budapest sobre Ciberdelincuencia** (ETS No. 185).
-- **España:** Código Penal (artículos 197 bis, 197 ter y 264).
-- **México:** Código Penal Federal (artículos 211 bis 1 a 211 bis 7).
-- **Argentina:** Ley 26.388 de Delitos Informáticos.
-- **Colombia:** Ley 1273 de 2009.
-- **Chile:** Ley 21.459 de Delitos Informáticos.
-- Demás normativas nacionales e internacionales vigentes sobre acceso indebido, interferencia en sistemas y daño informático.
+- **Unión Europea:** Directiva 2013/40/UE relativa a los ataques contra los sistemas de información.
+- **Ámbito Internacional:** Convenio sobre la Ciberdelincuencia del Consejo de Europa (Convenio de Budapest, ETS No. 185).
+- **Normativas Nacionales:** Códigos penales y leyes especiales de delitos informáticos en España, México, Argentina, Colombia, Chile y demás ordenamientos jurídicos aplicables.
 
-El Usuario asume en su totalidad las consecuencias penales, civiles y administrativas de cualquier infracción en que incurra.
+Las referencias normativas anteriores no constituyen asesoría jurídica y se proporcionan únicamente con carácter ilustrativo sobre la importancia del consentimiento expreso y formal antes de cualquier evaluación técnica.
 
 ---
 
-## 11. Renuncia Expresa a Demandas Colectivas y Acciones de Clase (Class Action Waiver)
+## 11. Deslinde por Modificaciones y Bifurcaciones de Terceros
 
-EN LA MEDIDA EN QUE LO PERMITA LA NORMATIVA APLICABLE, EL USUARIO RENUNCIA DE FORMA DEFINITIVA, INCONDICIONAL E IRREVOCABLE AL DERECHO DE INTERPONER, ADHERIRSE, PROMOVER O PARTICIPAR COMO DEMANDANTE O MIEMBRO EN CUALQUIER DEMANDA COLECTIVA (*CLASS ACTION*), PROCEDIMIENTO REPRESENTATIVO, ACCIÓN POPULAR O JUICIO DE GRUPO CONTRA LOS AUTORES, DESARROLLADORES O DISTRIBUIDORES DEL SOFTWARE.
-
-Cualquier litigio o controversia que pudiera suscitarse deberá ser ventilado y dirimido de forma estrictamente individual entre el Usuario y la parte correspondiente.
+Si terceras personas realizan bifurcaciones (*forks*), modificaciones, empaquetados no autorizados o incorporan el código fuente en otras herramientas fuera del repositorio oficial, los Autores originales no asumen ninguna responsabilidad, deber de soporte ni garantía respecto de dichas versiones alteradas. Corresponde al Usuario verificar la autenticidad e integridad del repositorio fuente desde donde obtiene el Software.
 
 ---
 
-## 12. Cláusula Amplia de Indemnización y Deber de Defensa (Hold Harmless)
+## 12. Divisibilidad y Subsistencia
 
-El Usuario se compromete formalmente a indemnizar, defender y mantener en paz y a salvo a los autores, desarrolladores, colaboradores, mantenedores y distribuidores del Software frente a cualquier acción legal, demanda, queja, proceso judicial, arbitral o administrativo, sanción, pérdida, daño, acuerdo conciliatorio, costo y gasto (incluyendo honorarios razonables de abogados, peritos y costas procesales) que se deriven directa o indirectamente de:
-1. El uso, mal uso, imposibilidad de uso o ejecución del Software por parte del Usuario o cualquier persona que actúe bajo su control o con sus credenciales.
-2. El incumplimiento por parte del Usuario de cualquiera de las estipulaciones contenidas en estos Términos y Condiciones.
-3. La vulneración de derechos de propiedad intelectual, derechos de privacidad, normativas de protección de datos o la seguridad de sistemas de cualquier tercero.
+1. **Divisibilidad (*Severability*):** Si cualquier disposición de estos Términos fuera declarada inválida, nula, ilegal o inoponible por una autoridad o tribunal competente, dicha nulidad afectará exclusivamente a la disposición concreta en cuestión y en el alcance mínimo necesario, conservando las demás cláusulas plena vigencia, aplicabilidad y eficacia jurídica.
+2. **Subsistencia (*Survival*):** Las disposiciones relativas a la exclusión de garantías, limitación de responsabilidad, indemnización acotada y asunción de riesgo continuarán en vigor indefinidamente tras el cese de uso o desinstalación del Software.
 
 ---
 
-## 13. Deslinde por Modificaciones, Bifurcaciones y Distribuciones de Terceros
+## 13. Documentos Integrados y Canales de Contacto
 
-El código fuente del Software se distribuye bajo términos de código abierto. Si terceras personas modifican el código fuente, publican bifurcaciones (*forks*), integran módulos no autorizados, incorporan payloads maliciosos o distribuyen versiones empaquetadas fuera del repositorio oficial, los autores originales no asumen ninguna responsabilidad respecto de dichas alteraciones.
+Los presentes Términos se complementan con los siguientes instrumentos oficiales del proyecto:
+- [LICENSE](LICENSE) — Licencia MIT oficial de código abierto.
+- [PRIVACY.md](PRIVACY.md) — Política de privacidad y tratamiento técnico local de datos.
+- [SECURITY.md](SECURITY.md) — Política de seguridad y procedimiento de divulgación coordinada.
+- [README.md](README.md) — Documentación técnica, manual de usuario y arquitectura.
 
-El Usuario es el único responsable de auditar y verificar la integridad de la fuente desde donde descarga e instala el Software.
-
----
-
-## 14. Divisibilidad (Severability) y Subsistencia (Survival)
-
-1. **Divisibilidad:** Si cualquier disposición, cláusula o término de este documento fuera declarado inválido, nulo, ilegal o inoponible por una autoridad o tribunal competente, dicha determinación afectará exclusivamente a la disposición concreta en cuestión. La invalidez parcial no contaminará ni invalidará las demás cláusulas, las cuales conservarán plena vigencia, aplicabilidad y eficacia jurídica.
-2. **Subsistencia:** Las disposiciones relativas a la limitación de responsabilidad, límite cuantitativo, exclusión de garantías, asunción de riesgos, indemnización, renuncia a demandas colectivas y legislación aplicable continuarán en pleno vigor y surtirán efectos de manera indefinida tras la terminación del uso, cese de operaciones o desinstalación del Software.
-
----
-
-## 15. Integridad del Acuerdo y Régimen de Licencia
-
-Los presentes Términos y Condiciones, junto con la licencia de software correspondiente ([LICENSE](LICENSE)) y las directivas contenidas en el archivo [README.md](README.md), constituyen la manifestación íntegra y total de la voluntad de las partes respecto de la materia objeto de este documento.
-
-En caso de cualquier discrepancia entre los términos de licencias de código abierto y las cláusulas de exención de responsabilidad e indemnidad aquí fijadas, prevalecerán las disposiciones que confieran la máxima protección y exención jurídica a los autores y desarrolladores del Software.
-
----
-
-*QA Form Field Validator — Plataforma de Diagnósticos Granulares y Calidad en Entradas Web*
+Para cualquier duda o comunicación formal:
+- **Buzón Legal:** `legal@qaformvalidator.org`
+- **Buzón de Seguridad:** `security@qaformvalidator.org`

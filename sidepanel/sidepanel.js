@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Los emojis modernos requieren 4 bytes en UTF-8. Si la base de datos utiliza una codificación
       // antigua de MySQL como 'utf8' (que solo admite 3 bytes por caracter) en lugar de 'utf8mb4',
       // la inserción fallará arrojando un error de truncamiento o una excepción fatal 500.
-      payload: '😀 🎉 🔥 🚀',
+      payload: '\uD83D\uDE00 \uD83C\uDF89 \uD83D\uDD25 \uD83D\uDE80',
       desc: 'Validar soporte UTF8mb4 en base de datos',
       isInvalidCase: false // Texto legítimo en aplicaciones modernas (mensajería, perfiles, etc.).
     },
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Los emojis compuestos unen múltiples glifos mediante el caracter especial Zero-Width Joiner (\u200D).
       // Por ejemplo, una familia o profesionales con modificadores de tono de piel.
       // Permite comprobar si el renderizado del frontend o el contador de caracteres maneja grafemas correctamente.
-      payload: '👩‍👩‍👦‍👦 👨‍💻',
+      payload: '\uD83D\uDC69\u200D\uD83D\uDC69\u200D\uD83D\uDC66\u200D\uD83D\uDC66 \uD83D\uDC68\u200D\uD83D\uDCBB',
       desc: 'Secuencias compuestas (Zero-Width Joiner)',
       isInvalidCase: false
     },
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       name: 'Banderas regionales',
       // Las banderas no son un solo carácter, sino pares de Regional Indicator Symbols (ej. E + S = España).
       // Permite evaluar la representación de glifos compuestos y longitudes de cadena en bytes vs caracteres.
-      payload: '🇪🇸 🇲🇽 🇨🇱 🇦🇷 🇺🇸',
+      payload: '\uD83C\uDDEA\uD83C\uDDF8 \uD83C\uDDF2\uD83C\uDDFD \uD83C\uDDE8\uD83C\uDDF1 \uD83C\uDDE6\uD83C\uDDF7 \uD83C\uDDFA\uD83C\uDDF8',
       desc: 'Unicode Regional Indicator Symbols',
       isInvalidCase: false
     },
@@ -2325,7 +2325,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Caso E: Inyección XSS [Cross-Site Scripting]
         else if (testItem.id === 'sec_script' || testItem.id === 'sec_img_onerror' || testItem.id === 'sec_html_tags' || (testItem.category === 'security' && /<[a-z][\s\S]*>/i.test(payload))) {
           status = 'risk';
-          badgeText = 'Falta de Filtrado (Riesgo XSS)';
+          badgeText = 'Indicador: Falta de Filtrado (XSS)';
           badgeClass = 'res-risk';
           const sample = payload.length > 32 ? payload.slice(0, 30) + '...' : payload;
           detail = `El campo guardó sintaxis HTML/JavaScript ('${sample}') sin validación de lista blanca (allowlist). Nota técnica: La aceptación en el input no implica XSS ejecutable automático; el riesgo real surge si la aplicación renderiza este contenido en el navegador sin escapado contextual (output encoding).`;
@@ -2334,7 +2334,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Caso F: Inyección SQL
         else if (testItem.id === 'sec_sql_basic' || (testItem.category === 'security' && /('|--|\bOR\b|\bAND\b)/i.test(payload))) {
           status = 'risk';
-          badgeText = 'Falta de Filtrado (Sintaxis SQL)';
+          badgeText = 'Indicador: Falta de Filtrado (SQL)';
           badgeClass = 'res-risk';
           detail = `El formulario aceptó caracteres de sintaxis SQL ('${payload}'). Nota técnica: Aceptar sintaxis SQL en la entrada no implica inyección ejecutable por sí sola; el riesgo existe únicamente si la capa de persistencia concatena sentencias sin consultas preparadas.`;
           recommendation = 'Implementar sentencias preparadas (parameterized queries) o uso estricto de ORM en backend; restringir caracteres de sintaxis SQL innecesarios en la capa de entrada.';
@@ -2342,7 +2342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Caso G: Byte Nulo [%00]
         else if (testItem.id === 'sec_null_byte' || (typeof payload === 'string' && payload.includes('\u0000'))) {
           status = 'risk';
-          badgeText = 'Falta de Filtrado (Null Byte)';
+          badgeText = 'Indicador: Falta de Filtrado (Null Byte)';
           badgeClass = 'res-risk';
           detail = `El campo aceptó el carácter de terminación nula (\\0). Aunque JavaScript maneja cadenas con terminador nulo, puede truncar cadenas al interactuar con librerías nativas C/C++ o rutas del sistema de archivos en el backend.`;
           recommendation = 'Rechazar o filtrar caracteres de control ASCII (código 0 / \\0) en la capa de validación de entrada antes de procesar o persistir.';
@@ -2390,7 +2390,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Caso M: Esquemas peligrosos en URLs [javascript:, data:]
         else if (testItem.id === 'url_xss_javascript' || testItem.id === 'url_data_scheme') {
           status = 'risk';
-          badgeText = 'Riesgo de Seguridad (Esquema Peligroso)';
+          badgeText = 'Indicador: Esquema Peligroso';
           badgeClass = 'res-risk';
           detail = `El campo aceptó el esquema no seguro ('${payload.slice(0, 20)}...'). Si este enlace es renderizado en una etiqueta <a> o iframe sin filtrado, puede provocar ejecución de scripts (XSS).`;
           recommendation = 'Implementar una lista blanca estricta de esquemas permitidos (únicamente http: y https:) y rechazar explícitamente esquemas como javascript:, data:, vbscript: o file:.';
@@ -2414,7 +2414,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Caso P: Longitud extrema de URL [>2000 caracteres]
         else if (testItem.id === 'url_excessive_length') {
           status = 'risk';
-          badgeText = 'Riesgo de Capacidad (URL Extensa)';
+          badgeText = 'Indicador: Búfer / Longitud Extensa';
           badgeClass = 'res-capacity';
           detail = `El campo aceptó una URL extensa de ${resLen} caracteres sin aplicar límite razonable de longitud.`;
           recommendation = 'Definir atributo maxlength="2048" en el campo HTML y validar en backend el límite estándar de navegadores y servidores web.';
@@ -2422,7 +2422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Caso Q: Caso inválido genérico
         else {
           status = 'risk';
-          badgeText = 'Riesgo: Sin Restricción';
+          badgeText = 'Hallazgo Potencial: Sin Restricción';
           badgeClass = 'res-risk';
           detail = triggerSave 
             ? `El formulario guardó ${resLen} caracteres anómalos ('${payload.slice(0, 25)}...') sin disparar alertas ni validaciones.`
@@ -2628,14 +2628,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       return {
         key: 'conforme',
         title: 'Validaciones Efectivas y Casos Conformes',
-        severity: 'SEGURO',
+        severity: 'CONFORME',
         severityClass: 'cat-safe',
         iconSvg: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
         desc: 'Validaciones donde el campo o el servidor demostraron defensas activas (bloqueo al guardar, recorte por longitud o procesamiento conforme).'
       };
     }
 
-    // 1. Grupo Seguridad e Inyecciones (Severidad Crítica):
+    // 1. Grupo Seguridad e Inyecciones (Atención Prioritaria):
     if (
       itemCat === 'security' ||
       itemId === 'url_xss_javascript' ||
@@ -2652,10 +2652,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       return {
         key: 'security',
         title: 'Seguridad e Inyecciones',
-        severity: 'CRÍTICO',
+        severity: 'PRIORITARIO',
         severityClass: 'cat-critical',
         iconSvg: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>',
-        desc: 'Vectores de XSS, sintaxis SQL, caracteres nulos o esquemas ejecutables aceptados sin lista blanca ni filtrado.'
+        desc: 'Vectores de XSS, sintaxis SQL, caracteres nulos o esquemas ejecutables aceptados sin lista blanca ni filtrado en entrada.'
       };
     }
 
@@ -2669,7 +2669,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ) {
       return {
         key: 'capacity',
-        title: 'Capacidad y Resistencia DoS',
+        title: 'Capacidad y Resistencia de Búfer',
         severity: 'ALTO',
         severityClass: 'cat-high',
         iconSvg: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
@@ -2698,7 +2698,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 4. Grupo Lógica de Negocio y Reglas de Formato (Severidad Media / Observación):
     return {
       key: 'format_logic',
-      title: 'Lógica de Negocio y Formato',
+      title: 'Integridad y Lógica de Formato',
       severity: 'MEDIO',
       severityClass: 'cat-medium',
       iconSvg: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>',
@@ -2806,16 +2806,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (criticalCount > 0) {
         // Presencia de vulnerabilidades de inyección o seguridad activa:
         dashboardRiskLevelBadge.className = 'badge badge-danger';
-        dashboardRiskLevelBadge.innerText = 'Riesgo Crítico';
+        dashboardRiskLevelBadge.innerText = 'Atención Prioritaria';
         // Resaltamos el borde del contenedor del puntaje con color rojo de alerta:
         if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#f87171';
         if (dashboardSummaryMsg) {
-          dashboardSummaryMsg.innerHTML = `Se detectaron <strong>${criticalCount} anomalía(s) de seguridad</strong>. Requiere revisión prioritaria de filtrado y escapado.`;
+          dashboardSummaryMsg.innerHTML = `Se detectaron <strong>${criticalCount} indicador(es) de seguridad</strong>. Requiere revisión prioritaria de filtrado y escapado.`;
         }
       } else if (highCount > 0) {
         // Presencia de riesgos de denegación de servicio o longitudes excesivas:
         dashboardRiskLevelBadge.className = 'badge badge-warning';
-        dashboardRiskLevelBadge.innerText = 'Riesgo Alto (DoS)';
+        dashboardRiskLevelBadge.innerText = 'Capacidad y Búfer';
         // Resaltamos el borde del puntaje con color rosa-naranja de precaución:
         if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#fb7185';
         if (dashboardSummaryMsg) {
@@ -2824,7 +2824,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (mediumCount > 0) {
         // Presencia de fallas en saneamiento o lógica de formato:
         dashboardRiskLevelBadge.className = 'badge badge-warning';
-        dashboardRiskLevelBadge.innerText = 'Riesgo Moderado';
+        dashboardRiskLevelBadge.innerText = 'Observaciones Leves';
         // Resaltamos el borde del puntaje con color ámbar:
         if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#fbbf24';
         if (dashboardSummaryMsg) {
@@ -2833,7 +2833,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         // Ausencia total de fallas; todas las pruebas fueron debidamente contenidas:
         dashboardRiskLevelBadge.className = 'badge badge-active';
-        dashboardRiskLevelBadge.innerText = 'Formulario Robusto';
+        dashboardRiskLevelBadge.innerText = 'Resiliencia Alta';
         // Resaltamos el borde del puntaje con color esmeralda satisfactorio:
         if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#34d399';
         if (dashboardSummaryMsg) {
@@ -2843,10 +2843,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 7. Actualización de las tarjetas numéricas de KPIs (Key Performance Indicators):
-    if (statCriticalCount) statCriticalCount.innerText = `${criticalCount} Críticos`;
-    if (statHighCount) statHighCount.innerText = `${highCount} Altos`;
-    if (statMediumCount) statMediumCount.innerText = `${mediumCount} Medios`;
-    if (statSafeCount) statSafeCount.innerText = `${safeCount} Seguros`;
+    if (statCriticalCount) statCriticalCount.innerText = `${criticalCount} ${criticalCount === 1 ? 'Prioritario' : 'Prioritarios'}`;
+    if (statHighCount) statHighCount.innerText = `${highCount} ${highCount === 1 ? 'Alto' : 'Altos'}`;
+    if (statMediumCount) statMediumCount.innerText = `${mediumCount} ${mediumCount === 1 ? 'Medio' : 'Medios'}`;
+    if (statSafeCount) statSafeCount.innerText = `${safeCount} ${safeCount === 1 ? 'Conforme' : 'Conformes'}`;
 
     // 8. Dibujo y dimensionamiento de la Barra de Distribución Proporcional de Riesgos:
     if (dashboardDistBar) {
@@ -3010,10 +3010,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 7. Reiniciamos los contadores numéricos de las tarjetas de métricas:
-    if (statCriticalCount) statCriticalCount.innerText = '0 Críticos';
+    if (statCriticalCount) statCriticalCount.innerText = '0 Prioritarios';
     if (statHighCount) statHighCount.innerText = '0 Altos';
     if (statMediumCount) statMediumCount.innerText = '0 Medios';
-    if (statSafeCount) statSafeCount.innerText = '0 Seguros';
+    if (statSafeCount) statSafeCount.innerText = '0 Conformes';
 
     // 8. Restablecemos el mensaje orientativo inferior del Dashboard:
     if (dashboardSummaryMsg) {
@@ -3151,16 +3151,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const score = Math.max(0, Math.min(100, Math.round(100 - (penalty / (total || 1)) * 20)));
 
     // 3. Determinación Cualitativa del Diagnóstico Global y Recomendación Ejecutiva:
-    let overallLevel = 'Saludable';
-    let overallMessage = 'El formulario cuenta con defensas preventivas efectivas ante la mayoría de pruebas.';
+    let overallLevel = 'Resiliencia Alta';
+    let overallMessage = 'El formulario cuenta con defensas preventivas efectivas ante la mayoría de pruebas evaluadas.';
     if (criticalCount > 0) {
-      overallLevel = 'Riesgo Crítico';
-      overallMessage = 'Se detectaron fallos críticos de validación en la capa de entrada (inyección de scripts/SQL/nulos).';
+      overallLevel = 'Atención Prioritaria';
+      overallMessage = 'Se identificaron señales de omisión de filtrado en la capa de entrada ante vectores potenciales de inyección.';
     } else if (highCount > 0) {
-      overallLevel = 'Riesgo Alto';
-      overallMessage = 'El formulario admitió entradas masivas sin maxlength preventivo ni control de longitud. Riesgo DoS.';
+      overallLevel = 'Capacidad y Búfer';
+      overallMessage = 'El formulario admitió entradas masivas sin atributo maxlength preventivo ni control de longitud.';
     } else if (mediumCount > 0) {
-      overallLevel = 'Riesgo Moderado';
+      overallLevel = 'Observaciones Leves';
       overallMessage = 'Se observaron inconsistencias en recorte de espacios, sintaxis o reglas de formato.';
     }
 
@@ -3172,11 +3172,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 5. Definición Maestra de Metadatos de Categorías para el Dashboard y Reportes:
     const categoriesDef = [
-      { key: 'security', title: '1. Seguridad e Inyecciones', desc: 'Vectores de XSS, inyección SQL, terminación nula y esquemas ejecutables.', severity: 'CRÍTICO', color: '#f87171', borderLeft: '#f87171' },
-      { key: 'capacity', title: '2. Capacidad y Resistencia DoS', desc: 'Sobrecargas masivas de texto y URLs de longitud excesiva sin maxlength.', severity: 'ALTO', color: '#fb7185', borderLeft: '#fb7185' },
+      { key: 'security', title: '1. Seguridad e Inyecciones', desc: 'Indicadores de entrada: falta de filtrado ante vectores potenciales de XSS, inyección SQL, terminación nula o esquemas ejecutables.', severity: 'PRIORITARIO', color: '#f87171', borderLeft: '#f87171' },
+      { key: 'capacity', title: '2. Capacidad y Resistencia de Búfer', desc: 'Sobrecargas masivas de texto y URLs de longitud excesiva sin límite maxlength preventivo.', severity: 'ALTO', color: '#fb7185', borderLeft: '#fb7185' },
       { key: 'integrity', title: '3. Integridad y Spoofing Unicode', desc: 'Caracteres invisibles de ancho cero, secuencias compuestas y evasión de filtros.', severity: 'MEDIO', color: '#fbbf24', borderLeft: '#fbbf24' },
-      { key: 'format_logic', title: '4. Lógica de Negocio y Formato', desc: 'Recorte de espacios, validación numérica, calendarios y sintaxis RFC.', severity: 'MEDIO', color: '#fbbf24', borderLeft: '#fbbf24' },
-      { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', desc: 'Casos rechazados con éxito por el validador, truncados por límite o datos conformes.', severity: 'SEGURO', color: '#34d399', borderLeft: '#34d399' }
+      { key: 'format_logic', title: '4. Integridad y Lógica de Formato', desc: 'Recorte de espacios, validación numérica, calendarios y sintaxis RFC.', severity: 'MEDIO', color: '#fbbf24', borderLeft: '#fbbf24' },
+      { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', desc: 'Casos rechazados con éxito por el validador, truncados por límite o datos conformes.', severity: 'CONFORME', color: '#34d399', borderLeft: '#34d399' }
     ];
 
     // 6. Retorno del objeto JSON integral con el esquema unificado de auditoría:

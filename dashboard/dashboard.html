@@ -79,32 +79,38 @@
     ============================================================================================= -->
     <main id="main-content" style="display: none;">
       
+      <!-- Aviso Informativo de Alcance Técnico y Naturaleza Heurística -->
+      <div class="heuristic-notice-banner no-print">
+        <svg class="action-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <span><strong>Aviso de Alcance Técnico:</strong> Los resultados y el índice de resiliencia representan indicadores heurísticos orientativos de validación en la capa de interfaz web. No constituyen una auditoría de penetración formal ni una certificación oficial de seguridad o cumplimiento normativo.</span>
+      </div>
+
       <!-- -------------------------------------------------------------------------------------------
            SECCIÓN: CUADRÍCULA DE KPIS EJECUTIVOS (CARDS DE MÉTRICAS)
-           6 tarjetas interactivas que resumen la postura general de seguridad del formulario.
+           6 tarjetas interactivas que resumen la postura general de resiliencia del formulario.
       ------------------------------------------------------------------------------------------- -->
       <section class="kpi-grid">
-        <!-- Tarjeta 1: Puntuación de Robustez Global (0 a 100%) -->
+        <!-- Tarjeta 1: Puntuación de Resiliencia Heurística Global (0 a 100%) -->
         <div class="kpi-card card-score" id="kpi-card-score">
-          <div class="kpi-card-header">Índice de Robustez</div>
+          <div class="kpi-card-header">Índice de Resiliencia</div>
           <div class="kpi-card-value" id="kpi-score-val">0%</div>
           <div class="kpi-card-footer" id="kpi-score-level">Calculando...</div>
         </div>
-        <!-- Tarjeta 2: Hallazgos de Seguridad Crítica (Inyecciones de código, XSS, SQLi, \0) -->
+        <!-- Tarjeta 2: Señales de Seguridad (Atención Prioritaria: Inyecciones XSS, SQLi, \0) -->
         <div class="kpi-card card-critical">
-          <div class="kpi-card-header">Seguridad (Crítico)</div>
+          <div class="kpi-card-header">Seguridad (Prioritario)</div>
           <div class="kpi-card-value" id="kpi-critical-val">0</div>
-          <div class="kpi-card-footer">Inyecciones XSS, SQLi, \0</div>
+          <div class="kpi-card-footer">Indicadores XSS, SQLi, \0</div>
         </div>
-        <!-- Tarjeta 3: Hallazgos de Capacidad y DoS (Buffer overflows, cargas de 1k/5k chars sin maxlength) -->
+        <!-- Tarjeta 3: Señales de Capacidad (Búfer y Cargas Masivas sin maxlength) -->
         <div class="kpi-card card-high">
           <div class="kpi-card-header">Capacidad (Alto)</div>
           <div class="kpi-card-value" id="kpi-high-val">0</div>
-          <div class="kpi-card-footer">Sobrecargas y DoS</div>
+          <div class="kpi-card-footer">Sobrecargas y Búfer</div>
         </div>
-        <!-- Tarjeta 4: Hallazgos de Integridad y Formato (Espacios en blanco, caracteres invisibles, reglas) -->
+        <!-- Tarjeta 4: Señales de Integridad y Formato (Espacios en blanco, caracteres invisibles, reglas) -->
         <div class="kpi-card card-medium">
-          <div class="kpi-card-header">Formato & Negocio</div>
+          <div class="kpi-card-header">Formato & Integridad</div>
           <div class="kpi-card-value" id="kpi-medium-val">0</div>
           <div class="kpi-card-footer">Unicode, Espacios, Reglas</div>
         </div>
@@ -146,10 +152,10 @@
         <!-- Barra continua de espectro proporcional superior -->
         <div class="dist-bar-track-wrap">
           <div class="dist-bar-track">
-            <div id="dist-bar-crit" class="bar-seg seg-critical" style="width: 0%;" title="Seguridad (Crítico)"></div>
-            <div id="dist-bar-high" class="bar-seg seg-high" style="width: 0%;" title="Capacidad DoS (Alto)"></div>
+            <div id="dist-bar-crit" class="bar-seg seg-critical" style="width: 0%;" title="Seguridad (Atención Prioritaria)"></div>
+            <div id="dist-bar-high" class="bar-seg seg-high" style="width: 0%;" title="Capacidad de Búfer (Alto)"></div>
             <div id="dist-bar-med" class="bar-seg seg-medium" style="width: 0%;" title="Formato / Integridad (Medio)"></div>
-            <div id="dist-bar-safe" class="bar-seg seg-safe" style="width: 0%;" title="Conforme / Seguro"></div>
+            <div id="dist-bar-safe" class="bar-seg seg-safe" style="width: 0%;" title="Validación Conforme (Seguro)"></div>
           </div>
         </div>
 
@@ -167,10 +173,10 @@
                 <circle id="donut-seg-high" cx="100" cy="100" r="68" class="donut-slice slice-high" />
                 <circle id="donut-seg-med" cx="100" cy="100" r="68" class="donut-slice slice-medium" />
                 <circle id="donut-seg-safe" cx="100" cy="100" r="68" class="donut-slice slice-safe" />
-                <!-- Centro del anillo con valor de robustez, etiqueta y total -->
+                <!-- Centro del anillo con valor de resiliencia, etiqueta y total -->
                 <g class="donut-center-group">
                   <text x="100" y="88" text-anchor="middle" id="donut-score-val" class="donut-text-val">0%</text>
-                  <text x="100" y="105" text-anchor="middle" id="donut-score-lbl" class="donut-text-lbl">ROBUSTEZ</text>
+                  <text x="100" y="105" text-anchor="middle" id="donut-score-lbl" class="donut-text-lbl">RESILIENCIA</text>
                   <text x="100" y="121" text-anchor="middle" id="donut-total-tests" class="donut-text-sub">0 Pruebas</text>
                 </g>
               </svg>
@@ -181,12 +187,12 @@
           <!-- COLUMNA 2: Tarjetas Analíticas de Barras de Severidad con contexto técnico -->
           <div class="chart-col-bars">
             
-            <!-- Tarjeta de Severidad 1: Seguridad e Inyecciones (Crítico) -->
+            <!-- Tarjeta de Severidad 1: Seguridad e Inyecciones (Prioritario) -->
             <div class="sev-bar-card sev-card-critical">
               <div class="sev-card-top">
                 <div class="sev-card-meta">
-                  <span class="sev-card-badge badge-crit">Crítico</span>
-                  <span class="sev-card-title">Seguridad e Inyecciones</span>
+                  <span class="sev-card-badge badge-crit">Prioritario</span>
+                  <span class="sev-card-title">Seguridad (Atención Prioritaria)</span>
                 </div>
                 <div class="sev-card-stat">
                   <strong id="bar-crit-count">0 pruebas</strong> <span id="bar-crit-pct" class="sev-pct-label">(0%)</span>
@@ -195,7 +201,7 @@
               <div class="sev-progress-track">
                 <div id="sev-fill-crit" class="sev-progress-fill fill-critical" style="width: 0%;"></div>
               </div>
-              <div class="sev-card-desc">Falta de filtrado en entradas frente a inyecciones XSS, SQL o vectores de escape.</div>
+              <div class="sev-card-desc">Indicador de falta de filtrado en entradas frente a vectores potenciales XSS, SQL o secuencias de escape.</div>
             </div>
 
             <!-- Tarjeta de Severidad 2: Capacidad y Resistencia DoS (Alto) -->
@@ -203,7 +209,7 @@
               <div class="sev-card-top">
                 <div class="sev-card-meta">
                   <span class="sev-card-badge badge-high">Alto</span>
-                  <span class="sev-card-title">Capacidad y Resistencia DoS</span>
+                  <span class="sev-card-title">Capacidad y Resistencia de Búfer</span>
                 </div>
                 <div class="sev-card-stat">
                   <strong id="bar-high-count">0 pruebas</strong> <span id="bar-high-pct" class="sev-pct-label">(0%)</span>
@@ -220,7 +226,7 @@
               <div class="sev-card-top">
                 <div class="sev-card-meta">
                   <span class="sev-card-badge badge-medium">Medio</span>
-                  <span class="sev-card-title">Integridad y Lógica de Negocio</span>
+                  <span class="sev-card-title">Integridad y Lógica de Formato</span>
                 </div>
                 <div class="sev-card-stat">
                   <strong id="bar-med-count">0 pruebas</strong> <span id="bar-med-pct" class="sev-pct-label">(0%)</span>
@@ -237,7 +243,7 @@
               <div class="sev-card-top">
                 <div class="sev-card-meta">
                   <span class="sev-card-badge badge-safe">Conforme</span>
-                  <span class="sev-card-title">Validaciones Efectivas y Seguras</span>
+                  <span class="sev-card-title">Validaciones Efectivas y Conformes</span>
                 </div>
                 <div class="sev-card-stat">
                   <strong id="bar-safe-count">0 pruebas</strong> <span id="bar-safe-pct" class="sev-pct-label">(0%)</span>
@@ -325,10 +331,10 @@
          4. PIE DE PÁGINA (FOOTER)
     ============================================================================================= -->
     <footer class="dash-footer">
-      <div>QA Form Field Validator &bull; Motor de Diagnósticos Granular v1.0.0</div>
-      <div class="footer-sub">Generado bajo arquitectura nativa Google Chrome Manifest V3</div>
+      <div>QA Form Field Validator &bull; Motor Heurístico de Diagnóstico v1.0.0</div>
+      <div class="footer-sub">Generado bajo arquitectura nativa Google Chrome Manifest V3 &bull; Procesamiento estrictamente local &bull; Cero telemetría</div>
       <div class="footer-legal">
-        <a href="terms.html" target="_blank" class="footer-link" title="Consultar Términos y Condiciones de Uso, Exención de Responsabilidad y Política Ética">Términos y Condiciones de Uso</a>
+        <a href="terms.html" target="_blank" class="footer-link" title="Consultar Términos y Condiciones de Uso, Privacidad y Seguridad">Términos, Privacidad y Seguridad</a>
       </div>
     </footer>
   </div>

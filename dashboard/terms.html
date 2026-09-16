@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <!-- =================================================================================================
      ARCHIVO: dashboard/terms.html
-     PROPÓSITO: Documento legal de Términos y Condiciones de Uso, Exención de Responsabilidad y Política Ética.
-     ARQUITECTURA: Manifest V3 de Chromium (página nativa accesible desde el Dashboard).
-     REGLAS DE ESTILO: Redacción formal corporativa, cero emojis, diseño responsivo y optimizado para impresión.
+     PROPÓSITO: Documento corporativo de Términos y Condiciones de Uso, Política de Privacidad y Seguridad.
+     ARQUITECTURA: Manifest V3 de Chromium (página nativa accesible desde el Dashboard y Sidepanel).
+     REGLAS DE ESTILO: Redacción formal corporativa en español, cero emojis, diseño responsivo y optimizado para impresión.
 ================================================================================================= -->
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Términos y Condiciones de Uso — QA Form Field Validator</title>
+  <title>Términos, Privacidad y Seguridad — QA Form Field Validator</title>
   <link rel="stylesheet" href="dashboard.css">
   <style>
     .terms-container {
@@ -110,6 +110,26 @@
     .terms-notice-box strong {
       color: #dbeafe;
     }
+    .terms-meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px 0;
+      font-size: 13px;
+    }
+    .terms-meta-table th, .terms-meta-table td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+    }
+    .terms-meta-table th {
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-main);
+      font-weight: 600;
+      width: 28%;
+    }
+    .terms-meta-table td {
+      color: var(--text-sub);
+    }
     .btn-back {
       display: inline-flex;
       align-items: center;
@@ -172,6 +192,14 @@
         color: #14532d !important;
         border: 1px solid #86efac !important;
       }
+      .terms-meta-table th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+      }
+      .terms-meta-table td, .terms-meta-table th {
+        border-color: #cbd5e1 !important;
+        color: #1e293b !important;
+      }
       .no-print {
         display: none !important;
       }
@@ -191,139 +219,133 @@
       </button>
     </div>
 
-    <!-- Tarjeta Principal de Términos y Condiciones -->
+    <!-- Tarjeta Principal de Términos, Privacidad y Seguridad -->
     <div class="terms-card">
       <header class="terms-header">
-        <div class="terms-badge">Marco Jurídico de Operación y Licenciamiento</div>
-        <h1 class="terms-title">Términos y Condiciones de Uso, Exención Integral de Responsabilidad y Política Ética</h1>
+        <div class="terms-badge">Marco Jurídico de Operación y Gobierno de Datos</div>
+        <h1 class="terms-title">Términos de Uso, Política de Privacidad y Declaración de Seguridad</h1>
         <div class="terms-subtitle">
           Plataforma QA Form Field Validator &bull; Versión Oficial 1.0.0 &bull; Última actualización: Septiembre de 2026<br>
-          Aplicable a todas las extensiones, scripts, APIs, utilidades y documentación asociadas al proyecto.
+          Aplicable a la extensión de navegador, scripts de contenido, panel lateral, dashboard y herramientas asociadas.
         </div>
       </header>
 
       <div class="terms-content">
 
-        <div class="terms-alert-box">
-          <strong>AVISO VINCULANTE:</strong> El acceso, descarga, instalación o utilización de esta herramienta implica la aceptación total, incondicional e irrevocable de la totalidad de las cláusulas, exclusiones de garantías y límites de responsabilidad descritos en el presente documento. Si usted no está de acuerdo, debe desinstalar y abstenerse de utilizar el software de inmediato.
-        </div>
+        <!-- Ficha técnica del mantenedor -->
+        <table class="terms-meta-table">
+          <tbody>
+            <tr>
+              <th>Titular del Proyecto</th>
+              <td>ElHawky09 y equipo mantenedor de QA Form Field Validator</td>
+            </tr>
+            <tr>
+              <th>Repositorio Oficial</th>
+              <td><a href="https://github.com/ElHawky09/qa-validador-de-campos" target="_blank" style="color: #60a5fa; text-decoration: none;">https://github.com/ElHawky09/qa-validador-de-campos</a></td>
+            </tr>
+            <tr>
+              <th>Contacto Legal y Regulatorio</th>
+              <td>legal@qaformvalidator.org</td>
+            </tr>
+            <tr>
+              <th>Reporte de Vulnerabilidades</th>
+              <td>security@qaformvalidator.org</td>
+            </tr>
+            <tr>
+              <th>Licencia del Código Fuente</th>
+              <td>Licencia MIT Oficial (Open Source Initiative)</td>
+            </tr>
+          </tbody>
+        </table>
 
-        <h2>1. Identificación y Ámbito de Aplicación</h2>
-        <p>
-          El presente instrumento constituye un acuerdo legal vinculante entre cualquier persona física o jurídica que instale, ejecute o interactúe con el software (en adelante, el "Usuario" o el "Operador") y los creadores, mantenedores, autores y colaboradores del proyecto <strong>QA Form Field Validator</strong> (en adelante, los "Autores").
-        </p>
-        <p>
-          El término "Software" comprende la extensión para navegadores basados en Chromium (Google Chrome, Microsoft Edge, Brave), sus scripts de contenido, panel lateral, service worker, consola de diagnóstico (Dashboard), scripts de automatización en PowerShell y toda documentación técnica adjunta.
-        </p>
-
-        <h2>2. Naturaleza del Software y Finalidad Estrictamente Defensiva</h2>
-        <p>
-          El Software ha sido concebido y desarrollado exclusivamente como una herramienta técnica de asistencia en ingeniería de software para equipos de Aseguramiento de Calidad (QA), analistas de resiliencia y desarrolladores web. Su objetivo primordial es automatizar la verificación de entradas de datos y diagnosticar el comportamiento de validaciones funcionales en entornos de prueba debidamente controlados y autorizados.
-        </p>
-
-        <h2>3. Principio de Autorización Previa y Uso Exclusivamente Ético</h2>
-        <p>
-          Queda expresamente estipulado como condición esencial de uso que el Operador únicamente ejecutará el Software sobre:
-        </p>
-        <ul>
-          <li>Aplicaciones, formularios, dominios y servidores respecto de los cuales sea el propietario legítimo exclusivo.</li>
-          <li>Sistemas de terceros sobre los cuales cuente con una autorización previa, expresa, formal, escrita y plenamente vigente otorgada por los responsables de seguridad o administración competentes.</li>
-        </ul>
-        <p>
-          Se prohíbe de forma terminante el empleo del Software para la realización de ataques de denegación de servicio (DoS), inyecciones lesivas en entornos productivos ajenos, escaneos no autorizados o cualquier conducta susceptible de vulnerar la confidencialidad, integridad o disponibilidad de sistemas informáticos.
-        </p>
-
-        <h2>4. Exclusión y Descargo Total de Responsabilidad por Daños</h2>
-        <p>
-          En la máxima medida permitida por el ordenamiento jurídico aplicable, los Autores, desarrolladores, colaboradores y distribuidores no asumirán responsabilidad alguna, bajo ninguna teoría jurídica (contractual, extracontractual, responsabilidad civil objetiva, negligencia o cualquier otra), respecto de:
-        </p>
-        <ol>
-          <li><strong>Daños Directos o Indirectos:</strong> Pérdida de ganancias, lucro cesante, interrupción comercial o daño a la reputación corporativa.</li>
-          <li><strong>Pérdida o Corrupción de Datos:</strong> Alteración, sobrescritura, inserción anómala o corrupción de bases de datos, logs o almacenes de información derivada del envío de cargas de prueba o activación del botón de guardado.</li>
-          <li><strong>Afectación de Infraestructura y Caídas de Servicio:</strong> Colapsos de memoria, saturación de hilos de ejecución, bloqueos de servidores web o indisponibilidad de sistemas (DoS) provocados por cargas de longitud extrema (buffer stress) o secuencias de escape.</li>
-          <li><strong>Alertas en Sistemas de Ciberseguridad:</strong> Activación de incidentes en Cortafuegos de Aplicaciones Web (WAF), Sistemas de Prevención/Detección de Intrusiones (IDS/IPS), SIEM o Centros de Operaciones de Seguridad (SOC), así como el bloqueo o inclusión de direcciones IP en listas negras (blacklisting).</li>
-          <li><strong>Costes Legales y Periciales:</strong> Honorarios de abogados, peritajes forenses, auditorías externas o gastos de respuesta ante incidentes informáticos.</li>
-          <li><strong>Sanciones Administrativas:</strong> Multas o penalizaciones impuestas por organismos reguladores o autoridades de protección de datos.</li>
-        </ol>
-
-        <h2>5. Límite Cuantitativo Máximo de Responsabilidad (Liability Cap)</h2>
         <div class="terms-notice-box">
-          <strong>LÍMITE MONETARIO DE $0.00 USD:</strong> Si por disposición judicial o arbitral irrevocable se declarase inaplicable la exención total de responsabilidad, la responsabilidad civil conjunta, acumulada y máxima de los Autores frente al Usuario o cualquier tercero no superará en ningún caso la suma de <strong>$0.00 USD (cero dólares de los Estados Unidos de América)</strong> o su equivalente exacto en cualquier moneda local, en razón de la distribución gratuita y sin contraprestación económica del Software.
+          <strong>Aviso General de Uso:</strong> Al instalar, habilitar o ejecutar el Software, el Usuario reconoce haber leído, comprendido y aceptado las presentes condiciones, en la medida en que resulten legalmente aplicables conforme a la legislación de su jurisdicción.
         </div>
 
-        <h2>6. Provisión "TAL CUAL" (AS IS) y Exclusión de Garantías</h2>
+        <h2>1. Naturaleza del Software y Finalidad Defensiva</h2>
         <p>
-          El Software y su documentación se suministran "TAL CUAL" (AS IS) y "SEGÚN DISPONIBILIDAD" (AS AVAILABLE), sin garantías de ninguna especie, explícitas o implícitas.
+          El Software es una herramienta de ingeniería de calidad y pruebas de resiliencia desarrollada para asistir a equipos de Aseguramiento de Calidad (QA), ingenieros de software y analistas en la verificación funcional de formularios web en entornos debidamente autorizados y controlados.
         </p>
         <p>
-          Los Autores renuncian formalmente a toda garantía de comerciabilidad, idoneidad para un propósito determinado, precisión infalible y no infracción de derechos. No se garantiza que la herramienta opere de forma ininterrumpida, que carezca de defectos involuntarios o que descubra la totalidad de las vulnerabilidades presentes en el software evaluado.
-        </p>
-        <p>
-          <strong>AUSENCIA DE CERTIFICACIÓN FORMAL:</strong> Los reportes generados no constituyen una certificación oficial de seguridad informática ni garantizan el cumplimiento de normas o estándares internacionales tales como PCI-DSS, ISO/IEC 27001, SOC 2, HIPAA, ENS o RGPD.
+          <strong>Ausencia de Certificación Formal:</strong> Los diagnósticos, el Índice de Resiliencia Heurística y las sugerencias generadas por la herramienta tienen carácter estrictamente analítico y orientativo. No constituyen una auditoría de penetración formal ni una certificación oficial de seguridad o cumplimiento normativo frente a estándares como PCI-DSS, ISO/IEC 27001, SOC 2, HIPAA, ENS o RGPD.
         </p>
 
-        <h2>7. Inexistencia de Asesoría Profesional y Prohibición de Confianza Legítima (Non-Reliance)</h2>
+        <h2>2. Principio de Autorización Previa y Uso Exclusivamente Autorizado</h2>
         <p>
-          Las métricas calculadas (Score de Robustez), los diagnósticos de severidad y las recomendaciones técnicas generadas por el Software son de naturaleza cuantitativa y orientativa. En ningún caso constituyen asesoramiento técnico, legal, de ciberseguridad o pericial vinculante.
-        </p>
-        <p>
-          El Usuario renuncia expresamente a alegar confianza legítima en los diagnósticos del Software como justificación o eximente de responsabilidad ante fallas de seguridad, fugas de datos o sanciones en sus propios sistemas. Corresponde exclusivamente al operador realizar revisiones de código y auditorías independientes.
-        </p>
-
-        <h2>8. Responsabilidad Exclusiva del Operador y Asunción de Riesgo</h2>
-        <p>
-          El Operador asume la total y exclusiva responsabilidad por los efectos derivados de la inyección de cargas de prueba. Se compromete formalmente a:
+          Constituye una condición esencial de uso que el Operador ejecute el Software única y exclusivamente sobre:
         </p>
         <ul>
-          <li>Ejecutar pruebas exclusivamente en entornos de desarrollo, preproducción (staging) o laboratorios debidamente aislados.</li>
-          <li>Contar con copias de seguridad (backups) completas, recientes y verificadas de las bases de datos antes de iniciar cualquier batería de pruebas.</li>
-          <li>Supervisar de forma presencial y continua el comportamiento de las peticiones HTTP y transacciones disparadas durante la auditoría.</li>
+          <li>Sistemas, dominios y aplicaciones respecto de los cuales sea el legítimo titular exclusivo.</li>
+          <li>Sistemas de terceros sobre los cuales cuente con una autorización previa, expresa, formal, escrita y vigente otorgada por sus administradores autorizados.</li>
         </ul>
-
-        <h2>9. Exención por Cargos de Servicios, Pasarelas y APIs de Terceros</h2>
         <p>
-          Los formularios bajo auditoría pueden conectarse a pasarelas de pago (ej. Stripe, PayPal), proveedores de mensajería (ej. Twilio, SendGrid) o servicios en la nube facturables por llamada. Los Autores quedan totalmente exonerados de cualquier reclamación por tarifas, cuotas devengadas o suspensiones de cuenta derivadas de las transacciones generadas por el Software.
+          Queda prohibido el empleo del Software para escaneos no consentidos, denegaciones de servicio (DoS), inyecciones destructivas en sistemas ajenos o cualquier acción susceptible de menoscabar la disponibilidad, confidencialidad o integridad de sistemas de información.
         </p>
 
-        <h2>10. Cumplimiento Normativo y Legislación sobre Delitos Informáticos</h2>
+        <h2>3. Advertencias de Seguridad y Asunción de Riesgo Operativo</h2>
         <p>
-          El Usuario asume la obligación indelegable de acatar todas las leyes vigentes en materia de ciberseguridad y acceso ilegítimo a sistemas informáticos, reconociendo el marco penal aplicable:
+          El Operador asume la total responsabilidad por las pruebas realizadas, comprometiéndose a:
         </p>
         <ul>
-          <li><strong>Estados Unidos:</strong> Computer Fraud and Abuse Act (CFAA, 18 U.S.C. § 1030).</li>
-          <li><strong>Unión Europea:</strong> Directiva 2013/40/UE relativa a los ataques contra los sistemas de información.</li>
-          <li><strong>Convenio de Budapest sobre Ciberdelincuencia</strong> (ETS No. 185).</li>
-          <li><strong>España:</strong> Código Penal (arts. 197 bis, 197 ter y 264).</li>
-          <li><strong>México:</strong> Código Penal Federal (arts. 211 bis 1 al 211 bis 7).</li>
-          <li><strong>Argentina:</strong> Ley 26.388 de Delitos Informáticos.</li>
-          <li><strong>Colombia:</strong> Ley 1273 de 2009.</li>
-          <li><strong>Chile:</strong> Ley 21.459 sobre Delitos Informáticos.</li>
-          <li>Legislaciones penales análogas de la jurisdicción de operación.</li>
+          <li>Ejecutar pruebas preferentemente en entornos de desarrollo, preproducción (staging) o laboratorios de prueba aislados.</li>
+          <li>Verificar la existencia de copias de seguridad (backups) recientes de las bases de datos antes de iniciar auditorías.</li>
+          <li><strong>No utilizar credenciales reales, contraseñas, secretos, tokens ni datos personales reales:</strong> emplear exclusivamente cuentas y datos sintéticos específicamente concebidos para pruebas de calidad.</li>
+          <li>Evitar la ejecución de pruebas sobre formularios vinculados a pasarelas de pago reales o servicios de mensajería externa con costos facturables o efectos transaccionales irreversibles.</li>
         </ul>
 
-        <h2>11. Renuncia Expresa a Demandas Colectivas (Class Action Waiver)</h2>
+        <h2>4. Exclusión de Garantías (AS IS) y Limitación de Responsabilidad</h2>
         <p>
-          EN LA MEDIDA PERMITIDA POR LA LEY, EL USUARIO RENUNCIA DE FORMA DEFINITIVA E IRREVOCABLE A INICIAR O FORMAR PARTE DE CUALQUIER DEMANDA COLECTIVA, ACCIÓN DE CLASE O PROCEDIMIENTO REPRESENTATIVO CONTRA LOS AUTORES O DISTRIBUIDORES DEL SOFTWARE. CUALQUIER RECLAMO DEBERÁ DILUCIDARSE DE MANERA INDIVIDUAL.
+          En la máxima medida permitida por la legislación aplicable:
+        </p>
+        <ul>
+          <li>El Software se suministra "TAL CUAL" (AS IS) y "SEGÚN DISPONIBILIDAD" (AS AVAILABLE), sin garantías explícitas o implícitas de comerciabilidad, idoneidad para un fin determinado ni ausencia de fallos involuntarios.</li>
+          <li>Los Autores y mantenedores no serán responsables por daños indirectos, lucro cesante, interrupción comercial, pérdida de datos o sanciones derivadas del uso del Software.</li>
+        </ul>
+        <p>
+          <strong>Límite de Responsabilidad:</strong> En caso de determinarse judicialmente la existencia de responsabilidad civil, la responsabilidad agregada de los Autores se limitará al importe efectivamente pagado por el Usuario por el Software en los doce meses anteriores a la reclamación, o a una suma nominal máxima de diez dólares estadounidenses ($10.00 USD) en caso de distribución gratuita.
+        </p>
+        <p>
+          Nada de lo estipulado en este documento pretende excluir o limitar derechos o responsabilidades que por mandato legal imperativo no resulten legalmente susceptibles de exclusión o limitación.
         </p>
 
-        <h2>12. Cláusula Amplia de Indemnización (Hold Harmless)</h2>
+        <h2>5. Relación con la Licencia MIT</h2>
         <p>
-          El Usuario defenderá, indemnizará y mantendrá libre de daño a los Autores, mantenedores y colaboradores frente a cualquier litigio, proceso administrativo, reclamación judicial, daño, pérdida, costo o gasto (incluyendo honorarios razonables de representación legal) derivado directa o indirectamente de su uso del Software, de la vulneración de estos Términos o de la infracción de derechos de terceros.
+          El código fuente del Software se distribuye bajo la Licencia MIT oficial. Dicha licencia garantiza las libertades de uso, copia, modificación, distribución, sublicenciamiento y venta del código fuente. Los presentes Términos rigen la utilización de la distribución oficial y el marco ético de operación, sin menoscabar ni restringir los derechos otorgados por la Licencia MIT sobre el código fuente.
         </p>
 
-        <h2>13. Deslinde por Bifurcaciones (Forks) y Distribuciones de Terceros</h2>
+        <h2>6. Política de Privacidad y Procesamiento Estrictamente Local</h2>
         <p>
-          Los Autores del repositorio oficial no asumen responsabilidad alguna sobre bifurcaciones (forks), paquetes no oficiales, modificaciones del código fuente original o cargas maliciosas añadidas por terceros fuera del repositorio oficial del proyecto.
+          La Extensión opera bajo una rigurosa arquitectura de privacidad por diseño:
+        </p>
+        <ul>
+          <li><strong>Cero Telemetría:</strong> La Extensión no recopila, no transmite ni registra datos de navegación, métricas ni información de los formularios en servidores externos.</li>
+          <li><strong>Procesamiento Local en el Navegador:</strong> El acceso a los elementos del DOM y el análisis de validaciones se ejecuta enteramente en la memoria local del navegador durante la sesión de auditoría.</li>
+          <li><strong>Almacenamiento Local Transparente:</strong> Se utiliza <code>chrome.storage.local</code> únicamente para conservar los vectores de prueba personalizados creados por el Usuario y para transferir los resultados estructurados hacia la Consola del Dashboard.</li>
+          <li><strong>Descargas y Exportaciones Locales:</strong> Las exportaciones a CSV, Markdown, Notion o PDF se generan localmente en memoria sin intermediación de servidores externos.</li>
+        </ul>
+        <p>
+          Para consultar los detalles exhaustivos de tratamiento técnico de datos, refiérase al documento independiente <a href="../PRIVACY.md" target="_blank" style="color: #60a5fa;">PRIVACY.md</a> en el repositorio oficial.
         </p>
 
-        <h2>14. Divisibilidad y Subsistencia</h2>
+        <h2>7. Política de Seguridad y Divulgación Coordinada de Vulnerabilidades</h2>
         <p>
-          Si cualquier disposición de estos Términos fuera declarada nula o inoponible, las restantes cláusulas conservarán plena validez y fuerza obligatoria. Todas las estipulaciones de exención de responsabilidad, límites indemnizatorios, renuncia a acciones colectivas y deberes de defensa subsistirán de forma indefinida tras el cese de uso o desinstalación del Software.
+          El proyecto promueve la divulgación responsable y coordinada de cualquier defecto de seguridad que pudiera identificarse en la Extensión:
+        </p>
+        <ul>
+          <li>Los reportes técnicos deben remitirse de forma confidencial a <code>security@qaformvalidator.org</code>.</li>
+          <li>Se solicita a los investigadores conceder un plazo de coordinación de hasta 90 días antes de la divulgación pública para permitir la validación, desarrollo y despliegue del parche correctivo.</li>
+          <li>No deben incluirse contraseñas reales ni datos personales en los reportes de vulnerabilidad.</li>
+        </ul>
+        <p>
+          Para conocer el procedimiento completo, consulte <a href="../SECURITY.md" target="_blank" style="color: #60a5fa;">SECURITY.md</a> en el repositorio oficial.
         </p>
 
-        <h2>15. Licencia y Régimen Aplicable</h2>
+        <h2>8. Cumplimiento Normativo, Divisibilidad y Contacto</h2>
         <p>
-          El código fuente del Software se distribuye bajo los términos de la Licencia MIT. Las cláusulas del presente documento complementan y rigen con carácter vinculante sobre cualquier aspecto de responsabilidad, prevaleciendo en caso de duda para otorgar la máxima protección jurídica a los Autores y desarrolladores.
+          El Usuario es el único responsable de cumplir con las leyes civiles, administrativas y penales aplicables en su jurisdicción y en las jurisdicciones donde se ubiquen los sistemas analizados. Las referencias normativas contenidas en la documentación del proyecto tienen carácter orientativo y no constituyen asesoramiento legal.
+        </p>
+        <p>
+          Si cualquier cláusula resultara inaplicable, las demás permanecerán en pleno vigor. Para cualquier consulta legal o de seguridad, comuníquese con <code>legal@qaformvalidator.org</code>.
         </p>
 
       </div>
@@ -332,7 +354,7 @@
     <!-- Pie de página formal -->
     <footer class="dash-footer" style="margin-top: 20px;">
       <div>QA Form Field Validator &bull; Plataforma de Diagnósticos de Calidad y Resiliencia</div>
-      <div class="footer-sub">Documento legal corporativo bajo especificación Chromium Manifest V3 &bull; Cero telemetría &bull; Ejecución local</div>
+      <div class="footer-sub">Documento legal y técnico bajo especificación Chromium Manifest V3 &bull; Procesamiento local &bull; Cero telemetría</div>
     </footer>
 
   </div>
