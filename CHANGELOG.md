@@ -8,6 +8,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 ## [Sin publicar]
 
 ### Añadido
+- **ui:** Incorporar modal de confirmación para detención de pruebas (#confirm-stop-modal) en el panel lateral, pausando la ejecución de forma no destructiva y evitando cancelaciones accidentales.
 - **ui:** Incorporar modal de confirmación previa al inicio de verificación (#confirm-run-modal) en el panel lateral, exhibiendo resumen de campos a evaluar, profundidad seleccionada, total de pruebas y control de confirmación interactivo.
 - **test-cases:** Incorporar vectores nativos para campos type="email" (email_valid y email_invalid_format) en defaultSuites, incrementando el catálogo base a 53 pruebas (SEC2-H04).
 - **concurrency:** Incorporar botón de cancelación interactiva (#btn-stop-tests) en sidepanel.html y control de aborto reactivo en ejecución de pruebas (SEC2-H12).

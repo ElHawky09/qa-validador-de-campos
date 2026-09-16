@@ -812,6 +812,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const confirmFieldsList = document.getElementById('confirm-fields-list'); // Contenedor dinámico donde se listan los campos a auditar.
   let pendingTestQueue = []; // Cola temporal de tareas en espera de confirmación por el usuario.
 
+  // Referencias al modal de confirmación de detención de pruebas:
+  const confirmStopModal = document.getElementById('confirm-stop-modal'); // Ventana modal para evitar detenciones accidentales.
+  const btnCloseConfirmStopModal = document.getElementById('btn-close-confirm-stop-modal'); // Botón de cruz para cerrar el modal de detención.
+  const btnResumeFromStopModal = document.getElementById('btn-resume-from-stop-modal'); // Botón para reanudar la ejecución de pruebas.
+  const btnProceedStopModal = document.getElementById('btn-proceed-stop-modal'); // Botón para confirmar la detención de pruebas.
+  const confirmStopProgressText = document.getElementById('confirm-stop-progress-text'); // Texto que detalla el progreso al momento de la detención.
+  let isTestRunPaused = false; // Bandera de pausa temporal mientras se muestra el diálogo de confirmación de detención.
+  let currentRunStats = { completed: 0, total: 0 }; // Registro reactivo del progreso para informar al usuario.
+
   // Referencias a los campos del modal de creación de payload personalizado:
   const customModal = document.getElementById('custom-modal'); // Ventana modal flotante para registrar nuevos casos de prueba.
   const btnCloseModal = document.getElementById('btn-close-modal'); // Botón de cierre en la esquina superior del modal.
@@ -2104,6 +2113,63 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   /**
+   * Despliega el modal de confirmación de detención de auditoría y pausa el bucle de pruebas.
+   */
+  function openConfirmStopModal() {
+    isTestRunPaused = true;
+    if (confirmStopProgressText) {
+      const completed = currentRunStats.completed;
+      const total = currentRunStats.total;
+      confirmStopProgressText.innerText = `Se han completado ${completed} de ${total} prueba${total === 1 ? '' : 's'}.`;
+    }
+    if (confirmStopModal) {
+      confirmStopModal.style.display = 'flex';
+      if (btnResumeFromStopModal && typeof btnResumeFromStopModal.focus === 'function') {
+        btnResumeFromStopModal.focus();
+      }
+    }
+  }
+
+  /**
+   * Cierra la ventana modal de confirmación de detención.
+   */
+  function closeConfirmStopModal() {
+    if (confirmStopModal) {
+      confirmStopModal.style.display = 'none';
+    }
+    if (btnStopTests && typeof btnStopTests.focus === 'function' && !isTestRunCancelled) {
+      btnStopTests.focus();
+    }
+  }
+
+  /**
+   * Reanuda la ejecución secuencial de pruebas tras descartar la detención.
+   */
+  function resumeExecutionFromStop() {
+    isTestRunPaused = false;
+    closeConfirmStopModal();
+    if (progressLabel && !isTestRunCancelled) {
+      progressLabel.innerText = 'Reanudando ejecución de pruebas...';
+    }
+  }
+
+  /**
+   * Confirma la detención definitiva solicitada por el operador.
+   */
+  function proceedStopExecution() {
+    isTestRunCancelled = true;
+    isTestRunPaused = false;
+    closeConfirmStopModal();
+    if (btnStopTests) {
+      btnStopTests.disabled = true;
+      btnStopTests.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24" style="fill: currentColor; stroke: none; margin-right: 4px;"><rect x="6" y="6" width="12" height="12"></rect></svg><span>Deteniendo...</span>';
+    }
+    if (progressLabel) {
+      progressLabel.innerText = 'Detención solicitada. Interrumpiendo ejecución...';
+    }
+  }
+
+  /**
    * Ejecuta secuencialmente la cola de pruebas confirmada sobre los campos seleccionados.
    * @async
    * @param {Array<Object>} testQueue - Cola de tareas { field, testItem } a inyectar.
@@ -2114,6 +2180,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // -------------------------------------------------------------------------------------
     // Se deshabilitan los controles de interacción para evitar condiciones de carrera durante la prueba.
     isTestRunCancelled = false;
+    isTestRunPaused = false;
+    currentRunStats = { completed: 0, total: testQueue.length };
     btnRunTests.disabled = true;
     if (btnResetAll) btnResetAll.disabled = true;
     if (btnStopTests) {
@@ -2146,10 +2214,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Se utiliza un bucle 'for...of' para garantizar una ejecución rigurosamente secuencial.
     // Esto evita que múltiples pruebas colisionen simultáneamente sobre el mismo formulario del DOM.
     for (const task of testQueue) {
+      // Si la ejecución se encuentra en pausa por confirmación de detención, espera de forma no bloqueante:
+      while (isTestRunPaused && !isTestRunCancelled) {
+        await new Promise(r => setTimeout(r, 100));
+      }
       if (isTestRunCancelled) {
         break;
       }
       completed++;
+      currentRunStats.completed = completed;
+      if (confirmStopModal && confirmStopModal.style.display !== 'none' && confirmStopProgressText) {
+        confirmStopProgressText.innerText = `Se han completado ${completed} de ${testQueue.length} prueba${testQueue.length === 1 ? '' : 's'}.`;
+      }
       // Cálculo del porcentaje completado (de 0 a 100).
       const pct = Math.round((completed / testQueue.length) * 100);
       progressPercent.innerText = `${pct}%`;
@@ -2273,6 +2349,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Restablece el estado de los botones tras concluir o cancelar la batería de pruebas:
+    isTestRunPaused = false;
+    closeConfirmStopModal();
     if (btnResetAll) btnResetAll.disabled = false;
     if (btnStopTests) {
       btnStopTests.disabled = true;
@@ -2302,12 +2380,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Listener para el botón secundario de detención de pruebas (SEC2-H12):
+  // Al hacer clic, se abre el modal de confirmación pausando la ejecución para evitar detenciones accidentales.
   if (btnStopTests) {
     btnStopTests.addEventListener('click', () => {
-      isTestRunCancelled = true;
-      btnStopTests.disabled = true;
-      btnStopTests.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24" style="fill: currentColor; stroke: none; margin-right: 4px;"><rect x="6" y="6" width="12" height="12"></rect></svg><span>Deteniendo...</span>';
-      if (progressLabel) progressLabel.innerText = 'Detención solicitada. Interrumpiendo ejecución...';
+      openConfirmStopModal();
     });
   }
 
@@ -4026,6 +4102,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       await executeTestQueue(queueToRun);
     });
   }
+
+  // ----------------------------------------------------------------------------
+  // MODAL DE CONFIRMACIÓN DE DETENCIÓN DE PRUEBAS (CONFIRM STOP MODAL)
+  // ----------------------------------------------------------------------------
+  if (confirmStopModal) {
+    confirmStopModal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        resumeExecutionFromStop();
+        return;
+      }
+      trapFocus(confirmStopModal, e);
+    });
+    confirmStopModal.addEventListener('click', (e) => {
+      if (e.target === confirmStopModal) resumeExecutionFromStop();
+    });
+  }
+  if (btnCloseConfirmStopModal) btnCloseConfirmStopModal.addEventListener('click', resumeExecutionFromStop);
+  if (btnResumeFromStopModal) btnResumeFromStopModal.addEventListener('click', resumeExecutionFromStop);
+  if (btnProceedStopModal) btnProceedStopModal.addEventListener('click', proceedStopExecution);
 
   // ============================================================================
   // FUNCIÓN UTILITARIA: escapeHtml
