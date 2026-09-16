@@ -14,6 +14,9 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **versioning:** Preservar cambios previos en sin publicar, blindar semver y robustecer verificacion.
 - **automation:** Omitir confirmaciones meta de changelog para prevenir bucle de registro.
 
+### Documentación
+- **legal:** Incorporar TERMS.md, vista terms.html y enlace en pie de pagina del dashboard.
+
 ## [1.0.0] - 2026-09-15
 
 ### Añadido
