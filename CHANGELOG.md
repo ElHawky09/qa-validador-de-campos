@@ -9,6 +9,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 
 ### Añadido
 - **versioning:** Incorporar CHANGELOG.md segun Keep a Changelog y automatizacion de versionado con update_changelog.ps1.
+- **sidepanel:** Integrar acceso a Terminos y Condiciones en encabezado y pie de pagina.
 
 ### Corregido
 - **versioning:** Preservar cambios previos en sin publicar, blindar semver y robustecer verificacion.
