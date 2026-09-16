@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Evalúa la tolerancia o conversión automática de formato en la interfaz.
       payload: '31/12/2024',
       desc: 'Formato DD/MM/AAAA común en habla hispana',
-      isInvalidCase: false
+      isInvalidCase: true
     },
     {
       id: 'date_free_text',
@@ -915,7 +915,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Se obtiene el universo total de pruebas combinadas.
     const all = getAllPayloads();
     // El método 'Array.prototype.filter' filtra las pruebas que coinciden con la pestaña de categoría seleccionada.
-    const filtered = all.filter(p => currentCategory === 'all' || p.category === currentCategory);
+    const matchesCategory = (p) => {
+      if (currentCategory === 'all') return true;
+      if (currentCategory === 'custom') return !!p.isCustom;
+      return p.category === currentCategory;
+    };
+    const filtered = all.filter(matchesCategory);
 
     // Se vacía el contenido previo del contenedor para reconstruirlo limpiamente.
     payloadsContainer.innerHTML = '';
@@ -927,6 +932,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           No hay entradas en esta categoría. Puedes añadir una personalizada con "+ Añadir Input".
         </div>
       `;
+      if (checkSelectAll) {
+        checkSelectAll.checked = false;
+        checkSelectAll.indeterminate = false;
+      }
       updateSelectedCount();
       return; // Se detiene la ejecución de la función.
     }
@@ -989,6 +998,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const id = e.target.dataset.id;
         const item = all.find(p => p.id === id);
         if (item) item.selected = e.target.checked;
+
+        // Actualiza el checkbox maestro según el conjunto de tarjetas visibles:
+        if (checkSelectAll) {
+          const visibleCheckboxes = payloadsContainer.querySelectorAll('.payload-checkbox');
+          const checkedCount = Array.from(visibleCheckboxes).filter(c => c.checked).length;
+          checkSelectAll.checked = visibleCheckboxes.length > 0 && checkedCount === visibleCheckboxes.length;
+          checkSelectAll.indeterminate = checkedCount > 0 && checkedCount < visibleCheckboxes.length;
+        }
+
         // Se recalculan y actualizan los badges de conteo y estado del botón de inicio.
         updateSelectedCount();
       });
@@ -1007,28 +1025,81 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
+    // Sincroniza el estado visual del checkbox maestro (checked e indeterminate) para la categoría activa:
+    if (checkSelectAll) {
+      const visibleCheckboxes = payloadsContainer.querySelectorAll('.payload-checkbox');
+      const checkedCount = Array.from(visibleCheckboxes).filter(c => c.checked).length;
+      checkSelectAll.checked = visibleCheckboxes.length > 0 && checkedCount === visibleCheckboxes.length;
+      checkSelectAll.indeterminate = checkedCount > 0 && checkedCount < visibleCheckboxes.length;
+    }
+
     // Sincroniza el contador total de pruebas seleccionadas en la interfaz.
     updateSelectedCount();
   }
 
   /**
    * Actualiza el badge numérico de pruebas seleccionadas y habilita/deshabilita el botón principal de ejecución.
-   * Si no hay campos capturados o no hay ninguna prueba marcada, el botón se bloquea para evitar ejecuciones vacías.
+   * Si no hay campos capturados, informa el estado del catálogo global.
+   * Si hay campos capturados, calcula de manera reactiva la cantidad exacta de pruebas aplicables por tipo.
    */
   function updateSelectedCount() {
     const all = getAllPayloads();
-    // Cuenta cuántas pruebas tienen la propiedad 'selected' distinta de false.
-    const count = all.filter(p => p.selected !== false).length;
-    selectedCountBadge.innerText = `${count} pruebas activas`;
+    const activeInCatalog = all.filter(p => p.selected !== false).length;
 
-    // El botón se deshabilita si no hay campos seleccionados o si la cantidad de pruebas activas es cero.
-    btnRunTests.disabled = selectedFields.length === 0 || count === 0;
-
-    // Actualiza el texto del botón principal para informar dinámicamente cuántos campos se procesarán.
-    if (selectedFields.length > 0) {
-      runBtnText.innerText = `Iniciar Verificación (${selectedFields.length} campo${selectedFields.length > 1 ? 's' : ''})`;
-    } else {
+    // Si no hay campos seleccionados, se muestra el estado general del catálogo y se desactiva el botón:
+    if (selectedFields.length === 0) {
+      selectedCountBadge.innerText = `${activeInCatalog} pruebas activas`;
+      btnRunTests.disabled = true;
+      btnRunTests.title = 'Añade o detecta al menos un campo para iniciar la verificación';
       runBtnText.innerText = 'Iniciar Verificación de Campos';
+      return;
+    }
+
+    // Cálculo reactivo exacto de pruebas aplicables según los campos cargados en Sección 1:
+    let totalQueuedTests = 0;
+    selectedFields.forEach(field => {
+      const fType = (field.type || 'text').toLowerCase();
+      const isUrl = !!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isNumericText = /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+
+      let applicable = [];
+      if (isUrl) {
+        applicable = all.filter(p => p.selected !== false && (p.category === 'url' || p.id === 'sec_null_byte' || p.id === 'sec_script' || p.id === 'txt_spaces' || p.id === 'txt_only_spaces'));
+      } else if (fType === 'number') {
+        applicable = all.filter(p => p.selected !== false && (p.category === 'number' || p.id === 'sec_null_byte'));
+      } else if (fType === 'date' || fType === 'datetime-local' || fType === 'month') {
+        applicable = all.filter(p => p.selected !== false && p.category === 'date');
+      } else if (isNumericText) {
+        applicable = all.filter(p => p.selected !== false && (p.category === 'text' || p.category === 'security' || p.id === 'num_leading_zeros' || p.id === 'num_overflow' || p.id === 'num_negative' || p.id === 'num_letters'));
+      } else {
+        applicable = all.filter(p => p.selected !== false && (p.category === 'text' || p.category === 'emoji' || p.category === 'security'));
+      }
+
+      const customs = all.filter(p => {
+        if (!p.isCustom || p.selected === false) return false;
+        if (isUrl) return p.category === 'url' || p.category === 'security';
+        if (fType === 'number') return p.category === 'number' || p.category === 'security';
+        if (fType === 'date' || fType === 'datetime-local' || fType === 'month') return p.category === 'date';
+        return p.category === 'text' || p.category === 'emoji' || p.category === 'security' || (isNumericText && p.category === 'number');
+      });
+
+      customs.forEach(c => {
+        if (!applicable.includes(c)) applicable.push(c);
+      });
+
+      totalQueuedTests += applicable.length;
+    });
+
+    if (totalQueuedTests === 0) {
+      selectedCountBadge.innerText = '0 pruebas aplicables';
+      btnRunTests.disabled = true;
+      btnRunTests.title = 'No hay pruebas seleccionadas compatibles con los tipos de campo elegidos.';
+      runBtnText.innerText = `Sin pruebas aplicables (${selectedFields.length} campo${selectedFields.length > 1 ? 's' : ''})`;
+    } else {
+      selectedCountBadge.innerText = `${totalQueuedTests} pruebas aplicables (${activeInCatalog} en catálogo)`;
+      btnRunTests.disabled = false;
+      btnRunTests.title = 'Ejecutar verificación de campos';
+      runBtnText.innerText = `Iniciar Verificación (${totalQueuedTests} prueba${totalQueuedTests > 1 ? 's' : ''} / ${selectedFields.length} campo${selectedFields.length > 1 ? 's' : ''})`;
     }
   }
 
@@ -1058,9 +1129,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    // Se actualiza el texto del badge descriptivo de profundidad.
+    // Se actualiza el badge descriptivo de profundidad preservando el indicador luminoso .status-dot.
     if (depthDescBadge) {
-      depthDescBadge.innerText = TIER_DESCRIPTIONS[tier] || tier;
+      const dotClasses = { simple: 'status-dot-success', normal: 'status-dot-info', advanced: 'status-dot-purple', total: 'status-dot-warning' };
+      const dotClass = dotClasses[tier] || 'status-dot-info';
+      depthDescBadge.innerHTML = `<span class="status-dot ${dotClass}" style="margin-right: 4px;"></span>${TIER_DESCRIPTIONS[tier] || tier}`;
     }
 
     // Se itera sobre las suites por defecto actualizando la propiedad 'selected' según la jerarquía.
@@ -1111,7 +1184,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const all = getAllPayloads();
     // Se actualiza la selección de todas las pruebas que pertenezcan a la categoría que está actualmente en pantalla.
     all.forEach(p => {
-      if (currentCategory === 'all' || p.category === currentCategory) {
+      const inCategory = (currentCategory === 'all') || (currentCategory === 'custom' ? !!p.isCustom : p.category === currentCategory);
+      if (inCategory) {
         p.selected = isChecked;
       }
     });
@@ -1845,7 +1919,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       let applicable = [];
 
       // Heurística avanzada para determinar si el campo representa una URL o enlace web:
-      const isUrl = !!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|slug|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isUrl = !!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isNumericText = /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
 
       if (isUrl) {
         // En campos de URL se aplican pruebas de protocolo, XSS en esquemas, byte nulo y espacios en blanco.
@@ -1856,13 +1931,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (fType === 'date' || fType === 'datetime-local' || fType === 'month') {
         // En selectores de fecha se aplican formatos ISO, años bisiestos y rangos calendario.
         applicable = selectedPayloads.filter(p => p.category === 'date');
+      } else if (isNumericText) {
+        // En campos semánticos numéricos basados en texto (códigos postales, teléfonos, documentos):
+        applicable = selectedPayloads.filter(p => p.category === 'text' || p.category === 'security' || p.id === 'num_leading_zeros' || p.id === 'num_overflow' || p.id === 'num_negative' || p.id === 'num_letters');
       } else {
         // En campos de texto libre, áreas de texto (textarea), correos y contraseñas:
         applicable = selectedPayloads.filter(p => p.category === 'text' || p.category === 'emoji' || p.category === 'security');
       }
 
-      // Si el usuario creó pruebas personalizadas (isCustom: true), se incorporan siempre:
-      const customs = selectedPayloads.filter(p => p.isCustom);
+      // Si el usuario creó pruebas personalizadas (isCustom: true), se incorporan según compatibilidad funcional:
+      const customs = selectedPayloads.filter(p => {
+        if (!p.isCustom) return false;
+        if (isUrl) return p.category === 'url' || p.category === 'security';
+        if (fType === 'number') return p.category === 'number' || p.category === 'security';
+        if (fType === 'date' || fType === 'datetime-local' || fType === 'month') return p.category === 'date';
+        return p.category === 'text' || p.category === 'emoji' || p.category === 'security' || (isNumericText && p.category === 'number');
+      });
       customs.forEach(c => {
         if (!applicable.includes(c)) applicable.push(c);
       });
@@ -1873,9 +1957,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
-    // Si tras el filtrado por tipo no hay ninguna prueba para ejecutar, se notifica y cancela.
+    // Si tras el filtrado por tipo no hay ninguna prueba para ejecutar, se actualiza el estado y cancela:
     if (testQueue.length === 0) {
-      alert('No se encontraron pruebas aplicables para los tipos de campo seleccionados.');
+      updateSelectedCount();
       return;
     }
 
@@ -2222,8 +2306,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           detail = `El campo aceptó ${resLen} caracteres incluyendo caracteres invisibles de control Unicode (\\u200B-\\u200D, \\uFEFF). Esto puede facilitar la suplantación visual de identidad o evasión de filtros.`;
           recommendation = 'Filtrar caracteres de control y formato Unicode (rangos \\u200B-\\u200D, \\uFEFF) mediante expresión regular o normalización previa al almacenamiento.';
         } 
-        // Caso C: Cadena excesiva de dígitos en campo alfabético
-        else if (testItem.id === 'txt_15_digits' || (typeof payload === 'string' && /^\d{10,}$/.test(payload) && field.type !== 'number' && field.type !== 'tel')) {
+        // Caso C: Cadena excesiva de dígitos en campo alfabético (nombres, títulos)
+        else if ((testItem.id === 'txt_15_digits' || (typeof payload === 'string' && /^\d{10,}$/.test(payload))) && field.type !== 'number' && field.type !== 'tel' && field.type !== 'textarea' && !/\b(comentario|direccion|nota|address|comment|desc|detalles|mensaje|message|street|calle|observacion)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`)) {
           status = 'warning';
           badgeText = 'Regla de Negocio (Formato)';
           badgeClass = 'res-format';
@@ -3566,7 +3650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isInv = customIsInvalid.checked;
 
     // Validación de campos requeridos indispensables:
-    if (!name || val === undefined) {
+    if (!name || val === undefined || val.trim() === '') {
       alert('Por favor ingresa un nombre y un valor para la prueba.');
       return;
     }

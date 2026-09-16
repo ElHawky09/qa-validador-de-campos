@@ -93,7 +93,7 @@ La batería de vectores se estructura en cuatro niveles jerárquicos acumulativo
 | :--- | :--- | :--- |
 | **Simple** | ~13 vectores | Verificaciones mínimas indispensables: valores nulos, cadenas vacías, espacios en blanco y límites elementales de longitud. |
 | **Normal** | ~29 vectores | Cobertura estándar: tipos de datos básicos, casos cotidianos de formularios web, formatos numéricos y rangos esperados. |
-| **Avanzado** | ~41 vectores | Evaluación profunda: codificación Unicode multibyte, homóglifos, caracteres invisibles (zero-width), esquemas de URL y secuencias de control. |
+| **Avanzado** | ~43 vectores | Evaluación profunda: codificación Unicode multibyte, homóglifos, caracteres invisibles (zero-width), esquemas de URL y secuencias de control. |
 | **Total** | ~51 vectores | Batería exhaustiva de estrés: inyecciones de escape sintáctico (XSS, SQL), cadenas de sobrecarga de búfer (5,000 a 10,000 caracteres) y condiciones límite. |
 
 ---

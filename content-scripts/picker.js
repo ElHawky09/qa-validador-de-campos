@@ -505,7 +505,7 @@
     const allText = `${name} ${id} ${placeholder} ${label} ${ariaLabel}`;
 
     // Expresión regular multilingüe para detectar términos asociados a enlaces web
-    return /\b(url|link|enlace|sitio|website|web|endpoint|slug|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(allText);
+    return /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(allText);
   }
 
   // ============================================================================
@@ -768,6 +768,7 @@
       tag: el.tagName.toLowerCase(),
       type: (el.getAttribute('type') || (el.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text')).toLowerCase(),
       isUrlField: isUrlField(el),
+      isSlugField: isSlugField(el),
       id: el.id || '',
       name: el.name || '',
       placeholder: el.getAttribute('placeholder') || '',

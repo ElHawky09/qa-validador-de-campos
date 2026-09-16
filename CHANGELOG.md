@@ -14,9 +14,14 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 ### Corregido
 - **versioning:** Preservar cambios previos en sin publicar, blindar semver y robustecer verificacion.
 - **automation:** Omitir confirmaciones meta de changelog para prevenir bucle de registro.
+- **sidepanel:** Corregir visualización de pestaña Propios, desincronización de checkSelectAll y cálculo reactivo de selected-count-badge.
+- **engine:** Eliminar contaminación cruzada de custom payloads, desvincular slug de URLs y añadir heurística numérica en campos de texto.
+- **lab:** Incorporar validación condicional de edad en test-sample.html y ajustar semántica ISO de fecha invertida.
+- **ui:** Preservar status-dot en badge de profundidad y añadir opción de URLs en modal de nuevos inputs.
 
 ### Documentación
 - **legal:** Incorporar TERMS.md, vista terms.html y enlace en pie de pagina del dashboard.
+- **specs:** Actualizar a 43 vectores el perfil Avanzado en README.md tras verificación matemática.
 
 ## [1.0.0] - 2026-09-15
 

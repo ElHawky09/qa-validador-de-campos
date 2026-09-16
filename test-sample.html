@@ -432,6 +432,14 @@
         return false;
       }
 
+      // Regla 2.1: Validación de Rango de Edad (entre 18 y 99 años):
+      if (!isNaN(edadVal) && (edadVal < 18 || edadVal > 99)) {
+        groupEdad.classList.add('has-error');
+        errBanner1.innerText = 'Error al Guardar: La edad debe ser entre 18 y 99 años.';
+        errBanner1.style.display = 'block';
+        return false;
+      }
+
       // Regla 3: Validación de longitud máxima en Identificación (máximo 10 caracteres):
       if (idVal.length > 10) {
         groupIdentificacion.classList.add('has-error');
