@@ -800,6 +800,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const linkSidepanelTerms = document.getElementById('link-sidepanel-terms'); // Enlace en el pie de página para consultar los Términos y Condiciones.
   const btnHeaderTerms = document.getElementById('btn-header-terms'); // Botón de acceso directo a Términos y Condiciones en el encabezado.
 
+  // Referencias al modal de confirmación previa de auditoría:
+  const confirmRunModal = document.getElementById('confirm-run-modal'); // Ventana modal para confirmar la ejecución antes de iniciar.
+  const btnCloseConfirmModal = document.getElementById('btn-close-confirm-modal'); // Botón de cruz para cerrar el modal de confirmación.
+  const btnCancelConfirmModal = document.getElementById('btn-cancel-confirm-modal'); // Botón "Cancelar" en el modal de confirmación.
+  const btnProceedConfirmModal = document.getElementById('btn-proceed-confirm-modal'); // Botón "Confirmar e Iniciar" para arrancar la auditoría.
+  const confirmDepthBadge = document.getElementById('confirm-depth-badge'); // Insignia que exhibe la profundidad seleccionada.
+  const confirmTestsCount = document.getElementById('confirm-tests-count'); // Texto que muestra el total de pruebas a ejecutar.
+  const confirmSaveMode = document.getElementById('confirm-save-mode'); // Texto que indica si el guardado transaccional está activo.
+  const confirmFieldsCount = document.getElementById('confirm-fields-count'); // Contador de campos involucrados en la auditoría.
+  const confirmFieldsList = document.getElementById('confirm-fields-list'); // Contenedor dinámico donde se listan los campos a auditar.
+  let pendingTestQueue = []; // Cola temporal de tareas en espera de confirmación por el usuario.
+
   // Referencias a los campos del modal de creación de payload personalizado:
   const customModal = document.getElementById('custom-modal'); // Ventana modal flotante para registrar nuevos casos de prueba.
   const btnCloseModal = document.getElementById('btn-close-modal'); // Botón de cierre en la esquina superior del modal.
@@ -2007,6 +2019,96 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!proceed) return;
     }
 
+    // Despliegue del diálogo modal de confirmación previa antes de iniciar la ejecución directa:
+    openConfirmRunModal(testQueue);
+  });
+
+  /**
+   * Despliega el modal interactivo de confirmación previa a la auditoría.
+   * Muestra al usuario los campos que serán evaluados, la profundidad seleccionada
+   * y el número total de casos de prueba aplicables.
+   * @param {Array<Object>} queue - Cola calculada de tareas { field, testItem }.
+   */
+  function openConfirmRunModal(queue) {
+    pendingTestQueue = queue;
+
+    // Se obtiene el descriptor del nivel de profundidad activo:
+    const tier = currentDepthTier || 'normal';
+    const tierNames = { simple: 'Simple', normal: 'Normal', advanced: 'Avanzado', total: 'Total' };
+    const tierName = tierNames[tier] || tier;
+    const dotClasses = { simple: 'status-dot-success', normal: 'status-dot-info', advanced: 'status-dot-purple', total: 'status-dot-warning' };
+    const dotClass = dotClasses[tier] || 'status-dot-info';
+    if (confirmDepthBadge) {
+      confirmDepthBadge.innerHTML = `<span class="status-dot ${dotClass}" style="margin-right: 4px;"></span>${escapeHtml(tierName)}`;
+    }
+
+    if (confirmTestsCount) {
+      confirmTestsCount.innerText = `${queue.length} prueba${queue.length === 1 ? '' : 's'}`;
+    }
+
+    if (confirmSaveMode) {
+      const isSaveActive = checkTriggerSave && checkTriggerSave.checked;
+      confirmSaveMode.innerText = isSaveActive ? 'Activo (audita envíos con clic en Guardar)' : 'Inactivo (solo prueba local en campo)';
+      confirmSaveMode.style.color = isSaveActive ? '#38bdf8' : 'var(--text-muted)';
+    }
+
+    if (confirmFieldsCount) {
+      confirmFieldsCount.innerText = String(selectedFields.length);
+    }
+
+    if (confirmFieldsList) {
+      confirmFieldsList.innerHTML = '';
+      selectedFields.forEach(field => {
+        const countForField = queue.filter(t => t.field === field).length;
+        const item = document.createElement('div');
+        item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(51, 65, 85, 0.4);';
+        
+        const formTag = field.formTitle ? `<span style="color: #64748b; font-size: 9px; margin-right: 3px;">[${escapeHtml(field.formTitle)}]</span>` : '';
+        const fieldName = escapeHtml(field.label || field.name || field.id || field.selector || 'Campo');
+        const fieldType = escapeHtml(field.type || 'text');
+        
+        item.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
+            ${formTag}
+            <span style="color: #94a3b8; font-family: monospace; font-size: 10px;">&lt;${escapeHtml(field.tag || 'input')}&gt;</span>
+            <span style="font-weight: 600; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fieldName}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+            <span class="badge" style="font-size: 9px; padding: 1px 5px; background: #334155; color: #38bdf8;">${fieldType}</span>
+            <span style="color: #94a3b8; font-size: 10px;">${countForField} prueba${countForField === 1 ? '' : 's'}</span>
+          </div>
+        `;
+        confirmFieldsList.appendChild(item);
+      });
+    }
+
+    if (confirmRunModal) {
+      confirmRunModal.style.display = 'flex';
+      if (btnProceedConfirmModal && typeof btnProceedConfirmModal.focus === 'function') {
+        btnProceedConfirmModal.focus();
+      }
+    }
+  }
+
+  /**
+   * Cierra el modal de confirmación y restablece la cola pendiente de pruebas.
+   */
+  function closeConfirmRunModal() {
+    if (confirmRunModal) {
+      confirmRunModal.style.display = 'none';
+    }
+    pendingTestQueue = [];
+    if (btnRunTests && typeof btnRunTests.focus === 'function') {
+      btnRunTests.focus();
+    }
+  }
+
+  /**
+   * Ejecuta secuencialmente la cola de pruebas confirmada sobre los campos seleccionados.
+   * @async
+   * @param {Array<Object>} testQueue - Cola de tareas { field, testItem } a inyectar.
+   */
+  async function executeTestQueue(testQueue) {
     // -------------------------------------------------------------------------------------
     // FASE 2: PREPARACIÓN DE LA INTERFAZ Y LECTURA DE PARÁMETROS
     // -------------------------------------------------------------------------------------
@@ -2197,7 +2299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         progressContainer.style.display = 'none';
       }, 2500);
     }
-  });
+  }
 
   // Listener para el botón secundario de detención de pruebas (SEC2-H12):
   if (btnStopTests) {
@@ -3895,6 +3997,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       prompt('Copia manualmente:', viewerContent.innerText);
     }
   });
+
+  // ----------------------------------------------------------------------------
+  // MODAL DE CONFIRMACIÓN PREVIA DE AUDITORÍA (CONFIRM RUN MODAL)
+  // ----------------------------------------------------------------------------
+  if (confirmRunModal) {
+    confirmRunModal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeConfirmRunModal();
+        return;
+      }
+      trapFocus(confirmRunModal, e);
+    });
+    confirmRunModal.addEventListener('click', (e) => {
+      if (e.target === confirmRunModal) closeConfirmRunModal();
+    });
+  }
+  if (btnCloseConfirmModal) btnCloseConfirmModal.addEventListener('click', closeConfirmRunModal);
+  if (btnCancelConfirmModal) btnCancelConfirmModal.addEventListener('click', closeConfirmRunModal);
+  if (btnProceedConfirmModal) {
+    btnProceedConfirmModal.addEventListener('click', async () => {
+      if (!pendingTestQueue || pendingTestQueue.length === 0) {
+        closeConfirmRunModal();
+        return;
+      }
+      const queueToRun = pendingTestQueue;
+      closeConfirmRunModal();
+      await executeTestQueue(queueToRun);
+    });
+  }
 
   // ============================================================================
   // FUNCIÓN UTILITARIA: escapeHtml
