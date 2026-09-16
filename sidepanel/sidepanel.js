@@ -773,6 +773,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnCopyMarkdown = document.getElementById('btn-copy-markdown'); // Copia la tabla en sintaxis estándar GitHub Flavored Markdown (GFM).
   const btnExportCsv = document.getElementById('btn-export-csv'); // Descarga un archivo .csv delimitado por comas compatible con Excel y Google Sheets.
   const btnPrintReport = document.getElementById('btn-print-report'); // Abre el diálogo del navegador para imprimir en papel o guardar como PDF formal.
+  const linkSidepanelTerms = document.getElementById('link-sidepanel-terms'); // Enlace en el pie de página para consultar los Términos y Condiciones.
+  const btnHeaderTerms = document.getElementById('btn-header-terms'); // Botón de acceso directo a Términos y Condiciones en el encabezado.
 
   // Referencias a los campos del modal de creación de payload personalizado:
   const customModal = document.getElementById('custom-modal'); // Ventana modal flotante para registrar nuevos casos de prueba.
@@ -3428,6 +3430,43 @@ document.addEventListener('DOMContentLoaded', async () => {
       alert('Error al abrir el informe: ' + err.message);
     }
   });
+
+  // ----------------------------------------------------------------------------
+  // 5. APERTURA SEGURA DE TÉRMINOS Y CONDICIONES DE USO
+  // ----------------------------------------------------------------------------
+  function openTermsAndConditions() {
+    try {
+      const termsUrl = typeof chrome !== 'undefined' && chrome.runtime?.getURL
+        ? chrome.runtime.getURL('dashboard/terms.html')
+        : '../dashboard/terms.html';
+
+      if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+        chrome.tabs.create({ url: termsUrl }, () => {
+          if (chrome.runtime.lastError) {
+            window.open(termsUrl, '_blank');
+          }
+        });
+      } else {
+        window.open(termsUrl, '_blank');
+      }
+    } catch (err) {
+      console.error('Error al abrir términos y condiciones:', err);
+    }
+  }
+
+  if (linkSidepanelTerms) {
+    linkSidepanelTerms.addEventListener('click', (e) => {
+      e.preventDefault();
+      openTermsAndConditions();
+    });
+  }
+
+  if (btnHeaderTerms) {
+    btnHeaderTerms.addEventListener('click', (e) => {
+      e.preventDefault();
+      openTermsAndConditions();
+    });
+  }
 
   // ============================================================================
   // GESTIÓN DE MODALES Y ACCESIBILIDAD (FOCUS TRAPPING WCAG 2.1)
