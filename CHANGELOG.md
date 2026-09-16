@@ -26,6 +26,8 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **engine:** Eliminar contaminación cruzada de custom payloads, desvincular slug de URLs y añadir heurística numérica en campos de texto.
 - **lab:** Incorporar validación condicional de edad en test-sample.html y ajustar semántica ISO de fecha invertida.
 - **ui:** Preservar status-dot en badge de profundidad y añadir opción de URLs en modal de nuevos inputs.
+- **taxonomy:** Corregir CATEGORY_META en dashboard.js y categoriesDef en renderDashboardView de sidepanel.js para armonizar la presentación de badges y píldoras hacia Prioritario y Conforme.
+- **tone:** Suprimir términos intimidatorios en mayúsculas en CONTRIBUTING.md y PRIVACY.md, y robustecer enlaces a repositorios en terms.html.
 
 ### Seguridad
 - **auditing:** Auditar código fuente frente a fuga de datos: verificar ausencia de telemetría, transmisiones de red o llamadas remotas en service worker, content scripts, panel lateral y dashboard.

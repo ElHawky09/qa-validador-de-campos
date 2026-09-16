@@ -6,7 +6,7 @@
 // ¿QUÉ HACE ESTE ARCHIVO?
 // 1. Lee los resultados estructurados de las pruebas almacenados por el Sidepanel.
 // 2. Gestiona el ciclo de vida de la vista (inicialización, actualización reactiva, filtros y búsqueda).
-// 3. Renderiza métricas ejecutivas (Score de salud, tarjetas KPI de severidad).
+// 3. Renderiza métricas ejecutivas (Índice de resiliencia heurística, tarjetas KPI de severidad).
 // 4. Dibuja un gráfico circular Donut SVG matemáticamente calibrado y tarjetas de barras detalladas.
 // 5. Genera acordeones interactivos colapsables por categoría de riesgo.
 // 6. Construye la tabla detallada de hallazgos para inspección técnica exhaustiva.
@@ -230,7 +230,7 @@ function setupUIEventListeners() {
 // ¿QUÉ HACE?
 // Es el motor central de dibujo del dashboard. Toma el objeto "data" recibido y actualiza:
 // 1. Metadatos del encabezado (Nombre del formulario, campos auditados, fecha y total de pruebas).
-// 2. Tarjetas KPI ejecutivas (Puntuación de robustez, conteos de severidad con código de color dinámico).
+// 2. Tarjetas KPI ejecutivas (Índice de resiliencia heurística, conteos de severidad con código de color dinámico).
 // 3. Distribución visual especializada (Barra de espectro, Donut Chart SVG y Tarjetas de Barras).
 // 4. Secciones de categorías de riesgo (Acordeones colapsables con hallazgos).
 // 5. Tabla analítica detallada con insignias y recomendaciones técnicas.
@@ -258,7 +258,7 @@ function renderDashboard(data) {
   `;
 
   // -----------------------------------------------------------------------------------------------
-  // 2. KPIS EJECUTIVOS (SCORE DE ROBUSTEZ Y TARJETAS DE SEVERIDAD)
+  // 2. KPIS EJECUTIVOS (ÍNDICE DE RESILIENCIA HEURÍSTICA Y TARJETAS DE SEVERIDAD)
   // -----------------------------------------------------------------------------------------------
   const score = data.robustezScore !== undefined ? data.robustezScore : 0;
   const scoreValEl = document.getElementById('kpi-score-val');
@@ -268,7 +268,7 @@ function renderDashboard(data) {
   scoreValEl.innerText = `${score}%`;
   scoreLevelEl.innerText = data.overallLevel || 'Evaluado';
 
-  // Asignamos colores dinámicos a la tarjeta principal de Score según su nivel de salud
+  // Asignamos colores dinámicos a la tarjeta principal de Resiliencia según su nivel determinado
   if (score >= 80) {
     scoreCardEl.style.borderColor = '#10b981'; // Verde esmeralda (Robusto / Excelente)
     scoreValEl.style.color = '#34d399';
@@ -276,7 +276,7 @@ function renderDashboard(data) {
     scoreCardEl.style.borderColor = '#f59e0b'; // Ámbar (Riesgo moderado / Aceptable)
     scoreValEl.style.color = '#fbbf24';
   } else {
-    scoreCardEl.style.borderColor = '#ef4444'; // Rojo intenso (Riesgo crítico / Atención urgente)
+    scoreCardEl.style.borderColor = '#ef4444'; // Rojo intenso (Atención prioritaria requerida)
     scoreValEl.style.color = '#f87171';
   }
 
@@ -340,7 +340,7 @@ function renderSpecializedDistribution(metrics, p, totalTests, score) {
   const donutScoreVal = document.getElementById('donut-score-val');
   const donutTotalTests = document.getElementById('donut-total-tests');
 
-  // Asignamos el valor de robustez central y su color semántico
+  // Asignamos el valor de resiliencia central y su color semántico
   if (donutScoreVal) {
     donutScoreVal.textContent = `${score}%`;
     if (score >= 80) donutScoreVal.style.fill = '#34d399';
@@ -376,7 +376,7 @@ function renderSpecializedDistribution(metrics, p, totalTests, score) {
 
     let offset = 0; // Desfase inicial (0 píxeles, posición 12 en punto gracias a rotate(-90deg))
 
-    // Segmento Crítico (Rojo)
+    // Segmento Seguridad Prioritario (Rojo)
     if (segCrit) {
       segCrit.style.strokeDasharray = `${lenCrit} ${C - lenCrit}`;
       segCrit.style.strokeDashoffset = `-${offset}`;
@@ -408,7 +408,7 @@ function renderSpecializedDistribution(metrics, p, totalTests, score) {
   // ACTUALIZACIÓN DE TARJETAS DE BARRAS HORIZONTALES POR SEVERIDAD
   // -----------------------------------------------------------------------------------------------
 
-  // 1. Tarjeta Crítico (Seguridad)
+  // 1. Tarjeta Seguridad (Atención Prioritaria)
   const elBarCritCount = document.getElementById('bar-crit-count');
   const elBarCritPct = document.getElementById('bar-crit-pct');
   const elSevFillCrit = document.getElementById('sev-fill-crit');
@@ -416,7 +416,7 @@ function renderSpecializedDistribution(metrics, p, totalTests, score) {
   if (elBarCritPct) elBarCritPct.textContent = `(${p.criticos}%)`;
   if (elSevFillCrit) elSevFillCrit.style.width = `${p.criticos}%`;
 
-  // 2. Tarjeta Alto (Capacidad DoS)
+  // 2. Tarjeta Capacidad y Búfer (Alto)
   const elBarHighCount = document.getElementById('bar-high-count');
   const elBarHighPct = document.getElementById('bar-high-pct');
   const elSevFillHigh = document.getElementById('sev-fill-high');
@@ -424,7 +424,7 @@ function renderSpecializedDistribution(metrics, p, totalTests, score) {
   if (elBarHighPct) elBarHighPct.textContent = `(${p.altos}%)`;
   if (elSevFillHigh) elSevFillHigh.style.width = `${p.altos}%`;
 
-  // 3. Tarjeta Medio (Integridad y Formato)
+  // 3. Tarjeta Integridad y Formato (Medio)
   const elBarMedCount = document.getElementById('bar-med-count');
   const elBarMedPct = document.getElementById('bar-med-pct');
   const elSevFillMed = document.getElementById('sev-fill-med');
@@ -432,7 +432,7 @@ function renderSpecializedDistribution(metrics, p, totalTests, score) {
   if (elBarMedPct) elBarMedPct.textContent = `(${p.medios}%)`;
   if (elSevFillMed) elSevFillMed.style.width = `${p.medios}%`;
 
-  // 4. Tarjeta Seguro (Conformes y Protegidos)
+  // 4. Tarjeta Validaciones Conformes (Seguro)
   const elBarSafeCount = document.getElementById('bar-safe-count');
   const elBarSafePct = document.getElementById('bar-safe-pct');
   const elSevFillSafe = document.getElementById('sev-fill-safe');
@@ -553,13 +553,13 @@ function renderCategories(categories) {
 // -------------------------------------------------------------------------------------------------
 const CATEGORY_META = {
   security: {
-    name: 'Seguridad (Crítico)',
+    name: 'Seguridad (Prioritario)',
     pillClass: 'cat-pill-security',
     rowClass: 'row-cat-security',
     dotColor: '#ef4444'
   },
   capacity: {
-    name: 'Capacidad DoS (Alto)',
+    name: 'Capacidad (Alto)',
     pillClass: 'cat-pill-capacity',
     rowClass: 'row-cat-capacity',
     dotColor: '#f43f5e'
@@ -577,7 +577,7 @@ const CATEGORY_META = {
     dotColor: '#fbbf24'
   },
   conforme: {
-    name: 'Conforme (Seguro)',
+    name: 'Conforme',
     pillClass: 'cat-pill-safe',
     rowClass: 'row-cat-conforme',
     dotColor: '#10b981'

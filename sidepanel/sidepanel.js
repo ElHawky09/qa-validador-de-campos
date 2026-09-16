@@ -10,7 +10,7 @@
 // 2. Comunicación bidireccional (IPC) con el content-script (`picker.js`) inyectado en la pestaña web.
 // 3. Renderizado dinámico de suites de prueba organizadas por niveles de profundidad (Tiers).
 // 4. Ejecución automatizada de pruebas secuenciales con inyección de valores, disparo de eventos y auditoría de guardado.
-// 5. Motor de categorización de riesgos (Crítico, Alto, Medio, Bajo/Conforme) según la respuesta del DOM y backend.
+// 5. Motor de categorización de riesgos (Prioritario, Alto, Medio, Conforme) según la respuesta observable del DOM y la interfaz.
 // 6. Generación de informes exportables en formatos Notion (HTML enriquecido), Markdown, CSV, Impresión/PDF y Dashboard gráfico interactivo.
 // =========================================================================================
 
@@ -757,10 +757,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnViewDashboard = document.getElementById('btn-view-dashboard'); // Botón de alternancia a vista de dashboard visual ejecutivo.
   const tableViewContainer = document.getElementById('table-view-container'); // Contenedor con la tabla y buscador de resultados.
   const dashboardViewContainer = document.getElementById('dashboard-view-container'); // Contenedor con gráficos de barras, KPIs y desglose de severidad.
-  const dashboardRiskLevelBadge = document.getElementById('dashboard-risk-level-badge'); // Badge con el nivel general de riesgo (CRÍTICO, ALTO, MEDIO, SEGURO).
+  const dashboardRiskLevelBadge = document.getElementById('dashboard-risk-level-badge'); // Badge con el nivel general de riesgo y resiliencia (Prioritario, Alto, Medio, Conforme).
   const dashboardScoreVal = document.getElementById('dashboard-score-val'); // Puntuación de calidad calculada de 0 a 100 puntos.
   const dashboardSummaryMsg = document.getElementById('dashboard-summary-msg'); // Párrafo explicativo con la conclusión del diagnóstico.
-  const statCriticalCount = document.getElementById('stat-critical-count'); // Contador de vulnerabilidades críticas.
+  const statCriticalCount = document.getElementById('stat-critical-count'); // Contador de indicadores de seguridad prioritarios.
   const statHighCount = document.getElementById('stat-high-count'); // Contador de fallos de severidad alta.
   const statMediumCount = document.getElementById('stat-medium-count'); // Contador de observaciones de severidad media.
   const statSafeCount = document.getElementById('stat-safe-count'); // Contador de pruebas seguras/conformes.
@@ -2607,11 +2607,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /**
    * Clasifica un resultado de prueba en una de las 5 categorías oficiales de diagnóstico:
-   * 1. 'security': Crítico (Vectores XSS, SQLi, null byte o esquemas URI no permitidos).
+   * 1. 'security': Prioritario (Vectores XSS, SQLi, null byte o esquemas URI no permitidos).
    * 2. 'capacity': Alto (Sobrecargas masivas de 1000 a 5000 chars o URLs enormes sin maxlength).
    * 3. 'integrity': Medio (Caracteres invisibles Unicode zero-width o secuencias compuestas).
    * 4. 'format_logic': Medio (Ausencia de trim, validación alfabética, fechas o números).
-   * 5. 'conforme': Seguro (Comportamiento conforme o defensas activas del frontend/servidor).
+   * 5. 'conforme': Conforme (Comportamiento conforme o defensas activas del frontend/servidor).
    * 
    * @param {Object} r - Objeto de resultado individual.
    * @returns {Object} Descriptor taxonómico con clave, título, severidad, clase CSS e icono SVG.
@@ -2759,7 +2759,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 3. Variables de agregación y conteo global:
     const total = testResults.length; // Total absoluto de evaluaciones realizadas
-    let criticalCount = 0; // Acumulador de fallas de severidad Crítica (Inyecciones, XSS)
+    let criticalCount = 0; // Acumulador de indicadores de severidad Prioritaria (Inyecciones, XSS)
     let highCount = 0;     // Acumulador de fallas de severidad Alta (Capacidad, Desbordamiento DoS)
     let mediumCount = 0;   // Acumulador de anomalías de severidad Media (Unicode, Lógica, Formato)
     let safeCount = 0;     // Acumulador de pruebas superadas con éxito (Comportamiento Seguro)
@@ -2804,7 +2804,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Se evalúa la presencia de incidencias en orden descendente de severidad:
     if (dashboardRiskLevelBadge) {
       if (criticalCount > 0) {
-        // Presencia de vulnerabilidades de inyección o seguridad activa:
+        // Presencia de indicadores de inyección o seguridad en capa de entrada:
         dashboardRiskLevelBadge.className = 'badge badge-danger';
         dashboardRiskLevelBadge.innerText = 'Atención Prioritaria';
         // Resaltamos el borde del contenedor del puntaje con color rojo de alerta:
@@ -2885,11 +2885,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Catálogo maestro de definiciones estéticas y metadatos para cada grupo:
     const categoriesDef = [
-      { key: 'security', title: '1. Seguridad e Inyecciones', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>', severity: 'CRÍTICO', severityClass: 'cat-critical' },
+      { key: 'security', title: '1. Seguridad e Inyecciones', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>', severity: 'PRIORITARIO', severityClass: 'cat-critical' },
       { key: 'capacity', title: '2. Capacidad y Resistencia DoS', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>', severity: 'ALTO', severityClass: 'cat-high' },
       { key: 'integrity', title: '3. Integridad y Spoofing Unicode', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>', severity: 'MEDIO', severityClass: 'cat-medium' },
       { key: 'format_logic', title: '4. Lógica de Negocio y Formato', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>', severity: 'MEDIO', severityClass: 'cat-medium' },
-      { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>', severity: 'SEGURO', severityClass: 'cat-safe' }
+      { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', icon: '<svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>', severity: 'CONFORME', severityClass: 'cat-safe' }
     ];
 
     // Construcción dinámica de cada tarjeta en el DOM:
@@ -2941,7 +2941,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span>${escapeHtml(catDef.title)}</span>
           </div>
           <div class="risk-cat-badges">
-            <span class="mini-tag tag-${catDef.severity === 'CRÍTICO' ? 'critical' : catDef.severity === 'ALTO' ? 'high' : catDef.severity === 'MEDIO' ? 'medium' : 'safe'}">
+            <span class="mini-tag tag-${(catDef.severity === 'PRIORITARIO' || catDef.severity === 'CRÍTICO') ? 'critical' : catDef.severity === 'ALTO' ? 'high' : catDef.severity === 'MEDIO' ? 'medium' : 'safe'}">
               ${count} ${catDef.key === 'conforme' ? 'conformes' : count === 1 ? 'incidencia' : 'incidencias'}
             </span>
             <span class="risk-cat-chevron">&#9660;</span>
@@ -3102,7 +3102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (testResults.length === 0) return null;
 
     const total = testResults.length;
-    let criticalCount = 0; // Conteo de vulnerabilidades de severidad Crítica
+    let criticalCount = 0; // Conteo de indicadores de severidad Prioritaria
     let highCount = 0;     // Conteo de anomalías de severidad Alta
     let mediumCount = 0;   // Conteo de observaciones de severidad Media
     let safeCount = 0;     // Conteo de pruebas con comportamiento Conforme / Seguro
@@ -3139,7 +3139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. Fórmula de Penalización Ponderada de Riesgo:
     // Se asigna un peso relativo a cada tipo de fallo según su impacto en seguridad:
-    // - Fallo Crítico (Inyecciones): 25 puntos de penalización cada uno.
+    // - Fallo Prioritario (Inyecciones): 25 puntos de penalización cada uno.
     // - Fallo Alto (Desbordamiento DoS): 15 puntos de penalización cada uno.
     // - Fallo Medio (Lógica, Espacios, Unicode): 5 puntos de penalización cada uno.
     const penalty = (criticalCount * 25) + (highCount * 15) + (mediumCount * 5);

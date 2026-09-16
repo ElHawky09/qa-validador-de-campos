@@ -83,15 +83,15 @@ En ningún caso los informes o datos exportados se sincronizan ni se envían a s
 
 ---
 
-## 6. Advertencia Estricta: Uso Exclusivo de Datos Sintéticos
+## 6. Directivas Operativas: Uso Exclusivo de Datos Sintéticos
 
-**ADVERTENCIA OPERATIVA OBLIGATORIA:**
+**Aviso de Seguridad en Pruebas:**
 
 La Extensión está diseñada para evaluar la resiliencia y los filtros de validación de formularios en entornos de prueba, preproducción (*staging*) o desarrollo.
 
-- **PROHIBICIÓN DE USO CON CREDENCIALES REALES:** El Usuario **NO** debe ejecutar pruebas automatizadas utilizando contraseñas reales, números de identificación oficial reales, claves privadas, tokens de acceso o datos bancarios/financieros auténticos.
-- **RECOMENDACIÓN DE DATOS SINTÉTICOS:** Se recomienda enfáticamente utilizar cuentas ficticias, simuladores (*mocks*), datos aleatorios sintéticos y registros creados específicamente con propósitos de control de calidad.
-- **PROTECCIÓN DE DATOS DE TERCEROS:** El Usuario es responsable de garantizar que las pruebas efectuadas no involucren el tratamiento no consentido de datos personales de terceros protegidos por normativas tales como el RGPD (Unión Europea), la CCPA (California), la LGPD (Brasil), la LFPDPPP (México) u ordenamientos homólogos.
+- **Uso Exclusivo sin Credenciales Reales:** El Usuario debe abstenerse de ejecutar pruebas automatizadas utilizando contraseñas reales, números de identificación oficial reales, claves privadas, tokens de acceso o datos bancarios/financieros auténticos.
+- **Recomendación de Datos Sintéticos:** Se recomienda enfáticamente utilizar cuentas ficticias, simuladores (*mocks*), datos aleatorios sintéticos y registros creados específicamente con propósitos de control de calidad.
+- **Protección de Datos de Terceros:** El Usuario es responsable de garantizar que las pruebas efectuadas no involucren el tratamiento no consentido de datos personales de terceros protegidos por normativas tales como el RGPD (Unión Europea), la CCPA (California), la LGPD (Brasil), la LFPDPPP (México) u ordenamientos homólogos.
 
 ---
 

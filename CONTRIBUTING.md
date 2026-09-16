@@ -444,8 +444,8 @@ Esta política aplica a cualquier vulnerabilidad identificada en los componentes
 - Fugas involuntarias de datos a través de APIs de almacenamiento o paso de mensajes IPC.
 
 ### Canal de Comunicación Confidencial
-- **PROHIBICIÓN TAXATIVA:** Por motivos de seguridad y para proteger a la comunidad de usuarios, **queda estrictamente prohibido reportar vulnerabilidades de seguridad abiertas en issues públicas de GitHub, foros o redes sociales** antes de que exista un parche de mitigación verificado.
-- **Canal de Notificación:** Envíe un reporte detallado al equipo mantenedor a través de los canales privados designados en el repositorio oficial de GitHub (mediante la funcionalidad nativa de *Private Vulnerability Reporting* en la pestaña *Security* del repositorio, o vía correo electrónico de contacto del mantenedor principal).
+- **Canal Privado Obligatorio:** Por motivos de seguridad y para proteger a la comunidad de usuarios, **se solicita abstenerse de reportar posibles vulnerabilidades de seguridad en issues públicas de GitHub, foros o redes sociales** antes de que exista un parche de mitigación verificado.
+- **Procedimiento de Notificación:** Envíe un reporte detallado al equipo mantenedor a través del buzón confidencial `security@qaformvalidator.org` o mediante la funcionalidad nativa de *Private Vulnerability Reporting* en la pestaña *Security* del repositorio, conforme al procedimiento documentado en [SECURITY.md](SECURITY.md).
 
 ### Estructura del Informe de Seguridad
 Para acelerar la evaluación y corrección del hallazgo, su comunicación debe incluir:

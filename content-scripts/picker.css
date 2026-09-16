@@ -93,7 +93,7 @@
   /* Índice Z máximo en sistemas de 32 bits (2^31 - 1) para garantizar que flote
      por encima de modales, headers fijos, iframes o canvases de la página web */
   z-index: 2147483647;
-  /* CRÍTICO: pointer-events: none hace al tooltip 'invisible' ante eventos de ratón,
+  /* IMPORTANTE: pointer-events: none hace al tooltip 'invisible' ante eventos de ratón,
      evitando que interfiera con los eventos mouseover/click del elemento subyacente */
   pointer-events: none;
   /* Paleta oscura de alto contraste con tipografía legible y sombras volumétricas */
