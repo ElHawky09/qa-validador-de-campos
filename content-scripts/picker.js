@@ -1298,20 +1298,48 @@
   }
 
   // ============================================================================
+  // FUNCIÓN: findInShadowRoots
+  // OBJETIVO: Buscar recursivamente un elemento dentro de árboles Shadow DOM abiertos.
+  // PARÁMETROS:
+  //   - rootNode: Nodo raíz de inicio (Document o ShadowRoot).
+  //   - queryFn: Función predicado que recibe un contexto de búsqueda (Document/ShadowRoot).
+  // RETORNO: El HTMLElement encontrado o null.
+  // ============================================================================
+  function findInShadowRoots(rootNode, queryFn) {
+    if (!rootNode) return null;
+    try {
+      const found = queryFn(rootNode);
+      if (found) return found;
+    } catch (e) {}
+
+    const allElements = rootNode.querySelectorAll ? rootNode.querySelectorAll('*') : [];
+    for (let i = 0; i < allElements.length; i++) {
+      const el = allElements[i];
+      if (el.shadowRoot) {
+        const inShadow = findInShadowRoots(el.shadowRoot, queryFn);
+        if (inShadow) return inShadow;
+      }
+    }
+    return null;
+  }
+
+  // ============================================================================
   // FUNCIÓN: resolveFieldElement
-  // OBJETIVO: Re-localizar un campo en el DOM a partir de sus metadatos guardados.
+  // OBJETIVO: Re-localizar un campo en el DOM a partir de sus metadatos guardados,
+  //           soportando tanto el documento principal como componentes encapsulados
+  //           en árboles Shadow DOM abiertos.
   // PARÁMETROS:
   //   - fieldInfo: Objeto con { id, selector, name }.
   // RETORNO: El HTMLElement localizado o targetElement como respaldo.
   // ============================================================================
   function resolveFieldElement(fieldInfo) {
     if (!fieldInfo) return targetElement;
-    // Búsqueda por ID
+    // Búsqueda por ID en el árbol principal
     if (fieldInfo.id) {
       const byId = document.getElementById(fieldInfo.id);
       if (byId) return byId;
     }
-    // Búsqueda por selector CSS
+    // Búsqueda por selector CSS en el árbol principal
     if (fieldInfo.selector) {
       try {
         const bySel = document.querySelector(fieldInfo.selector);
@@ -1320,11 +1348,48 @@
         console.warn('Selector error:', e);
       }
     }
-    // Búsqueda por atributo name
+    // Búsqueda por atributo name en el árbol principal
     if (fieldInfo.name) {
-      const byName = document.querySelector(`[name="${CSS.escape(fieldInfo.name)}"]`);
-      if (byName) return byName;
+      try {
+        const byName = document.querySelector(`[name="${CSS.escape(fieldInfo.name)}"]`);
+        if (byName) return byName;
+      } catch (e) {}
     }
+
+    // Búsqueda recursiva en componentes con Shadow DOM abierto (SEC2-H17):
+    if (fieldInfo.id) {
+      const byShadowId = findInShadowRoots(document, root => {
+        try {
+          return root.querySelector(`#${CSS.escape(fieldInfo.id)}`);
+        } catch (e) {
+          return null;
+        }
+      });
+      if (byShadowId) return byShadowId;
+    }
+
+    if (fieldInfo.selector) {
+      const byShadowSel = findInShadowRoots(document, root => {
+        try {
+          return root.querySelector(fieldInfo.selector);
+        } catch (e) {
+          return null;
+        }
+      });
+      if (byShadowSel) return byShadowSel;
+    }
+
+    if (fieldInfo.name) {
+      const byShadowName = findInShadowRoots(document, root => {
+        try {
+          return root.querySelector(`[name="${CSS.escape(fieldInfo.name)}"]`);
+        } catch (e) {
+          return null;
+        }
+      });
+      if (byShadowName) return byShadowName;
+    }
+
     // Respaldo
     return targetElement;
   }

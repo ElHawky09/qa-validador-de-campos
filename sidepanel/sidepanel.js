@@ -74,6 +74,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Nivel de profundidad activo para filtrar las pruebas predeterminadas ('simple', 'normal', 'advanced', 'total').
   let currentDepthTier = 'normal';
 
+  // Bandera booleana para abortar o detener la ejecución de pruebas bajo demanda del usuario (SEC2-H12).
+  let isTestRunCancelled = false;
+
   // =======================================================================================
   // CONSTANTES DE NIVELES DE PROFUNDIDAD (TIER SYSTEM)
   // =======================================================================================
@@ -90,10 +93,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Textos explicativos en español presentados en la interfaz para guiar al auditor sobre el volumen de pruebas.
   const TIER_DESCRIPTIONS = {
-    simple: 'Simple (~13 pruebas rápidas)',
-    normal: 'Normal (~29 pruebas estándar)',
-    advanced: 'Avanzado (~43 pruebas de calidad)',
-    total: 'Total (~51 pruebas exhaustivas)'
+    simple: 'Simple (~14 pruebas rápidas)',
+    normal: 'Normal (~31 pruebas estándar)',
+    advanced: 'Avanzado (~45 pruebas de calidad)',
+    total: 'Total (~53 pruebas exhaustivas)'
   };
 
   // =======================================================================================
@@ -209,6 +212,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       payload: 'Línea 1\nLínea 2\r\nLínea 3\tTab',
       desc: 'Caracteres de control multilínea',
       isInvalidCase: false
+    },
+    {
+      id: 'email_valid',
+      category: 'text',
+      tier: 'simple',
+      name: 'Correo electrónico válido',
+      // Dirección canónica estándar conforme a especificación RFC 5322.
+      payload: 'auditoria.qa@dominio-valido.com',
+      desc: 'Formato estándar de correo con usuario, arroba y dominio válido',
+      isInvalidCase: false
+    },
+    {
+      id: 'email_invalid_format',
+      category: 'text',
+      tier: 'normal',
+      name: 'Correo sin arroba (@)',
+      // Cadena textual sin arroba que debe ser rechazada por controles nativos type="email".
+      payload: 'usuario-sin-arroba.com',
+      desc: 'Formato de correo inválido para verificar validación RFC 5322',
+      isInvalidCase: true
     },
 
     // -------------------------------------------------------------------------------------
@@ -735,6 +758,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const submitWaitTimeSelect = document.getElementById('submit-wait-time'); // Selector del tiempo de espera para observar la respuesta del servidor (500ms, 1s, 2s, 3s).
   const checkRestoreValue = document.getElementById('check-restore-value'); // Checkbox para reponer el valor original del input al finalizar toda la auditoría.
   const btnRunTests = document.getElementById('btn-run-tests'); // Botón principal de acción para iniciar la batería automatizada de pruebas.
+  const btnStopTests = document.getElementById('btn-stop-tests'); // Botón secundario para detener interactivamente la ejecución de pruebas.
   const runBtnText = document.getElementById('run-btn-text'); // Texto interno del botón de ejecución (muestra cantidad de campos seleccionados).
   const progressContainer = document.getElementById('progress-container'); // Contenedor de la barra de progreso visible durante la ejecución.
   const progressLabel = document.getElementById('progress-label'); // Texto con el progreso paso a paso (ej. "Campo 1/3: Prueba 5/29").
@@ -1059,8 +1083,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     let totalQueuedTests = 0;
     selectedFields.forEach(field => {
       const fType = (field.type || 'text').toLowerCase();
-      const isUrl = !!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
-      const isNumericText = /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isSlug = !!field.isSlugField || /\bslug\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isUrl = !isSlug && (!!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`));
+      const isNumericText = fType === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isEmail = fType === 'email' || /\b(email|correo|mail)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
 
       let applicable = [];
       if (isUrl) {
@@ -1069,10 +1095,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         applicable = all.filter(p => p.selected !== false && (p.category === 'number' || p.id === 'sec_null_byte'));
       } else if (fType === 'date' || fType === 'datetime-local' || fType === 'month') {
         applicable = all.filter(p => p.selected !== false && p.category === 'date');
+      } else if (isEmail) {
+        applicable = all.filter(p => p.selected !== false && (p.id === 'email_valid' || p.id === 'email_invalid_format' || p.id === 'sec_script' || p.id === 'sec_sql_basic' || p.id === 'sec_null_byte' || p.id === 'txt_spaces' || p.id === 'txt_only_spaces' || p.id === 'txt_1000' || p.id === 'txt_5000'));
       } else if (isNumericText) {
-        applicable = all.filter(p => p.selected !== false && (p.category === 'text' || p.category === 'security' || p.id === 'num_leading_zeros' || p.id === 'num_overflow' || p.id === 'num_negative' || p.id === 'num_letters'));
+        applicable = all.filter(p => p.selected !== false && ((p.category === 'text' && p.id !== 'email_valid' && p.id !== 'email_invalid_format') || p.category === 'security' || p.id === 'num_leading_zeros' || p.id === 'num_overflow' || p.id === 'num_negative' || p.id === 'num_non_numeric'));
       } else {
-        applicable = all.filter(p => p.selected !== false && (p.category === 'text' || p.category === 'emoji' || p.category === 'security'));
+        applicable = all.filter(p => p.selected !== false && ((p.category === 'text' && p.id !== 'email_valid' && p.id !== 'email_invalid_format') || p.category === 'emoji' || p.category === 'security'));
       }
 
       const customs = all.filter(p => {
@@ -1080,6 +1108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isUrl) return p.category === 'url' || p.category === 'security';
         if (fType === 'number') return p.category === 'number' || p.category === 'security';
         if (fType === 'date' || fType === 'datetime-local' || fType === 'month') return p.category === 'date';
+        if (isEmail) return p.category === 'text' || p.category === 'security';
         return p.category === 'text' || p.category === 'emoji' || p.category === 'security' || (isNumericText && p.category === 'number');
       });
 
@@ -1918,9 +1947,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const fType = (field.type || 'text').toLowerCase();
       let applicable = [];
 
-      // Heurística avanzada para determinar si el campo representa una URL o enlace web:
-      const isUrl = !!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
-      const isNumericText = /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      // Heurística avanzada para determinar si el campo representa una URL, slug, número semántico o email:
+      const isSlug = !!field.isSlugField || /\bslug\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isUrl = !isSlug && (!!field.isUrlField || fType === 'url' || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`));
+      const isNumericText = fType === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
+      const isEmail = fType === 'email' || /\b(email|correo|mail)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
 
       if (isUrl) {
         // En campos de URL se aplican pruebas de protocolo, XSS en esquemas, byte nulo y espacios en blanco.
@@ -1931,12 +1962,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (fType === 'date' || fType === 'datetime-local' || fType === 'month') {
         // En selectores de fecha se aplican formatos ISO, años bisiestos y rangos calendario.
         applicable = selectedPayloads.filter(p => p.category === 'date');
+      } else if (isEmail) {
+        // En campos de correo electrónico se aplican pruebas de formato de correo, seguridad y longitud:
+        applicable = selectedPayloads.filter(p => p.id === 'email_valid' || p.id === 'email_invalid_format' || p.id === 'sec_script' || p.id === 'sec_sql_basic' || p.id === 'sec_null_byte' || p.id === 'txt_spaces' || p.id === 'txt_only_spaces' || p.id === 'txt_1000' || p.id === 'txt_5000');
       } else if (isNumericText) {
         // En campos semánticos numéricos basados en texto (códigos postales, teléfonos, documentos):
-        applicable = selectedPayloads.filter(p => p.category === 'text' || p.category === 'security' || p.id === 'num_leading_zeros' || p.id === 'num_overflow' || p.id === 'num_negative' || p.id === 'num_letters');
+        applicable = selectedPayloads.filter(p => (p.category === 'text' && p.id !== 'email_valid' && p.id !== 'email_invalid_format') || p.category === 'security' || p.id === 'num_leading_zeros' || p.id === 'num_overflow' || p.id === 'num_negative' || p.id === 'num_non_numeric');
       } else {
-        // En campos de texto libre, áreas de texto (textarea), correos y contraseñas:
-        applicable = selectedPayloads.filter(p => p.category === 'text' || p.category === 'emoji' || p.category === 'security');
+        // En campos de texto libre, áreas de texto (textarea) y contraseñas:
+        applicable = selectedPayloads.filter(p => (p.category === 'text' && p.id !== 'email_valid' && p.id !== 'email_invalid_format') || p.category === 'emoji' || p.category === 'security');
       }
 
       // Si el usuario creó pruebas personalizadas (isCustom: true), se incorporan según compatibilidad funcional:
@@ -1945,6 +1979,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (isUrl) return p.category === 'url' || p.category === 'security';
         if (fType === 'number') return p.category === 'number' || p.category === 'security';
         if (fType === 'date' || fType === 'datetime-local' || fType === 'month') return p.category === 'date';
+        if (isEmail) return p.category === 'text' || p.category === 'security';
         return p.category === 'text' || p.category === 'emoji' || p.category === 'security' || (isNumericText && p.category === 'number');
       });
       customs.forEach(c => {
@@ -1973,7 +2008,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // FASE 2: PREPARACIÓN DE LA INTERFAZ Y LECTURA DE PARÁMETROS
     // -------------------------------------------------------------------------------------
     // Se deshabilitan los controles de interacción para evitar condiciones de carrera durante la prueba.
+    isTestRunCancelled = false;
     btnRunTests.disabled = true;
+    if (btnResetAll) btnResetAll.disabled = true;
+    if (btnStopTests) {
+      btnStopTests.style.display = 'inline-flex';
+      btnStopTests.disabled = false;
+      btnStopTests.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24" style="fill: currentColor; stroke: none; margin-right: 4px;"><rect x="6" y="6" width="12" height="12"></rect></svg><span>Detener</span>';
+    }
     btnPickField.disabled = true;
     btnAutoDetectForm.disabled = true;
     if (btnChangeSave) btnChangeSave.disabled = true;
@@ -1999,6 +2041,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Se utiliza un bucle 'for...of' para garantizar una ejecución rigurosamente secuencial.
     // Esto evita que múltiples pruebas colisionen simultáneamente sobre el mismo formulario del DOM.
     for (const task of testQueue) {
+      if (isTestRunCancelled) {
+        break;
+      }
       completed++;
       // Cálculo del porcentaje completado (de 0 a 100).
       const pct = Math.round((completed / testQueue.length) * 100);
@@ -2081,6 +2126,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           progressLabel.innerText = 'Pestaña cerrada o desconectada. Pruebas detenidas.';
           selectedFieldsList.querySelectorAll('.field-chip-item').forEach(c => c.classList.remove('field-chip-active'));
           btnRunTests.disabled = false;
+          if (btnResetAll) btnResetAll.disabled = false;
+          if (btnStopTests) {
+            btnStopTests.disabled = true;
+            btnStopTests.style.display = 'none';
+          }
           btnPickField.disabled = false;
           btnAutoDetectForm.disabled = false;
           if (btnChangeSave) btnChangeSave.disabled = false;
@@ -2115,21 +2165,44 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    // Restablece el estado de los botones tras concluir toda la batería de pruebas:
-    progressLabel.innerText = `¡Pruebas completadas (${testQueue.length} casos)!`;
+    // Restablece el estado de los botones tras concluir o cancelar la batería de pruebas:
+    if (btnResetAll) btnResetAll.disabled = false;
+    if (btnStopTests) {
+      btnStopTests.disabled = true;
+      btnStopTests.style.display = 'none';
+    }
     btnRunTests.disabled = false;
     btnPickField.disabled = false;
     btnAutoDetectForm.disabled = false;
     if (btnChangeSave) btnChangeSave.disabled = false;
     if (btnInspectSave) btnInspectSave.disabled = !currentSaveButton;
-    runBtnText.innerText = `Volver a Iniciar (${selectedFields.length} campos)`;
+
+    if (isTestRunCancelled) {
+      progressLabel.innerText = `Verificación detenida por el usuario (${completed}/${testQueue.length} casos ejecutados).`;
+      runBtnText.innerText = `Reanudar Verificación (${selectedFields.length} campos)`;
+    } else {
+      progressLabel.innerText = `Pruebas completadas (${testQueue.length} casos).`;
+      runBtnText.innerText = `Volver a Iniciar (${selectedFields.length} campos)`;
+    }
     // Actualiza la vista de Dashboard con los nuevos datos recopilados:
     renderDashboardView();
-    // Oculta la barra de progreso tras 2.5 segundos de gracia:
-    setTimeout(() => {
-      progressContainer.style.display = 'none';
-    }, 2500);
+    // Oculta la barra de progreso tras 2.5 segundos de gracia si concluyó normalmente:
+    if (!isTestRunCancelled) {
+      setTimeout(() => {
+        progressContainer.style.display = 'none';
+      }, 2500);
+    }
   });
+
+  // Listener para el botón secundario de detención de pruebas (SEC2-H12):
+  if (btnStopTests) {
+    btnStopTests.addEventListener('click', () => {
+      isTestRunCancelled = true;
+      btnStopTests.disabled = true;
+      btnStopTests.innerHTML = '<svg class="ui-icon" viewBox="0 0 24 24" style="fill: currentColor; stroke: none; margin-right: 4px;"><rect x="6" y="6" width="12" height="12"></rect></svg><span>Deteniendo...</span>';
+      if (progressLabel) progressLabel.innerText = 'Detención solicitada. Interrumpiendo ejecución...';
+    });
+  }
 
   // =======================================================================================
   // MOTOR DE EVALUACIÓN Y GENERACIÓN DE RECOMENDACIONES (EVALUATION ENGINE)
@@ -2194,6 +2267,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const resVal = res.resultingValue !== undefined ? res.resultingValue : '';
     const resLen = res.resultingLength !== undefined ? res.resultingLength : resVal.length;
     const payLen = payload.length;
+    const fType = (field.type || 'text').toLowerCase();
+    const isNumericText = fType === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
 
     // Inicialización de variables de clasificación con valores por defecto:
     let status = 'conforme'; // 'restricted_save' | 'restricted_field' | 'truncated' | 'conforme' | 'risk' | 'error'
@@ -2212,7 +2287,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // CASO 1: TRUNCAMIENTO ACTIVO EN EL CAMPO (HTML5 MAXLENGTH O MÁSCARA JS)
     // -------------------------------------------------------------------------------------
     // Si la longitud resultante en el campo es inferior a la del payload inyectado:
-    if (resLen < payLen && payLen > 1) {
+    // Excluimos del diagnóstico de truncamiento la reducción normalizada de ceros a la izquierda en inputs nativos type="number" (SEC2-H08):
+    const isNumberLeadingZerosNormalized = fType === 'number' &&
+      (testItem.id === 'num_leading_zeros' || /^0+\d+$/.test(payload)) &&
+      Number(resVal) === Number(payload);
+
+    if (resLen < payLen && payLen > 1 && !isNumberLeadingZerosNormalized) {
       status = 'truncated';
       badgeText = 'Truncado en Campo';
       badgeClass = 'res-truncated';
@@ -2274,14 +2354,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     // CASO 5: ERROR NATIVO HTML5 O MENSAJES DE ERROR VISIBLES EN EL DOM (SIN GUARDAR)
     // -------------------------------------------------------------------------------------
     else if (hasHTML5Error || (res.postInputErrors && res.postInputErrors.length > 0)) {
-      status = 'restricted_field';
-      badgeText = 'Restringido en Campo';
-      badgeClass = 'res-restricted-field';
-      const msgList = [];
-      if (res.validationMessage) msgList.push(`HTML5: "${res.validationMessage}"`);
-      if (res.postInputErrors?.length > 0) msgList.push(`Alerta: "${res.postInputErrors[0]}"`);
-      detail = `El sitio detectó la irregularidad: ${msgList.join(' | ') || 'Validación activa'}.`;
-      recommendation = 'Correcto: El campo avisa de inmediato al usuario que el valor no es válido.';
+      // Verificación de intento de guardado sin bloqueo efectivo (SEC2-H14):
+      if (triggerSave && !saveBlocked) {
+        status = 'warning';
+        badgeText = 'Omisión de Validación al Enviar';
+        badgeClass = 'res-format';
+        const msgList = [];
+        if (res.validationMessage) msgList.push(`HTML5: "${res.validationMessage}"`);
+        if (validity?.patternMismatch && field.pattern) {
+          msgList.push(`Violación de patrón: pattern="${field.pattern}"`);
+        }
+        if (res.postInputErrors?.length > 0) msgList.push(`Alerta: "${res.postInputErrors[0]}"`);
+        detail = `El campo acusó una irregularidad (${msgList.join(' | ') || 'Error de validación'}), pero el formulario permitió el envío sin bloquear la acción y procesó los datos.`;
+        recommendation = field.pattern && validity?.patternMismatch
+          ? `Garantizar que el formulario bloquee el envío cuando el valor incumpla la expresión regular declarada (pattern="${field.pattern}") en frontend y backend.`
+          : 'Asegurar que el formulario no omita la validación nativa (evitar atributo novalidate sin validaciones suplementarias) y bloquear el envío ante errores.';
+      } else {
+        status = 'restricted_field';
+        badgeText = 'Restringido en Campo';
+        badgeClass = 'res-restricted-field';
+        const msgList = [];
+        if (res.validationMessage) msgList.push(`HTML5: "${res.validationMessage}"`);
+        if (validity?.patternMismatch && field.pattern) {
+          msgList.push(`Patrón requerido: pattern="${field.pattern}"`);
+        }
+        if (res.postInputErrors?.length > 0) msgList.push(`Alerta: "${res.postInputErrors[0]}"`);
+        detail = `El sitio detectó la irregularidad: ${msgList.join(' | ') || 'Validación activa'}.`;
+        recommendation = field.pattern && validity?.patternMismatch
+          ? `Correcto: El campo avisa de inmediato que la entrada no coincide con el patrón especificado (pattern="${field.pattern}").`
+          : 'Correcto: El campo avisa de inmediato al usuario que el valor no es válido.';
+      }
     }
     // -------------------------------------------------------------------------------------
     // CASO 6: VALOR ACEPTADO Y GUARDADO SIN NINGÚN ERROR DETECTADO
@@ -2306,21 +2408,23 @@ document.addEventListener('DOMContentLoaded', async () => {
           detail = `El campo aceptó ${resLen} caracteres incluyendo caracteres invisibles de control Unicode (\\u200B-\\u200D, \\uFEFF). Esto puede facilitar la suplantación visual de identidad o evasión de filtros.`;
           recommendation = 'Filtrar caracteres de control y formato Unicode (rangos \\u200B-\\u200D, \\uFEFF) mediante expresión regular o normalización previa al almacenamiento.';
         } 
-        // Caso C: Cadena excesiva de dígitos en campo alfabético (nombres, títulos)
-        else if ((testItem.id === 'txt_15_digits' || (typeof payload === 'string' && /^\d{10,}$/.test(payload))) && field.type !== 'number' && field.type !== 'tel' && field.type !== 'textarea' && !/\b(comentario|direccion|nota|address|comment|desc|detalles|mensaje|message|street|calle|observacion)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`)) {
+        // Caso C: Cadena excesiva de dígitos en campo alfabético (nombres, títulos) (SEC2-H06)
+        else if ((testItem.id === 'txt_15_digits' || (typeof payload === 'string' && /^\d{10,}$/.test(payload))) && field.type !== 'number' && field.type !== 'tel' && field.type !== 'textarea' && !isNumericText && !/\b(comentario|direccion|nota|address|comment|desc|detalles|mensaje|message|street|calle|observacion)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`)) {
           status = 'warning';
           badgeText = 'Regla de Negocio (Formato)';
           badgeClass = 'res-format';
           detail = `Se ingresó una cadena de ${payLen} dígitos numéricos ('${payload}'). El formulario la aceptó en un campo textual sin verificar regla alfabética ni restricción de tipo de dato.`;
           recommendation = 'Validar formato con expresión regular que restrinja dígitos y exija caracteres alfabéticos para nombres personales o campos lingüísticos.';
         } 
-        // Caso D: Sobrecarga de longitud extensa [1000 a 5000 caracteres]
+        // Caso D: Sobrecarga de longitud extensa [1000 a 5000 caracteres] (SEC2-H09)
         else if (testItem.id === 'txt_1000' || testItem.id === 'txt_5000' || payLen >= 1000) {
           status = 'risk';
           badgeText = 'Riesgo de Capacidad (DoS / Búfer)';
           badgeClass = 'res-capacity';
           detail = `El formulario aceptó y guardó una carga extensa de ${resLen} caracteres sin aplicar límite maxlength ni validación de longitud máxima en frontend o backend.`;
-          recommendation = 'Definir atributo maxlength en HTML y restringir rígidamente en el backend (ej. máximo 100-150 caracteres para nombres o datos breves) para mitigar desbordamientos y denegación de servicio.';
+          recommendation = field.type === 'textarea'
+            ? 'Definir atributo maxlength en HTML y restringir rígidamente en el backend (ej. límite de 2,000 a 5,000 caracteres para áreas multilínea) para mitigar sobrecarga de memoria y denegación de servicio.'
+            : 'Definir atributo maxlength en HTML y restringir rígidamente en el backend (ej. máximo 100-150 caracteres para nombres o datos breves) para mitigar desbordamientos y denegación de servicio.';
         } 
         // Caso E: Inyección XSS [Cross-Site Scripting]
         else if (testItem.id === 'sec_script' || testItem.id === 'sec_img_onerror' || testItem.id === 'sec_html_tags' || (testItem.category === 'security' && /<[a-z][\s\S]*>/i.test(payload))) {
@@ -2355,12 +2459,28 @@ document.addEventListener('DOMContentLoaded', async () => {
           detail = `El formulario permitió ingresar y guardar la fecha '${payload}', la cual no corresponde a un día o mes válido en el calendario o se encuentra fuera del rango de negocio.`;
           recommendation = 'Utilizar un control nativo con tipo date o implementar validación estricta de calendario (año bisiesto, 28-31 días, meses 1-12) en frontend y backend.';
         } 
-        // Caso I: Letras en campos numéricos
+        // Caso I.1: Desbordamiento numérico [num_overflow] (SEC2-H07)
+        else if (testItem.id === 'num_overflow') {
+          status = 'risk';
+          badgeText = 'Desbordamiento Numérico Aceptado';
+          badgeClass = 'res-capacity';
+          detail = `El campo aceptó un valor numérico masivo (${payload}) que supera la precisión de enteros seguros en JavaScript (Number.MAX_SAFE_INTEGER) o límites de columnas enteras en base de datos.`;
+          recommendation = 'Configurar atributo max en HTML y aplicar validación estricta de rangos numéricos seguros (ej. 32 o 64 bits) en el backend.';
+        }
+        // Caso I.2: Cantidades negativas no deseadas [num_negative] (SEC2-H07)
+        else if (testItem.id === 'num_negative') {
+          status = 'warning';
+          badgeText = 'Número Negativo Aceptado';
+          badgeClass = 'res-format';
+          detail = `El campo numérico aceptó un número con signo negativo ('${payload}') en un contexto que podría requerir magnitudes exclusivamente positivas o cero.`;
+          recommendation = 'Si el campo representa cantidades o importes no negativos, definir el atributo min="0" en HTML y verificar el signo en frontend y backend.';
+        }
+        // Caso I.3: Texto o caracteres no numéricos en campo de número [num_non_numeric, etc.] (SEC2-H07)
         else if (testItem.category === 'number') {
           status = 'warning';
           badgeText = 'Dato No Numérico Aceptado';
           badgeClass = 'res-format';
-          detail = `El campo numérico aceptó el valor '${payload}' sin forzar formato numérico ni validar límites.`;
+          detail = `El campo numérico aceptó el valor '${payload}' sin forzar formato numérico ni validar límites de tipo de dato.`;
           recommendation = 'Configurar el atributo type="number" o regex de validación numérica, y validar estrictamente en el backend.';
         } 
         // Caso J: URL sin protocolo [falta https://]
@@ -2403,14 +2523,22 @@ document.addEventListener('DOMContentLoaded', async () => {
           detail = `El campo aceptó la sintaxis dependiente de protocolo ('${payload}'). Dependiendo del contexto, puede heredar esquemas inesperados o conectar a destinos imprevistos.`;
           recommendation = 'Normalizar la URL forzando esquema explícito seguro https://.';
         } 
-        // Caso O: Host local o intranet [Riesgo SSRF]
+        // Caso O: Host local o intranet [Riesgo SSRF] (SEC2-H10)
         else if (testItem.id === 'url_internal_ssrf') {
-          status = 'warning';
-          badgeText = 'Riesgo Potencial SSRF (Host Interno)';
-          badgeClass = 'res-capacity';
+          status = 'risk';
+          badgeText = 'Riesgo de Seguridad SSRF (Host Interno)';
+          badgeClass = 'res-risk';
           detail = `El formulario aceptó una dirección dirigida a la interfaz loopback local o red privada ('${payload}'). Si el backend consulta o descarga recursos de esta URL, existe riesgo de Server-Side Request Forgery (SSRF).`;
           recommendation = 'Si el servidor realiza peticiones fetch/webhook hacia las URLs guardadas, validar y bloquear resolución a IPs locales (127.0.0.1, localhost) y rangos privados RFC 1918.';
         } 
+        // Caso O.2: Formato de correo electrónico inválido [email_invalid_format] (SEC2-H04)
+        else if (testItem.id === 'email_invalid_format') {
+          status = 'warning';
+          badgeText = 'Formato de Correo Inválido';
+          badgeClass = 'res-format';
+          detail = `El formulario aceptó la dirección '${payload}' carente de arroba (@) o estructura canónica de correo conforme a RFC 5322.`;
+          recommendation = 'Configurar el atributo type="email" con validación obligatoria de sintaxis de correo en frontend y backend.';
+        }
         // Caso P: Longitud extrema de URL [>2000 caracteres]
         else if (testItem.id === 'url_excessive_length') {
           status = 'risk';
@@ -2419,23 +2547,62 @@ document.addEventListener('DOMContentLoaded', async () => {
           detail = `El campo aceptó una URL extensa de ${resLen} caracteres sin aplicar límite razonable de longitud.`;
           recommendation = 'Definir atributo maxlength="2048" en el campo HTML y validar en backend el límite estándar de navegadores y servidores web.';
         } 
-        // Caso Q: Caso inválido genérico
+        // Caso Q: Caso inválido genérico (SEC2-H13, SEC2-H15)
         else {
-          status = 'risk';
-          badgeText = 'Hallazgo Potencial: Sin Restricción';
-          badgeClass = 'res-risk';
-          detail = triggerSave 
-            ? `El formulario guardó ${resLen} caracteres anómalos ('${payload.slice(0, 25)}...') sin disparar alertas ni validaciones.`
-            : `Aceptó ${resLen} caracteres anómalos en el campo sin recortar ni validar.`;
-          recommendation = 'Definir reglas de validación en frontend y backend para delimitar los valores permitidos según las especificaciones del campo.';
+          // Evaluación taxonómica: si el vector pertenece a categorías estándar sin patrones de inyección comprobados:
+          const isStandardCategory = ['text', 'number', 'date', 'url'].includes(testItem.category);
+          const hasInjectionPattern = /<[a-z][\s\S]*>/i.test(payload) ||
+                                      /('|--|\bOR\b|\bAND\b)/i.test(payload) ||
+                                      (typeof payload === 'string' && payload.includes('\u0000')) ||
+                                      /^(javascript|data):/i.test(payload);
+
+          let patternMismatchDetected = false;
+          if (field.pattern && typeof payload === 'string') {
+            try {
+              const rx = new RegExp('^(?:' + field.pattern + ')$');
+              if (!rx.test(payload)) patternMismatchDetected = true;
+            } catch (e) {}
+          }
+
+          if (isStandardCategory && !hasInjectionPattern) {
+            status = 'warning';
+            badgeText = 'Regla de Validación / Formato';
+            badgeClass = 'res-format';
+            detail = triggerSave 
+              ? `El formulario guardó ${resLen} caracteres ('${payload.slice(0, 25)}...') sin aplicar validación de regla de negocio o formato.`
+              : `Aceptó ${resLen} caracteres en el campo sin recortar ni validar el formato esperado.`;
+            if (patternMismatchDetected) {
+              detail += ` El valor no cumple con la expresión regular declarada (pattern="${field.pattern}").`;
+            }
+            recommendation = patternMismatchDetected
+              ? `Garantizar que la validación en frontend y backend aplique estrictamente el patrón declarado (pattern="${field.pattern}") antes de procesar el envío.`
+              : 'Definir reglas de validación en frontend y backend para delimitar los valores permitidos según las especificaciones del campo.';
+          } else {
+            status = 'risk';
+            badgeText = 'Hallazgo Potencial: Sin Restricción';
+            badgeClass = 'res-risk';
+            detail = triggerSave 
+              ? `El formulario guardó ${resLen} caracteres anómalos ('${payload.slice(0, 25)}...') sin disparar alertas ni validaciones.`
+              : `Aceptó ${resLen} caracteres anómalos en el campo sin recortar ni validar.`;
+            recommendation = 'Definir reglas de validación en frontend y backend para delimitar los valores permitidos según las especificaciones del campo.';
+          }
         }
       } else {
         // Caso de prueba benigno y esperado:
-        status = 'conforme';
-        badgeText = triggerSave ? 'Conforme (Guardado)' : 'Conforme (Aceptado)';
-        badgeClass = 'res-conforme';
-        detail = `Valor válido aceptado y guardado correctamente por el formulario (${resLen} caracteres).`;
-        recommendation = 'Comportamiento estándar y conforme según las reglas de negocio del formulario.';
+        // Verificación de superación de maxlength declarado (SEC2-H05):
+        if (field.maxLength && field.maxLength > 0 && resLen > field.maxLength) {
+          status = 'risk';
+          badgeText = 'Límite Maxlength Superado';
+          badgeClass = 'res-capacity';
+          detail = `El formulario aceptó y guardó ${resLen} caracteres, superando la longitud máxima declarada en HTML (maxlength="${field.maxLength}"). No se recortó ni validó en frontend ni backend.`;
+          recommendation = 'Garantizar que el atributo maxlength impida el ingreso en frontend y validar rígidamente en el backend que la longitud no exceda el límite permitido.';
+        } else {
+          status = 'conforme';
+          badgeText = triggerSave ? 'Conforme (Guardado)' : 'Conforme (Aceptado)';
+          badgeClass = 'res-conforme';
+          detail = `Valor válido aceptado y guardado correctamente por el formulario (${resLen} caracteres).`;
+          recommendation = 'Comportamiento estándar y conforme según las reglas de negocio del formulario.';
+        }
       }
     }
 
@@ -2640,6 +2807,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       itemCat === 'security' ||
       itemId === 'url_xss_javascript' ||
       itemId === 'url_data_scheme' ||
+      itemId === 'url_internal_ssrf' ||
       itemId === 'sec_script' ||
       itemId === 'sec_img_onerror' ||
       itemId === 'sec_html_tags' ||
@@ -3646,12 +3814,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const name = customName.value.trim();
     const val = customValue.value;
     const cat = customCategory.value;
-    const desc = customDesc.value.trim() || 'Prueba personalizada';
+    const desc = customDesc.value.trim() || (val === '' ? 'Cadena vacía' : (val.trim() === '' ? 'Espacios en blanco' : 'Prueba personalizada'));
     const isInv = customIsInvalid.checked;
 
-    // Validación de campos requeridos indispensables:
-    if (!name || val === undefined || val.trim() === '') {
-      alert('Por favor ingresa un nombre y un valor para la prueba.');
+    // Validación de campos requeridos indispensables (SEC2-H11):
+    if (!name) {
+      alert('Por favor ingresa un nombre para la prueba personalizada.');
+      return;
+    }
+    if (val === undefined || val === null) {
+      alert('Por favor especifica un valor de entrada para la prueba.');
       return;
     }
 

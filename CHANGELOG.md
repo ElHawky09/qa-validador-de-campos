@@ -8,6 +8,10 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 ## [Sin publicar]
 
 ### Añadido
+- **test-cases:** Incorporar vectores nativos para campos type="email" (email_valid y email_invalid_format) en defaultSuites, incrementando el catálogo base a 53 pruebas (SEC2-H04).
+- **concurrency:** Incorporar botón de cancelación interactiva (#btn-stop-tests) en sidepanel.html y control de aborto reactivo en ejecución de pruebas (SEC2-H12).
+- **lab:** Incorporar Formulario 3 de Controles Especializados y Validación Nativa HTML5 en test-sample.html conteniendo campos tel, url, email, pattern y contenteditable (SEC2-H16).
+- **shadow-dom:** Implementar función findInShadowRoots en content-scripts/picker.js permitiendo resolver campos encapsulados en árboles Shadow DOM abiertos (SEC2-H17).
 - **privacy:** Incorporar Política de Privacidad corporativa independiente (PRIVACY.md) detallando procesamiento estrictamente local, cero telemetría y directivas de datos sintéticos.
 - **security:** Incorporar Política de Seguridad y Divulgación Coordinada de Vulnerabilidades (SECURITY.md) con procedimiento formal de reporte y canal confidencial.
 - **ui:** Incorporar banner de alcance heurístico y advertencia técnica en la Consola Ejecutiva (dashboard.html y dashboard.css).
@@ -15,11 +19,25 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **sidepanel:** Integrar acceso a Terminos y Condiciones en encabezado y pie de pagina.
 
 ### Cambiado
+- **taxonomy:** Reclasificar caso url_internal_ssrf con badgeClass res-risk y severidad prioritaria en categorizeTestRisk (SEC2-H10).
+- **diagnostics:** Aislar taxonómicamente el Caso Q para asignar severidad Media (res-format / warning) a vectores estándar que no contengan patrones de inyección (SEC2-H13).
+- **recommendations:** Contextualizar sugerencia de longitud máxima en Caso D para sugerir límites de 2,000 a 5,000 caracteres en áreas textarea (SEC2-H09).
+- **modal:** Flexibilizar modal de entradas personalizadas para permitir guardar deliberadamente cadenas vacías o espacios en blanco (SEC2-H11).
+- **ui:** Deshabilitar botón de reinicio global #btn-reset-all durante la ejecución activa de pruebas (SEC2-H12).
 - **legal:** Reestructurar integralmente TERMS.md y dashboard/terms.html: sustituir límite monetario de 0.00 USD por limitación proporcional, eliminar aceptación irrevocable, acotar indemnización y armonizar con la Licencia MIT oficial.
 - **diagnostics:** Reformular taxonomía técnica de severidad y métricas: transicionar de severidad crítica a atención prioritaria y de score absoluto a Índice de Resiliencia Heurística en sidepanel.js, sidepanel.html, dashboard.js y dashboard.html.
 - **docs:** Saneamiento estructural de README.md: desvincular contrato legal extenso hacia TERMS.md, incorporar enlaces a PRIVACY.md y SECURITY.md, y precisar inferencia de backend a partir de señales observables.
 
 ### Corregido
+- **taxonomy:** Sustituir identificador tipográfico erróneo num_letters por num_non_numeric en filtros de campos numéricos (SEC2-H01).
+- **diagnostics:** Detectar superación de maxlength declarado en persistencia y emitir hallazgo de severidad Alta (res-capacity) en lugar de Conforme (SEC2-H05).
+- **diagnostics:** Corregir falso reporte de "Restringido en Campo" en Caso 5 cuando hubo intento de guardado pero el formulario no fue bloqueado a pesar del error HTML5 (SEC2-H14).
+- **diagnostics:** Desglosar regla de categoría number en evaluateTestResult distinguiendo num_overflow, num_negative y num_non_numeric (SEC2-H07).
+- **diagnostics:** Excluir reducción normalizada de ceros a la izquierda en inputs nativos type="number" del diagnóstico de truncamiento (SEC2-H08).
+- **diagnostics:** Incorporar retroalimentación contextual y advertencia técnica cuando un campo viole el atributo pattern declarado (SEC2-H15).
+- **routing:** Impedir asignación de vectores de URL completa a campos identificados como slug (SEC2-H02).
+- **heuristics:** Incorporar fType === "tel" en la heurística isNumericText para enrutamiento y diagnóstico coherente (SEC2-H03).
+- **heuristics:** Excluir campos numéricos textuales (isNumericText) de la recomendación de formato alfabético en txt_15_digits (SEC2-H06).
 - **versioning:** Preservar cambios previos en sin publicar, blindar semver y robustecer verificacion.
 - **automation:** Omitir confirmaciones meta de changelog para prevenir bucle de registro.
 - **sidepanel:** Corregir visualización de pestaña Propios, desincronización de checkSelectAll y cálculo reactivo de selected-count-badge.

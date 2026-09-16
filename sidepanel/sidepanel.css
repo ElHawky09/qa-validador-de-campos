@@ -250,6 +250,15 @@ h2 {
   background-color: #475569;
 }
 
+.btn-danger {
+  background-color: var(--danger);
+  color: #ffffff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
 .btn-outline {
   background: transparent;
   border: 1px solid var(--border-color);

@@ -305,7 +305,65 @@
       </form>
     </div>
 
-    <!-- Formulario 3: Módulo Desplegable de Clientes (Se cierra al guardar) -->
+    <!-- Formulario 3: Controles Especializados y Validación Nativa HTML5 -->
+    <div class="form-container" style="margin-top: 30px;">
+      <h2 style="font-size: 16px; margin-bottom: 12px; color: #1e3a8a;">Formulario 3: Controles Especializados y Validación Nativa HTML5</h2>
+      <p class="sub-desc" style="margin-bottom: 16px;">
+        Este módulo incluye controles con validación nativa HTML5 (teléfono, URL, correo electrónico, expresión regular con pattern y área editable enriquecida) para verificar la compatibilidad diagnóstica y detección de tipos especializados.
+      </p>
+
+      <div id="global-error-banner-3" class="error-banner" style="display:none; background:#fef2f2; border:1px solid #f87171; color:#b91c1c; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+      <div id="global-success-banner-3" class="success-banner" style="display:none; background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+
+      <form id="qa-form-especializados" novalidate>
+        <!-- Campo Teléfono -->
+        <div class="form-group" id="group-esp-tel">
+          <label for="input-esp-tel">Teléfono Principal (type="tel")</label>
+          <p class="sub-desc">Control telefónico nativo para validación numérica y códigos internacionales.</p>
+          <input type="tel" id="input-esp-tel" name="esp_tel" value="5512345678" placeholder="+34 600 000 000">
+          <span class="error-text" id="error-esp-tel">Error al Guardar: Ingrese un teléfono numérico válido.</span>
+        </div>
+
+        <!-- Campo URL -->
+        <div class="form-group" id="group-esp-url">
+          <label for="input-esp-url">Sitio Web Corporativo (type="url")</label>
+          <p class="sub-desc">Control nativo de dirección web que exige protocolo HTTP/HTTPS canónico.</p>
+          <input type="url" id="input-esp-url" name="esp_url" value="https://empresa.ejemplo.com" placeholder="https://ejemplo.com">
+          <span class="error-text" id="error-esp-url">Error al Guardar: Ingrese una URL válida con protocolo https://.</span>
+        </div>
+
+        <!-- Campo Email -->
+        <div class="form-group" id="group-esp-email">
+          <label for="input-esp-email">Correo Electrónico Institucional (type="email")</label>
+          <p class="sub-desc">Control nativo de email conforme a RFC 5322.</p>
+          <input type="email" id="input-esp-email" name="esp_email" value="contacto@empresa.com" placeholder="usuario@dominio.com">
+          <span class="error-text" id="error-esp-email">Error al Guardar: Ingrese una dirección de correo válida con arroba (@).</span>
+        </div>
+
+        <!-- Campo con Pattern RegExp -->
+        <div class="form-group" id="group-esp-pattern">
+          <label for="input-esp-pattern">Código de Autorización (pattern="[0-9]{4}-[A-Z]{2}")</label>
+          <p class="sub-desc">Exige exactamente 4 dígitos seguidos de un guión y 2 letras mayúsculas (ej. 1234-AB).</p>
+          <input type="text" id="input-esp-pattern" name="esp_pattern" pattern="[0-9]{4}-[A-Z]{2}" value="1234-AB" placeholder="1234-AB">
+          <span class="error-text" id="error-esp-pattern">Error al Guardar: El código debe cumplir con el formato 4 dígitos, guión y 2 letras mayúsculas (ej. 1234-AB).</span>
+        </div>
+
+        <!-- Elemento contenteditable -->
+        <div class="form-group" id="group-esp-editable">
+          <label for="editor-contenteditable">Notas Enriquecidas (contenteditable="true")</label>
+          <p class="sub-desc">Contenedor editable libre para evaluar inyecciones y captura en editores enriquecidos.</p>
+          <div id="editor-contenteditable" contenteditable="true" style="min-height: 70px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; color: #1e293b; font-size: 14px;" role="textbox" aria-multiline="true">Observaciones preliminares de control de calidad.</div>
+          <span class="error-text" id="error-esp-editable">Error al Guardar: El contenido enriquecido no puede estar vacío.</span>
+        </div>
+
+        <!-- Botón de Envío Formulario 3 -->
+        <button type="submit" id="btn-guardar-especializados" class="btn-submit" style="background: #0284c7;">
+          Guardar Controles Especializados
+        </button>
+      </form>
+    </div>
+
+    <!-- Formulario 4: Módulo Desplegable de Clientes (Se cierra al guardar) -->
     <div class="form-module-card" style="margin-top: 30px; padding: 20px; border: 2px dashed #8b5cf6; border-radius: 8px; background: #faf5ff;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
         <h2 style="font-size: 16px; color: #6b21a8;">Módulo de Clientes (Desplegable / Se cierra al Guardar)</h2>
@@ -335,8 +393,8 @@
           <button type="button" id="btn-cerrar-drawer" style="background: transparent; border: none; font-size: 18px; line-height: 1; cursor: pointer; color: #9333ea;">&times;</button>
         </div>
 
-        <div id="global-error-banner-3" class="error-banner" style="display:none; background:#fef2f2; border:1px solid #f87171; color:#b91c1c; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
-        <div id="global-success-banner-3" class="success-banner" style="display:none; background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+        <div id="global-error-banner-4" class="error-banner" style="display:none; background:#fef2f2; border:1px solid #f87171; color:#b91c1c; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
+        <div id="global-success-banner-4" class="success-banner" style="display:none; background:#f0fdf4; border:1px solid #86efac; color:#15803d; padding:10px 14px; border-radius:6px; font-size:12px; margin-bottom:14px;"></div>
 
         <form id="qa-form-cliente">
           <div class="form-group" id="group-cliente-nombre">
@@ -554,7 +612,91 @@
     });
 
     // ----------------------------------------------------------------------------
-    // FORMULARIO 3: Desplegable / Drawer de Edición de Cliente (qa-form-cliente)
+    // FORMULARIO 3: Controles Especializados y Validación Nativa HTML5 (qa-form-especializados)
+    // ----------------------------------------------------------------------------
+    const formEspecializados = document.getElementById('qa-form-especializados');
+    const errBanner3 = document.getElementById('global-error-banner-3');
+    const succBanner3 = document.getElementById('global-success-banner-3');
+
+    if (formEspecializados) {
+      formEspecializados.addEventListener('submit', (e) => {
+        e.preventDefault();
+        errBanner3.style.display = 'none';
+        succBanner3.style.display = 'none';
+
+        const inputTel = document.getElementById('input-esp-tel');
+        const inputUrl = document.getElementById('input-esp-url');
+        const inputEmail = document.getElementById('input-esp-email');
+        const inputPattern = document.getElementById('input-esp-pattern');
+        const editorEditable = document.getElementById('editor-contenteditable');
+
+        const groupTel = document.getElementById('group-esp-tel');
+        const groupUrl = document.getElementById('group-esp-url');
+        const groupEmail = document.getElementById('group-esp-email');
+        const groupPattern = document.getElementById('group-esp-pattern');
+        const groupEditable = document.getElementById('group-esp-editable');
+
+        groupTel.classList.remove('has-error');
+        groupUrl.classList.remove('has-error');
+        groupEmail.classList.remove('has-error');
+        groupPattern.classList.remove('has-error');
+        groupEditable.classList.remove('has-error');
+
+        const telVal = inputTel.value.trim();
+        const urlVal = inputUrl.value.trim();
+        const emailVal = inputEmail.value.trim();
+        const patternVal = inputPattern.value.trim();
+        const editableVal = editorEditable.innerText.trim();
+
+        // Regla 1: Teléfono numérico:
+        if (telVal && !/^[0-9+\s()-]+$/.test(telVal)) {
+          groupTel.classList.add('has-error');
+          errBanner3.innerText = 'Error al Guardar: El teléfono contiene caracteres no válidos.';
+          errBanner3.style.display = 'block';
+          return false;
+        }
+
+        // Regla 2: URL debe comenzar con http:// o https://
+        if (urlVal && !/^https?:\/\/.+/i.test(urlVal)) {
+          groupUrl.classList.add('has-error');
+          errBanner3.innerText = 'Error al Guardar: La dirección web debe iniciar con protocolo http:// o https://.';
+          errBanner3.style.display = 'block';
+          return false;
+        }
+
+        // Regla 3: Email debe contener @ y dominio
+        if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+          groupEmail.classList.add('has-error');
+          errBanner3.innerText = 'Error al Guardar: Ingrese un correo electrónico válido con arroba (@).';
+          errBanner3.style.display = 'block';
+          return false;
+        }
+
+        // Regla 4: Pattern nativo [0-9]{4}-[A-Z]{2}
+        const patternRegex = /^[0-9]{4}-[A-Z]{2}$/;
+        if (patternVal && !patternRegex.test(patternVal)) {
+          groupPattern.classList.add('has-error');
+          errBanner3.innerText = 'Error al Guardar: El código no coincide con el patrón requerido [0-9]{4}-[A-Z]{2}.';
+          errBanner3.style.display = 'block';
+          return false;
+        }
+
+        // Regla 5: Contenteditable no vacío
+        if (!editableVal) {
+          groupEditable.classList.add('has-error');
+          errBanner3.innerText = 'Error al Guardar: El bloque de notas enriquecidas es obligatorio.';
+          errBanner3.style.display = 'block';
+          return false;
+        }
+
+        succBanner3.innerText = '¡Datos especializados validados y guardados con éxito!';
+        succBanner3.style.display = 'block';
+        return true;
+      });
+    }
+
+    // ----------------------------------------------------------------------------
+    // FORMULARIO 4: Desplegable / Drawer de Edición de Cliente (qa-form-cliente)
     // ----------------------------------------------------------------------------
     // Simula formularios en paneles laterales o modales que se cierran al guardar:
     const cardCliente = document.getElementById('card-cliente-carlos');
@@ -562,14 +704,14 @@
     const drawer = document.getElementById('customer-drawer');
     const btnCerrarDrawer = document.getElementById('btn-cerrar-drawer');
     const formCliente = document.getElementById('qa-form-cliente');
-    const errBanner3 = document.getElementById('global-error-banner-3');
-    const succBanner3 = document.getElementById('global-success-banner-3');
+    const errBanner4 = document.getElementById('global-error-banner-4');
+    const succBanner4 = document.getElementById('global-success-banner-4');
 
     // Abre el panel lateral desplegable:
     function openDrawer() {
       drawer.style.display = 'block';
-      errBanner3.style.display = 'none';
-      succBanner3.style.display = 'none';
+      if (errBanner4) errBanner4.style.display = 'none';
+      if (succBanner4) succBanner4.style.display = 'none';
     }
 
     // Cierra el panel lateral desplegable:
@@ -578,59 +720,69 @@
     }
 
     // Eventos de apertura y cierre del drawer:
-    cardCliente.addEventListener('click', openDrawer);
-    btnEditarCliente.addEventListener('click', (e) => {
-      // Evitamos propagación del clic para no duplicar el evento del contenedor:
-      e.stopPropagation();
-      openDrawer();
-    });
-    btnCerrarDrawer.addEventListener('click', closeDrawer);
+    if (cardCliente) cardCliente.addEventListener('click', openDrawer);
+    if (btnEditarCliente) {
+      btnEditarCliente.addEventListener('click', (e) => {
+        // Evitamos propagación del clic para no duplicar el evento del contenedor:
+        e.stopPropagation();
+        openDrawer();
+      });
+    }
+    if (btnCerrarDrawer) btnCerrarDrawer.addEventListener('click', closeDrawer);
 
     // Validación del envío del formulario dentro del drawer:
-    formCliente.addEventListener('submit', (e) => {
-      e.preventDefault();
-      errBanner3.style.display = 'none';
-      succBanner3.style.display = 'none';
+    if (formCliente) {
+      formCliente.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (errBanner4) errBanner4.style.display = 'none';
+        if (succBanner4) succBanner4.style.display = 'none';
 
-      const inputNombre = document.getElementById('input-cliente-nombre');
-      const inputTel = document.getElementById('input-cliente-telefono');
-      const groupNombre = document.getElementById('group-cliente-nombre');
-      const groupTel = document.getElementById('group-cliente-telefono');
+        const inputNombre = document.getElementById('input-cliente-nombre');
+        const inputTel = document.getElementById('input-cliente-telefono');
+        const groupNombre = document.getElementById('group-cliente-nombre');
+        const groupTel = document.getElementById('group-cliente-telefono');
 
-      groupNombre.classList.remove('has-error');
-      groupTel.classList.remove('has-error');
+        groupNombre.classList.remove('has-error');
+        groupTel.classList.remove('has-error');
 
-      const nomVal = inputNombre.value.trim();
-      const telVal = inputTel.value.trim();
+        const nomVal = inputNombre.value.trim();
+        const telVal = inputTel.value.trim();
 
-      // Regla X: Nombre de cliente obligatorio:
-      if (!nomVal) {
-        groupNombre.classList.add('has-error');
-        errBanner3.innerText = 'Error al Guardar: El nombre es obligatorio.';
-        errBanner3.style.display = 'block';
-        return false;
-      }
+        // Regla X: Nombre de cliente obligatorio:
+        if (!nomVal) {
+          groupNombre.classList.add('has-error');
+          if (errBanner4) {
+            errBanner4.innerText = 'Error al Guardar: El nombre es obligatorio.';
+            errBanner4.style.display = 'block';
+          }
+          return false;
+        }
 
-      // Regla Y: Teléfono máximo 10 dígitos:
-      if (telVal.length > 10) {
-        groupTel.classList.add('has-error');
-        errBanner3.innerText = 'Error al Guardar: El teléfono excede los 10 dígitos permitidos.';
-        errBanner3.style.display = 'block';
-        return false;
-      }
+        // Regla Y: Teléfono máximo 10 dígitos:
+        if (telVal.length > 10) {
+          groupTel.classList.add('has-error');
+          if (errBanner4) {
+            errBanner4.innerText = 'Error al Guardar: El teléfono excede los 10 dígitos permitidos.';
+            errBanner4.style.display = 'block';
+          }
+          return false;
+        }
 
-      // Éxito en Formulario 3:
-      succBanner3.innerText = '¡Cliente guardado con éxito!';
-      succBanner3.style.display = 'block';
+        // Éxito en Formulario 4:
+        if (succBanner4) {
+          succBanner4.innerText = '¡Cliente guardado con éxito!';
+          succBanner4.style.display = 'block';
+        }
 
-      // CIERRE AUTOMÁTICO TRAS GUARDAR (Comportamiento realista de paneles SPA):
-      // Demuestra la capacidad del paso 'Reapertura' de la extensión para reabrir el formulario:
-      setTimeout(() => {
-        closeDrawer();
-      }, 250);
+        // CIERRE AUTOMÁTICO TRAS GUARDAR (Comportamiento realista de paneles SPA):
+        // Demuestra la capacidad del paso 'Reapertura' de la extensión para reabrir el formulario:
+        setTimeout(() => {
+          closeDrawer();
+        }, 250);
 
-      return true;
-    });
+        return true;
+      });
+    }
   </script>
 </body>
 </html>
