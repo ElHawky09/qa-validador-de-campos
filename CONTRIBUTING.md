@@ -74,7 +74,9 @@ Para preservar la homogeneidad y sobriedad corporativa de la base de código y s
 
 ## 4. Flujo de Trabajo Git y Ciclo de Vida de Ramas
 
-El repositorio utiliza un modelo de colaboración basado en bifurcaciones (*forking workflow*) con integración hacia la rama principal (`main`) mediante revisiones obligatorias de código.
+El repositorio utiliza un modelo de colaboración estructurado en dos ramas permanentes principales:
+- `main`: Rama de producción. Aloja exclusivamente versiones estables, formalizadas y listas para distribución.
+- `develop`: Rama de integración activa. Constituye la base para probar nuevas funcionalidades, fixes e iteraciones de desarrollo antes de su integración a producción (`main`).
 
 ### Bifurcación y Configuración del Repositorio
 
@@ -92,15 +94,15 @@ El repositorio utiliza un modelo de colaboración basado en bifurcaciones (*fork
    git remote add upstream https://github.com/ElHawky09/qa-validador-de-campos.git
    git fetch upstream
    ```
-4. Asegúrese de que su rama `main` local esté siempre actualizada respecto a `upstream/main` antes de ramificar:
+4. Asegúrese de que su rama `develop` local esté siempre actualizada respecto a `upstream/develop` antes de ramificar:
    ```bash
-   git checkout main
-   git pull --rebase upstream main
+   git checkout develop
+   git pull --rebase upstream develop
    ```
 
 ### Nomenclatura Estricta de Ramas
 
-Toda modificación debe realizarse en una rama dedicada creada a partir de la versión más reciente de `main`. Queda prohibido trabajar o enviar cambios directamente desde la rama `main` de su bifurcación.
+Toda modificación debe realizarse en una rama dedicada creada a partir de la versión más reciente de `develop`. Queda prohibido trabajar o enviar cambios directamente desde las ramas `main` o `develop` de su bifurcación.
 
 El nombre de la rama debe emplear caracteres alfanuméricos en minúsculas separados por guiones medios (`-`), ajustándose a los siguientes prefijos normativos:
 
@@ -197,10 +199,10 @@ powershell -ExecutionPolicy Bypass -File .\update_changelog.ps1 -Verify
 
 Antes de emitir una solicitud de extracción (*Pull Request* o *PR*):
 
-1. **Rebase Local Obligatorio:** Sincronice su rama de trabajo contra la versión más reciente de `upstream/main` para garantizar una integración lineal sin conflictos:
+1. **Rebase Local Obligatorio:** Sincronice su rama de trabajo contra la versión más reciente de `upstream/develop` para garantizar una integración lineal sin conflictos:
    ```bash
    git fetch upstream
-   git rebase upstream/main
+   git rebase upstream/develop
    ```
 2. **Revisión de Atomicidad:** Asegúrese de que cada commit represente una unidad lógica autocontenida de trabajo. Si generó confirmaciones intermedias de prueba o correcciones menores, unifíquelas mediante un rebase interactivo (`git rebase -i HEAD~N`).
 3. **Formulario de Pull Request:** Proporcione un título claro alineado a Conventional Commits y complete la descripción estructurada respondiendo puntualmente:
@@ -473,7 +475,7 @@ Para que un Pull Request sea formalmente aceptado y fusionado en la rama `main`,
 - [ ] **Validación Funcional en Laboratorio:** Las modificaciones fueron probadas y verificadas con éxito sobre el entorno `test-sample.html`.
 - [ ] **Validación en Entornos Reales:** Se constató el comportamiento correcto frente a frameworks web modernos y la ausencia de errores en la consola de Chromium.
 - [ ] **Estilo Estricto sin Emojis:** Todo archivo modificado, commit y descripción de PR carece de emojis o pictogramas.
-- [ ] **Historial Git Impecable:** Mensajes de confirmación redactados bajo el estándar Conventional Commits y rama sincronizada mediante rebase contra `upstream/main`.
+- [ ] **Historial Git Impecable:** Mensajes de confirmación redactados bajo el estándar Conventional Commits y rama sincronizada mediante rebase contra `upstream/develop`.
 - [ ] **Registro de Cambios y Versionado Sincronizado:** El archivo `CHANGELOG.md` y la clave de versión en `manifest.json` han sido auditados satisfactoriamente mediante `update_changelog.ps1 -Verify`, garantizando apego a Keep a Changelog 1.1.0, SemVer 2.0.0 y ausencia total de emojis.
 
 ---
