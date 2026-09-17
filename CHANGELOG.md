@@ -64,6 +64,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 ### Documentación
 - **legal:** Incorporar TERMS.md, vista terms.html y enlace en pie de pagina del dashboard.
 - **specs:** Actualizar a 43 vectores el perfil Avanzado en README.md tras verificación matemática.
+- **contact:** Unificar y estandarizar direcciones de contacto legal y reporte de seguridad a `hawkymfs09@proton.me` en SECURITY.md, PRIVACY.md, TERMS.md, CONTRIBUTING.md y terms.html.
 
 ## [1.0.0] - 2026-09-15
 
