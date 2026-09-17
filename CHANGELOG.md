@@ -21,7 +21,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **sidepanel:** Integrar acceso a Terminos y Condiciones en encabezado y pie de pagina.
 
 ### Cambiado
-- **ui:** Aplicar esquema de colores cyberpunk neón verde en toda la interfaz de usuario (panel lateral, selector visual, dashboard interactivo y términos), preservando estrictamente la disposición estructural, tipografía y dimensiones de todos los componentes.
+- **ui:** Aplicar esquema de colores cyberpunk neón entre azul y cyan oscuro en toda la interfaz de usuario (panel lateral, selector visual, dashboard interactivo y términos), preservando estrictamente la disposición estructural, tipografía y dimensiones de todos los componentes.
 - **taxonomy:** Reclasificar caso url_internal_ssrf con badgeClass res-risk y severidad prioritaria en categorizeTestRisk (SEC2-H10).
 - **diagnostics:** Aislar taxonómicamente el Caso Q para asignar severidad Media (res-format / warning) a vectores estándar que no contengan patrones de inyección (SEC2-H13).
 - **recommendations:** Contextualizar sugerencia de longitud máxima en Caso D para sugerir límites de 2,000 a 5,000 caracteres en áreas textarea (SEC2-H09).

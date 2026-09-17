@@ -270,8 +270,8 @@ function renderDashboard(data) {
 
   // Asignamos colores dinámicos a la tarjeta principal de Resiliencia según su nivel determinado
   if (score >= 80) {
-    scoreCardEl.style.borderColor = '#00ff88'; // Verde neón (Robusto / Excelente)
-    scoreValEl.style.color = '#00ff88';
+    scoreCardEl.style.borderColor = '#00e5ff'; // Verde neón (Robusto / Excelente)
+    scoreValEl.style.color = '#00e5ff';
   } else if (score >= 55) {
     scoreCardEl.style.borderColor = '#ffea00'; // Ámbar neón (Riesgo moderado / Aceptable)
     scoreValEl.style.color = '#ffea00';
@@ -343,7 +343,7 @@ function renderSpecializedDistribution(metrics, p, totalTests, score) {
   // Asignamos el valor de resiliencia central y su color semántico
   if (donutScoreVal) {
     donutScoreVal.textContent = `${score}%`;
-    if (score >= 80) donutScoreVal.style.fill = '#00ff88';
+    if (score >= 80) donutScoreVal.style.fill = '#00e5ff';
     else if (score >= 55) donutScoreVal.style.fill = '#ffea00';
     else donutScoreVal.style.fill = '#ff0055';
   }
@@ -465,7 +465,7 @@ function renderCategories(categories) {
     sec.className = 'cat-section';
     sec.id = `cat-section-${cat.key}`;
     sec.setAttribute('data-category', cat.key);
-    sec.style.borderLeft = `4px solid ${cat.borderLeft || '#00ff88'}`;
+    sec.style.borderLeft = `4px solid ${cat.borderLeft || '#00e5ff'}`;
 
     const count = cat.findings ? cat.findings.length : 0;
     const countLabel = cat.key === 'conforme'
@@ -580,7 +580,7 @@ const CATEGORY_META = {
     name: 'Conforme',
     pillClass: 'cat-pill-safe',
     rowClass: 'row-cat-conforme',
-    dotColor: '#00ff88'
+    dotColor: '#00e5ff'
   }
 };
 
@@ -637,7 +637,7 @@ function renderTable(results) {
       </td>
       <td>${escapeHtml(r.detail)}</td>
       <td>
-        <div style="font-size: 11px; color: #00ff88; line-height: 1.4;">${escapeHtml(r.recommendation)}</div>
+        <div style="font-size: 11px; color: #00e5ff; line-height: 1.4;">${escapeHtml(r.recommendation)}</div>
       </td>
     `;
     tbody.appendChild(tr);

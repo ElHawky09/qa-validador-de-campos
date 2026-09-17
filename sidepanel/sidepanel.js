@@ -1373,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       item.innerHTML = `
         <label class="checkbox-inline" style="font-size: 10px;" title="Marcar si este campo es obligatorio en el formulario">
           <input type="checkbox" class="sibling-req-toggle" data-index="${index}" ${isReq ? 'checked' : ''}>
-          <span style="font-size: 9px; text-transform: uppercase; font-weight: bold; color: ${isReq ? '#00ff88' : 'var(--text-muted)'};">
+          <span style="font-size: 9px; text-transform: uppercase; font-weight: bold; color: ${isReq ? '#00e5ff' : 'var(--text-muted)'};">
             ${isReq ? 'Obligatorio' : 'Opcional'}
           </span>
         </label>
@@ -2058,7 +2058,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (confirmSaveMode) {
       const isSaveActive = checkTriggerSave && checkTriggerSave.checked;
       confirmSaveMode.innerText = isSaveActive ? 'Activo (audita envíos con clic en Guardar)' : 'Inactivo (solo prueba local en campo)';
-      confirmSaveMode.style.color = isSaveActive ? '#00ff88' : 'var(--text-muted)';
+      confirmSaveMode.style.color = isSaveActive ? '#00e5ff' : 'var(--text-muted)';
     }
 
     if (confirmFieldsCount) {
@@ -2072,7 +2072,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const item = document.createElement('div');
         item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(27, 59, 43, 0.4);';
         
-        const formTag = field.formTitle ? `<span style="color: #436553; font-size: 9px; margin-right: 3px;">[${escapeHtml(field.formTitle)}]</span>` : '';
+        const formTag = field.formTitle ? `<span style="color: #3a6582; font-size: 9px; margin-right: 3px;">[${escapeHtml(field.formTitle)}]</span>` : '';
         const fieldName = escapeHtml(field.label || field.name || field.id || field.selector || 'Campo');
         const fieldType = escapeHtml(field.type || 'text');
         
@@ -2083,7 +2083,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span style="font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fieldName}</span>
           </div>
           <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-            <span class="badge" style="font-size: 9px; padding: 1px 5px; background: #14241c; color: #00ff88; border: 1px solid rgba(0, 255, 136, 0.3);">${fieldType}</span>
+            <span class="badge" style="font-size: 9px; padding: 1px 5px; background: #0c1c2b; color: #00e5ff; border: 1px solid rgba(0, 229, 255, 0.3);">${fieldType}</span>
             <span style="color: var(--text-muted); font-size: 10px;">${countForField} prueba${countForField === 1 ? '' : 's'}</span>
           </div>
         `;
@@ -3189,7 +3189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         dashboardRiskLevelBadge.className = 'badge badge-active';
         dashboardRiskLevelBadge.innerText = 'Resiliencia Alta';
         // Resaltamos el borde del puntaje con color esmeralda satisfactorio:
-        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#00ff88';
+        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#00e5ff';
         if (dashboardSummaryMsg) {
           dashboardSummaryMsg.innerHTML = `¡Excelente! Todas las pruebas evaluadas fueron restringidas al guardar o cumplieron el comportamiento esperado.`;
         }
@@ -3530,7 +3530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       { key: 'capacity', title: '2. Capacidad y Resistencia de Búfer', desc: 'Sobrecargas masivas de texto y URLs de longitud excesiva sin límite maxlength preventivo.', severity: 'ALTO', color: '#ff4070', borderLeft: '#ff4070' },
       { key: 'integrity', title: '3. Integridad y Spoofing Unicode', desc: 'Caracteres invisibles de ancho cero, secuencias compuestas y evasión de filtros.', severity: 'MEDIO', color: '#ffea00', borderLeft: '#ffea00' },
       { key: 'format_logic', title: '4. Integridad y Lógica de Formato', desc: 'Recorte de espacios, validación numérica, calendarios y sintaxis RFC.', severity: 'MEDIO', color: '#ffea00', borderLeft: '#ffea00' },
-      { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', desc: 'Casos rechazados con éxito por el validador, truncados por límite o datos conformes.', severity: 'CONFORME', color: '#00ff88', borderLeft: '#00ff88' }
+      { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', desc: 'Casos rechazados con éxito por el validador, truncados por límite o datos conformes.', severity: 'CONFORME', color: '#00e5ff', borderLeft: '#00e5ff' }
     ];
 
     // 6. Retorno del objeto JSON integral con el esquema unificado de auditoría:

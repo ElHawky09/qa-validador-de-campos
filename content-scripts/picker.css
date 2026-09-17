@@ -17,12 +17,12 @@
    (input, textarea o select) durante la selección de campos a auditar.
    ---------------------------------------------------------------------------- */
 .qa-picker-hover-highlight {
-  /* Contorno discontinuo verde neon de 2 pixeles para delimitar la caja del elemento */
-  outline: 2px dashed #00ff88 !important;
+  /* Contorno discontinuo cyan neon de 2 pixeles para delimitar la caja del elemento */
+  outline: 2px dashed #00e5ff !important;
   /* Separacion de 3 pixeles entre el contorno y el borde nativo del input */
   outline-offset: 3px !important;
   /* Resplandor exterior difuso semitransparente que aumenta el contraste en cualquier fondo */
-  box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.3) !important;
+  box-shadow: 0 0 0 4px rgba(0, 229, 255, 0.3) !important;
   /* Cursor en forma de cruz de precision (mira telescopica) para indicar seleccion activa */
   cursor: crosshair !important;
   /* Transicion suave de 100 milisegundos para suavizar la aparicion del contorno */
@@ -33,13 +33,13 @@
    CLASE: .qa-form-hover-highlight
    ----------------------------------------------------------------------------
    Efecto visual al pasar el cursor sobre un formulario completo (<form>) o sobre
-   un boton de guardado (type=submit/button). Utiliza un tono verde neon brillante y cursor pointer.
+   un boton de guardado (type=submit/button). Utiliza un tono cyan neon brillante y cursor pointer.
    ---------------------------------------------------------------------------- */
 .qa-form-hover-highlight {
   /* Contorno mas grueso (3px) para resaltar contenedores de mayor tamano */
-  outline: 3px dashed #00ff88 !important;
+  outline: 3px dashed #00e5ff !important;
   outline-offset: 4px !important;
-  box-shadow: 0 0 0 6px rgba(0, 255, 136, 0.35) !important;
+  box-shadow: 0 0 0 6px rgba(0, 229, 255, 0.35) !important;
   /* Cursor de mano interactiva para indicar que el elemento completo es clickeable */
   cursor: pointer !important;
   transition: all 0.1s ease !important;
@@ -49,13 +49,13 @@
    CLASE: .qa-picker-selected-highlight
    ----------------------------------------------------------------------------
    Efecto visual de confirmacion cuando un elemento ha sido seleccionado con exito.
-   Aplica un borde verde neon y dispara una animacion de pulso expansivo.
+   Aplica un borde cyan neon y dispara una animacion de pulso expansivo.
    ---------------------------------------------------------------------------- */
 .qa-picker-selected-highlight {
-  /* Contorno solido verde neon que comunica exito y validacion positiva */
-  outline: 3px solid #00ff88 !important;
+  /* Contorno solido cyan neon que comunica exito y validacion positiva */
+  outline: 3px solid #00e5ff !important;
   outline-offset: 3px !important;
-  box-shadow: 0 0 0 6px rgba(0, 255, 136, 0.4) !important;
+  box-shadow: 0 0 0 6px rgba(0, 229, 255, 0.4) !important;
   /* Animacion CSS que emite una onda de pulso durante 1.5 segundos con aceleracion ease-out */
   animation: qa-pulse-selected 1.5s ease-out;
 }
@@ -69,15 +69,15 @@
 @keyframes qa-pulse-selected {
   0% {
     /* Inicio: sombra compacta sin desplazamiento pero con opacidad del 70% */
-    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7);
+    box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.7);
   }
   70% {
     /* Pico intermedio: la sombra se expande a 10px de radio y se vuelve transparente */
-    box-shadow: 0 0 0 10px rgba(0, 255, 136, 0);
+    box-shadow: 0 0 0 10px rgba(0, 229, 255, 0);
   }
   100% {
     /* Final: colapso total de la onda a radio 0 sin interferir visualmente */
-    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0);
+    box-shadow: 0 0 0 0 rgba(0, 229, 255, 0);
   }
 }
 
@@ -97,15 +97,15 @@
      evitando que interfiera con los eventos mouseover/click del elemento subyacente */
   pointer-events: none;
   /* Paleta oscura de alto contraste con tipografia legible y sombras volumetricas */
-  background: #070c09;
-  color: #e8fded;
+  background: #050b11;
+  color: #e1f6fd;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12px;
   font-weight: 500;
   padding: 6px 10px;
   border-radius: 6px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
-  border: 1px solid #1b3b2b;
+  border: 1px solid #133852;
   /* Disposicion flexbox para alinear iconos, insignias y textos en una sola fila */
   display: flex;
   align-items: center;
@@ -115,8 +115,8 @@
 
 /* Sub-elemento insignia dentro del tooltip (ejemplo: 'INPUT', 'SELECT', 'TEXTAREA') */
 #qa-picker-tooltip .qa-badge {
-  background: #00ff88;
-  color: #04120a;
+  background: #00e5ff;
+  color: #02101a;
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: 700;
@@ -139,15 +139,15 @@
   transform: translateX(-50%);
   /* Nivel de apilamiento maximo para sobresalir de cualquier elemento de la pagina */
   z-index: 2147483647;
-  background: #0e1813;
-  color: #e8fded;
+  background: #081420;
+  color: #e1f6fd;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13px;
   padding: 8px 18px;
   /* Bordes completamente redondeados en forma de pildora (pill shape) */
   border-radius: 9999px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 255, 136, 0.2);
-  border: 1px solid #00ff88;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 229, 255, 0.25);
+  border: 1px solid #00e5ff;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -158,11 +158,11 @@
 
 /* Representacion grafica de teclas de teclado fisico (<kbd>) dentro del banner */
 #qa-picker-banner kbd {
-  background: #14241c;
-  color: #00ff88;
+  background: #0c1d2e;
+  color: #00e5ff;
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 11px;
   font-family: monospace;
-  border: 1px solid #1b3b2b;
+  border: 1px solid #133852;
 }

@@ -1075,7 +1075,7 @@
         const title = getFormTitle(formTarget);
 
         tooltipEl.innerHTML = `
-          <span class="qa-badge" style="background:#00ff88; color:#04120a;">FORMULARIO</span>
+          <span class="qa-badge" style="background:#00e5ff; color:#02101a;">FORMULARIO</span>
           <span><strong>${title.replace(/[<>&"]/g, '')}</strong> (${testable.length} campos)</span>
         `;
         tooltipEl.style.display = 'flex';
