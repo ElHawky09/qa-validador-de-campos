@@ -43,7 +43,7 @@ Si identifica una posible vulnerabilidad o defecto de seguridad en el Software, 
 ### 3.1. Canal de Reporte Privado
 Envíe su reporte de seguridad detallado a la siguiente dirección de correo electrónico designada:
 
-- **Buzón de Seguridad:** `security@qaformvalidator.org`
+- **Buzón de Seguridad:** `hawkymfs09@proton.me`
 - **Asunto sugerido:** `[Vulnerabilidad QA Form Validator] Breve descripción del hallazgo`
 
 ### 3.2. Información Requerida en el Reporte

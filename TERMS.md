@@ -13,8 +13,8 @@ El presente documento establece los Términos y Condiciones de Uso (en adelante,
 ### 1.1. Información del Mantenedor del Proyecto
 - **Titular / Mantenedor:** ElHawky09 (y el equipo de desarrollo de QA Form Field Validator).
 - **Repositorio Oficial:** [https://github.com/ElHawky09/qa-validador-de-campos](https://github.com/ElHawky09/qa-validador-de-campos)
-- **Buzón de Contacto Legal y Regulatorio:** `legal@qaformvalidator.org`
-- **Buzón de Reportes de Seguridad:** `security@qaformvalidator.org`
+- **Buzón de Contacto Legal y Regulatorio:** `hawkymfs09@proton.me`
+- **Buzón de Reportes de Seguridad:** `hawkymfs09@proton.me`
 
 ### 1.2. Ámbito Subjetivo
 El término "Usuario" u "Operador" designa a cualquier persona física o jurídica que descargue, instale, ejecute, configure o interactúe técnica u operativamente con el Software.
@@ -148,5 +148,5 @@ Los presentes Términos se complementan con los siguientes instrumentos oficiale
 - [README.md](README.md) — Documentación técnica, manual de usuario y arquitectura.
 
 Para cualquier duda o comunicación formal:
-- **Buzón Legal:** `legal@qaformvalidator.org`
-- **Buzón de Seguridad:** `security@qaformvalidator.org`
+- **Buzón Legal:** `hawkymfs09@proton.me`
+- **Buzón de Seguridad:** `hawkymfs09@proton.me`
