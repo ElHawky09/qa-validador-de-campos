@@ -270,14 +270,14 @@ function renderDashboard(data) {
 
   // Asignamos colores dinámicos a la tarjeta principal de Resiliencia según su nivel determinado
   if (score >= 80) {
-    scoreCardEl.style.borderColor = '#10b981'; // Verde esmeralda (Robusto / Excelente)
-    scoreValEl.style.color = '#34d399';
+    scoreCardEl.style.borderColor = '#00ff88'; // Verde neón (Robusto / Excelente)
+    scoreValEl.style.color = '#00ff88';
   } else if (score >= 55) {
-    scoreCardEl.style.borderColor = '#f59e0b'; // Ámbar (Riesgo moderado / Aceptable)
-    scoreValEl.style.color = '#fbbf24';
+    scoreCardEl.style.borderColor = '#ffea00'; // Ámbar neón (Riesgo moderado / Aceptable)
+    scoreValEl.style.color = '#ffea00';
   } else {
-    scoreCardEl.style.borderColor = '#ef4444'; // Rojo intenso (Atención prioritaria requerida)
-    scoreValEl.style.color = '#f87171';
+    scoreCardEl.style.borderColor = '#ff0055'; // Carmesí neón (Atención prioritaria requerida)
+    scoreValEl.style.color = '#ff0055';
   }
 
   // Asignamos los valores numéricos en cada tarjeta KPI
@@ -343,9 +343,9 @@ function renderSpecializedDistribution(metrics, p, totalTests, score) {
   // Asignamos el valor de resiliencia central y su color semántico
   if (donutScoreVal) {
     donutScoreVal.textContent = `${score}%`;
-    if (score >= 80) donutScoreVal.style.fill = '#34d399';
-    else if (score >= 55) donutScoreVal.style.fill = '#fbbf24';
-    else donutScoreVal.style.fill = '#f87171';
+    if (score >= 80) donutScoreVal.style.fill = '#00ff88';
+    else if (score >= 55) donutScoreVal.style.fill = '#ffea00';
+    else donutScoreVal.style.fill = '#ff0055';
   }
   if (donutTotalTests) {
     donutTotalTests.textContent = `${totalTests} ${totalTests === 1 ? 'Prueba' : 'Pruebas'}`;
@@ -465,7 +465,7 @@ function renderCategories(categories) {
     sec.className = 'cat-section';
     sec.id = `cat-section-${cat.key}`;
     sec.setAttribute('data-category', cat.key);
-    sec.style.borderLeft = `4px solid ${cat.borderLeft || '#3b82f6'}`;
+    sec.style.borderLeft = `4px solid ${cat.borderLeft || '#00ff88'}`;
 
     const count = cat.findings ? cat.findings.length : 0;
     const countLabel = cat.key === 'conforme'
@@ -556,31 +556,31 @@ const CATEGORY_META = {
     name: 'Seguridad (Prioritario)',
     pillClass: 'cat-pill-security',
     rowClass: 'row-cat-security',
-    dotColor: '#ef4444'
+    dotColor: '#ff0055'
   },
   capacity: {
     name: 'Capacidad (Alto)',
     pillClass: 'cat-pill-capacity',
     rowClass: 'row-cat-capacity',
-    dotColor: '#f43f5e'
+    dotColor: '#ff4070'
   },
   integrity: {
     name: 'Integridad (Medio)',
     pillClass: 'cat-pill-integrity',
     rowClass: 'row-cat-integrity',
-    dotColor: '#f59e0b'
+    dotColor: '#ffea00'
   },
   format_logic: {
     name: 'Lógica / Formato',
     pillClass: 'cat-pill-logic',
     rowClass: 'row-cat-format_logic',
-    dotColor: '#fbbf24'
+    dotColor: '#ffea00'
   },
   conforme: {
     name: 'Conforme',
     pillClass: 'cat-pill-safe',
     rowClass: 'row-cat-conforme',
-    dotColor: '#10b981'
+    dotColor: '#00ff88'
   }
 };
 
@@ -637,7 +637,7 @@ function renderTable(results) {
       </td>
       <td>${escapeHtml(r.detail)}</td>
       <td>
-        <div style="font-size: 11px; color: #93c5fd; line-height: 1.4;">${escapeHtml(r.recommendation)}</div>
+        <div style="font-size: 11px; color: #00ff88; line-height: 1.4;">${escapeHtml(r.recommendation)}</div>
       </td>
     `;
     tbody.appendChild(tr);

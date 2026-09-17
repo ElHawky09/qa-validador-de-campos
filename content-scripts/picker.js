@@ -1046,7 +1046,7 @@
 
       // Mostramos una tarjeta flotante morada indicando que es un paso de reapertura
       tooltipEl.innerHTML = `
-        <span class="qa-badge" style="background:#8b5cf6;">PASO RE-APERTURA</span>
+        <span class="qa-badge" style="background:#bd00ff; color:#ffffff;">PASO RE-APERTURA</span>
         <span>${text.replace(/[<>&"]/g, '')}</span>
       `;
       tooltipEl.style.display = 'flex';
@@ -1075,7 +1075,7 @@
         const title = getFormTitle(formTarget);
 
         tooltipEl.innerHTML = `
-          <span class="qa-badge" style="background:#0ea5e9;">FORMULARIO</span>
+          <span class="qa-badge" style="background:#00ff88; color:#04120a;">FORMULARIO</span>
           <span><strong>${title.replace(/[<>&"]/g, '')}</strong> (${testable.length} campos)</span>
         `;
         tooltipEl.style.display = 'flex';

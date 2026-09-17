@@ -1373,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       item.innerHTML = `
         <label class="checkbox-inline" style="font-size: 10px;" title="Marcar si este campo es obligatorio en el formulario">
           <input type="checkbox" class="sibling-req-toggle" data-index="${index}" ${isReq ? 'checked' : ''}>
-          <span style="font-size: 9px; text-transform: uppercase; font-weight: bold; color: ${isReq ? '#34d399' : '#94a3b8'};">
+          <span style="font-size: 9px; text-transform: uppercase; font-weight: bold; color: ${isReq ? '#00ff88' : 'var(--text-muted)'};">
             ${isReq ? 'Obligatorio' : 'Opcional'}
           </span>
         </label>
@@ -1465,7 +1465,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <div style="display: flex; align-items: center; gap: 4px;">
           <button class="btn-subtle btn-inspect-step" data-index="${idx}" title="Resaltar elemento en página"><svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg></button>
-          <button class="btn-subtle btn-remove-step" data-index="${idx}" title="Eliminar paso" style="color: #f87171;">&times;</button>
+          <button class="btn-subtle btn-remove-step" data-index="${idx}" title="Eliminar paso" style="color: #ff0055;">&times;</button>
         </div>
       `;
       reopenStepsList.appendChild(chip);
@@ -2058,7 +2058,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (confirmSaveMode) {
       const isSaveActive = checkTriggerSave && checkTriggerSave.checked;
       confirmSaveMode.innerText = isSaveActive ? 'Activo (audita envíos con clic en Guardar)' : 'Inactivo (solo prueba local en campo)';
-      confirmSaveMode.style.color = isSaveActive ? '#38bdf8' : 'var(--text-muted)';
+      confirmSaveMode.style.color = isSaveActive ? '#00ff88' : 'var(--text-muted)';
     }
 
     if (confirmFieldsCount) {
@@ -2070,21 +2070,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       selectedFields.forEach(field => {
         const countForField = queue.filter(t => t.field === field).length;
         const item = document.createElement('div');
-        item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(51, 65, 85, 0.4);';
+        item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(27, 59, 43, 0.4);';
         
-        const formTag = field.formTitle ? `<span style="color: #64748b; font-size: 9px; margin-right: 3px;">[${escapeHtml(field.formTitle)}]</span>` : '';
+        const formTag = field.formTitle ? `<span style="color: #436553; font-size: 9px; margin-right: 3px;">[${escapeHtml(field.formTitle)}]</span>` : '';
         const fieldName = escapeHtml(field.label || field.name || field.id || field.selector || 'Campo');
         const fieldType = escapeHtml(field.type || 'text');
         
         item.innerHTML = `
           <div style="display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
             ${formTag}
-            <span style="color: #94a3b8; font-family: monospace; font-size: 10px;">&lt;${escapeHtml(field.tag || 'input')}&gt;</span>
-            <span style="font-weight: 600; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fieldName}</span>
+            <span style="color: var(--text-muted); font-family: monospace; font-size: 10px;">&lt;${escapeHtml(field.tag || 'input')}&gt;</span>
+            <span style="font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fieldName}</span>
           </div>
           <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-            <span class="badge" style="font-size: 9px; padding: 1px 5px; background: #334155; color: #38bdf8;">${fieldType}</span>
-            <span style="color: #94a3b8; font-size: 10px;">${countForField} prueba${countForField === 1 ? '' : 's'}</span>
+            <span class="badge" style="font-size: 9px; padding: 1px 5px; background: #14241c; color: #00ff88; border: 1px solid rgba(0, 255, 136, 0.3);">${fieldType}</span>
+            <span style="color: var(--text-muted); font-size: 10px;">${countForField} prueba${countForField === 1 ? '' : 's'}</span>
           </div>
         `;
         confirmFieldsList.appendChild(item);
@@ -3162,7 +3162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         dashboardRiskLevelBadge.className = 'badge badge-danger';
         dashboardRiskLevelBadge.innerText = 'Atención Prioritaria';
         // Resaltamos el borde del contenedor del puntaje con color rojo de alerta:
-        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#f87171';
+        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#ff0055';
         if (dashboardSummaryMsg) {
           dashboardSummaryMsg.innerHTML = `Se detectaron <strong>${criticalCount} indicador(es) de seguridad</strong>. Requiere revisión prioritaria de filtrado y escapado.`;
         }
@@ -3171,7 +3171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         dashboardRiskLevelBadge.className = 'badge badge-warning';
         dashboardRiskLevelBadge.innerText = 'Capacidad y Búfer';
         // Resaltamos el borde del puntaje con color rosa-naranja de precaución:
-        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#fb7185';
+        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#ff4070';
         if (dashboardSummaryMsg) {
           dashboardSummaryMsg.innerHTML = `El formulario admitió sobrecargas extensas sin límite maxlength. Riesgo de degradación o desbordamiento.`;
         }
@@ -3180,7 +3180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         dashboardRiskLevelBadge.className = 'badge badge-warning';
         dashboardRiskLevelBadge.innerText = 'Observaciones Leves';
         // Resaltamos el borde del puntaje con color ámbar:
-        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#fbbf24';
+        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#ffea00';
         if (dashboardSummaryMsg) {
           dashboardSummaryMsg.innerHTML = `Validaciones funcionales incompletas (espacios en blanco, formato numérico o caracteres Unicode).`;
         }
@@ -3189,7 +3189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         dashboardRiskLevelBadge.className = 'badge badge-active';
         dashboardRiskLevelBadge.innerText = 'Resiliencia Alta';
         // Resaltamos el borde del puntaje con color esmeralda satisfactorio:
-        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#34d399';
+        if (dashboardScoreVal?.parentElement) dashboardScoreVal.parentElement.style.borderColor = '#00ff88';
         if (dashboardSummaryMsg) {
           dashboardSummaryMsg.innerHTML = `¡Excelente! Todas las pruebas evaluadas fueron restringidas al guardar o cumplieron el comportamiento esperado.`;
         }
@@ -3526,11 +3526,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 5. Definición Maestra de Metadatos de Categorías para el Dashboard y Reportes:
     const categoriesDef = [
-      { key: 'security', title: '1. Seguridad e Inyecciones', desc: 'Indicadores de entrada: falta de filtrado ante vectores potenciales de XSS, inyección SQL, terminación nula o esquemas ejecutables.', severity: 'PRIORITARIO', color: '#f87171', borderLeft: '#f87171' },
-      { key: 'capacity', title: '2. Capacidad y Resistencia de Búfer', desc: 'Sobrecargas masivas de texto y URLs de longitud excesiva sin límite maxlength preventivo.', severity: 'ALTO', color: '#fb7185', borderLeft: '#fb7185' },
-      { key: 'integrity', title: '3. Integridad y Spoofing Unicode', desc: 'Caracteres invisibles de ancho cero, secuencias compuestas y evasión de filtros.', severity: 'MEDIO', color: '#fbbf24', borderLeft: '#fbbf24' },
-      { key: 'format_logic', title: '4. Integridad y Lógica de Formato', desc: 'Recorte de espacios, validación numérica, calendarios y sintaxis RFC.', severity: 'MEDIO', color: '#fbbf24', borderLeft: '#fbbf24' },
-      { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', desc: 'Casos rechazados con éxito por el validador, truncados por límite o datos conformes.', severity: 'CONFORME', color: '#34d399', borderLeft: '#34d399' }
+      { key: 'security', title: '1. Seguridad e Inyecciones', desc: 'Indicadores de entrada: falta de filtrado ante vectores potenciales de XSS, inyección SQL, terminación nula o esquemas ejecutables.', severity: 'PRIORITARIO', color: '#ff0055', borderLeft: '#ff0055' },
+      { key: 'capacity', title: '2. Capacidad y Resistencia de Búfer', desc: 'Sobrecargas masivas de texto y URLs de longitud excesiva sin límite maxlength preventivo.', severity: 'ALTO', color: '#ff4070', borderLeft: '#ff4070' },
+      { key: 'integrity', title: '3. Integridad y Spoofing Unicode', desc: 'Caracteres invisibles de ancho cero, secuencias compuestas y evasión de filtros.', severity: 'MEDIO', color: '#ffea00', borderLeft: '#ffea00' },
+      { key: 'format_logic', title: '4. Integridad y Lógica de Formato', desc: 'Recorte de espacios, validación numérica, calendarios y sintaxis RFC.', severity: 'MEDIO', color: '#ffea00', borderLeft: '#ffea00' },
+      { key: 'conforme', title: '5. Validaciones Efectivas y Conformes', desc: 'Casos rechazados con éxito por el validador, truncados por límite o datos conformes.', severity: 'CONFORME', color: '#00ff88', borderLeft: '#00ff88' }
     ];
 
     // 6. Retorno del objeto JSON integral con el esquema unificado de auditoría:

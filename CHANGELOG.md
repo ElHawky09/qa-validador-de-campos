@@ -21,6 +21,7 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **sidepanel:** Integrar acceso a Terminos y Condiciones en encabezado y pie de pagina.
 
 ### Cambiado
+- **ui:** Aplicar esquema de colores cyberpunk neón verde en toda la interfaz de usuario (panel lateral, selector visual, dashboard interactivo y términos), preservando estrictamente la disposición estructural, tipografía y dimensiones de todos los componentes.
 - **taxonomy:** Reclasificar caso url_internal_ssrf con badgeClass res-risk y severidad prioritaria en categorizeTestRisk (SEC2-H10).
 - **diagnostics:** Aislar taxonómicamente el Caso Q para asignar severidad Media (res-format / warning) a vectores estándar que no contengan patrones de inyección (SEC2-H13).
 - **recommendations:** Contextualizar sugerencia de longitud máxima en Caso D para sugerir límites de 2,000 a 5,000 caracteres en áreas textarea (SEC2-H09).
@@ -51,9 +52,14 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **ui:** Preservar status-dot en badge de profundidad y añadir opción de URLs en modal de nuevos inputs.
 - **taxonomy:** Corregir CATEGORY_META en dashboard.js y categoriesDef en renderDashboardView de sidepanel.js para armonizar la presentación de badges y píldoras hacia Prioritario y Conforme.
 - **tone:** Suprimir términos intimidatorios en mayúsculas en CONTRIBUTING.md y PRIVACY.md, y robustecer enlaces a repositorios en terms.html.
+- **section-2:** Corregir 12 incidencias en selector de profundidad, reactividad y filtrado contextual.
+- **taxonomy:** Armonizar definicion de categorias y eliminar remanentes de severidad critica en dashboard y sidepanel.
+- **section-2:** Implementar resolucion integral de 17 hallazgos tecnicos sec2-h01 a sec2-h17.
+- **section-2:** Corregir enrutamiento de email, respeto a novalidate y generacion contextual de datos dummy.
 
 ### Seguridad
 - **auditing:** Auditar código fuente frente a fuga de datos: verificar ausencia de telemetría, transmisiones de red o llamadas remotas en service worker, content scripts, panel lateral y dashboard.
+- **legal:** Separar documentacion tecnica y legal, incorporar PRIVACY y SECURITY, y armonizar terminos.
 
 ### Documentación
 - **legal:** Incorporar TERMS.md, vista terms.html y enlace en pie de pagina del dashboard.

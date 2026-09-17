@@ -90,7 +90,7 @@
       <!-- Personalización del Título del Formulario (editable para reportes profesionales) -->
       <div id="form-name-box" class="form-name-box" style="display: none;">
         <label for="input-form-title" class="sub-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-          <span style="display: flex; align-items: center; gap: 4px; font-weight: 600; color: #cbd5e1;">
+          <span style="display: flex; align-items: center; gap: 4px; font-weight: 600; color: var(--text-secondary);">
             <svg class="ui-icon ui-icon-xs" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             Nombre del Formulario:
           </span>
@@ -200,7 +200,7 @@
 
       <!-- Nota informativa sobre la correspondencia entre tipo de campo y suites -->
       <div class="info-note">
-        <svg class="ui-icon" viewBox="0 0 24 24" style="color: #38bdf8; margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <svg class="ui-icon" viewBox="0 0 24 24" style="color: var(--primary); margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
         <strong>Pruebas automáticas por tipo:</strong> Cada campo ejecutará la suite correspondiente a su naturaleza (Texto en campos de texto, Números en numéricos, y Fechas en campos de fecha).
       </div>
 
@@ -474,10 +474,10 @@
             </div>
             <!-- Cuadrícula con el desglose exacto de conteo y porcentaje por color -->
             <div class="sidepanel-dist-breakdown" id="sidepanel-dist-breakdown">
-              <div class="sp-dist-item"><span class="legend-dot" style="background:#ef4444;"></span> <span class="sp-dist-name">Seguridad:</span> <strong id="sp-dist-crit-val">0 (0%)</strong></div>
-              <div class="sp-dist-item"><span class="legend-dot" style="background:#f43f5e;"></span> <span class="sp-dist-name">Capacidad:</span> <strong id="sp-dist-high-val">0 (0%)</strong></div>
-              <div class="sp-dist-item"><span class="legend-dot" style="background:#f59e0b;"></span> <span class="sp-dist-name">Integridad:</span> <strong id="sp-dist-med-val">0 (0%)</strong></div>
-              <div class="sp-dist-item"><span class="legend-dot" style="background:#10b981;"></span> <span class="sp-dist-name">Conforme:</span> <strong id="sp-dist-safe-val">0 (0%)</strong></div>
+              <div class="sp-dist-item"><span class="legend-dot" style="background:#ff0055;"></span> <span class="sp-dist-name">Seguridad:</span> <strong id="sp-dist-crit-val">0 (0%)</strong></div>
+              <div class="sp-dist-item"><span class="legend-dot" style="background:#ff4070;"></span> <span class="sp-dist-name">Capacidad:</span> <strong id="sp-dist-high-val">0 (0%)</strong></div>
+              <div class="sp-dist-item"><span class="legend-dot" style="background:#ffea00;"></span> <span class="sp-dist-name">Integridad:</span> <strong id="sp-dist-med-val">0 (0%)</strong></div>
+              <div class="sp-dist-item"><span class="legend-dot" style="background:#00ff88;"></span> <span class="sp-dist-name">Conforme:</span> <strong id="sp-dist-safe-val">0 (0%)</strong></div>
             </div>
           </div>
         </div>
@@ -538,7 +538,7 @@
       <div class="modal-content" style="max-width: 440px;">
         <div class="modal-header">
           <h3 id="confirm-run-title" style="display: flex; align-items: center; gap: 6px;">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="color: #38bdf8; width: 16px; height: 16px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <svg class="ui-icon" viewBox="0 0 24 24" style="color: var(--primary); width: 16px; height: 16px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             Confirmar Inicio de Verificación
           </h3>
           <button id="btn-close-confirm-modal" class="btn-icon" aria-label="Cerrar modal">&times;</button>
@@ -548,14 +548,14 @@
             Por favor confirme que desea iniciar la verificación automatizada con los siguientes parámetros:
           </p>
 
-          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="background: rgba(7, 12, 9, 0.6); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
               <span style="color: var(--text-muted);">Profundidad de Validación:</span>
               <span id="confirm-depth-badge" class="badge badge-info" style="font-size: 10px; font-weight: 700;">Normal</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
               <span style="color: var(--text-muted);">Total de Pruebas a Ejecutar:</span>
-              <span id="confirm-tests-count" style="font-weight: 700; color: #38bdf8;">0 pruebas</span>
+              <span id="confirm-tests-count" style="font-weight: 700; color: var(--primary);">0 pruebas</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px;">
               <span style="color: var(--text-muted);">Disparo de Guardado:</span>
@@ -569,13 +569,13 @@
                 Campos que serán evaluados (<span id="confirm-fields-count">0</span>):
               </label>
             </div>
-            <div id="confirm-fields-list" style="max-height: 130px; overflow-y: auto; background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 11px;">
+            <div id="confirm-fields-list" style="max-height: 130px; overflow-y: auto; background: #070c09; border: 1px solid #1b3b2b; border-radius: 4px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 11px;">
               <!-- Elementos inyectados dinámicamente -->
             </div>
           </div>
 
           <div class="info-note" style="margin: 0; font-size: 11px; line-height: 1.4;">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="color: #fbbf24; margin-right: 4px; min-width: 14px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <svg class="ui-icon" viewBox="0 0 24 24" style="color: #ffea00; margin-right: 4px; min-width: 14px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
             <span>La verificación inyectará datos de prueba en la página activa de forma secuencial.</span>
           </div>
         </div>
@@ -596,8 +596,8 @@
     <div id="confirm-stop-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="confirm-stop-title">
       <div class="modal-content" style="max-width: 420px;">
         <div class="modal-header">
-          <h3 id="confirm-stop-title" style="display: flex; align-items: center; gap: 6px; color: #f87171;">
-            <svg class="ui-icon" viewBox="0 0 24 24" style="color: #f87171; width: 16px; height: 16px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <h3 id="confirm-stop-title" style="display: flex; align-items: center; gap: 6px; color: #ff0055;">
+            <svg class="ui-icon" viewBox="0 0 24 24" style="color: #ff0055; width: 16px; height: 16px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
             Confirmar Detención de Pruebas
           </h3>
           <button id="btn-close-confirm-stop-modal" class="btn-icon" aria-label="Cerrar modal">&times;</button>
@@ -607,8 +607,8 @@
             ¿Está seguro de que desea detener la verificación de campos en curso?
           </p>
 
-          <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 11px; color: #fca5a5; line-height: 1.5;">
-            <strong style="color: #fecaca; display: block; margin-bottom: 4px;">Progreso actual:</strong>
+          <div style="background: rgba(255, 0, 85, 0.08); border: 1px solid rgba(255, 0, 85, 0.3); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 11px; color: #ff99bb; line-height: 1.5;">
+            <strong style="color: #ffc2d4; display: block; margin-bottom: 4px;">Progreso actual:</strong>
             <span id="confirm-stop-progress-text">Se han completado 0 de 0 pruebas.</span><br>
             Los resultados recopilados hasta este momento se conservarán en la tabla y en el Dashboard.
           </div>
