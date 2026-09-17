@@ -119,6 +119,6 @@ Cualquier actualización en las prácticas de privacidad de la Extensión será 
 
 Para consultas, observaciones técnicas o solicitudes de aclaración sobre las prácticas de privacidad de este proyecto, los interesados pueden comunicarse a través de los canales designados:
 
-- **Contacto de Privacidad y Legal:** `legal@qaformvalidator.org`
-- **Contacto de Seguridad Informática:** `security@qaformvalidator.org`
+- **Contacto de Privacidad y Legal:** `hawkymfs09@proton.me`
+- **Contacto de Seguridad Informática:** `hawkymfs09@proton.me`
 - **Repositorio Oficial del Proyecto:** [https://github.com/ElHawky09/qa-validador-de-campos](https://github.com/ElHawky09/qa-validador-de-campos)

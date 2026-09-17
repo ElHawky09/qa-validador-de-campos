@@ -89,6 +89,6 @@ QA Form Field Validator implementa internamente directivas defensivas estrictas 
 
 ## 6. Contactos Oficiales de Seguridad
 
-- **Reportes de Seguridad e Incidentes:** `security@qaformvalidator.org`
-- **Consultas Legales y Regulatorias:** `legal@qaformvalidator.org`
+- **Reportes de Seguridad e Incidentes:** `hawkymfs09@proton.me`
+- **Consultas Legales y Regulatorias:** `hawkymfs09@proton.me`
 - **Repositorio Oficial:** [https://github.com/ElHawky09/qa-validador-de-campos](https://github.com/ElHawky09/qa-validador-de-campos)
