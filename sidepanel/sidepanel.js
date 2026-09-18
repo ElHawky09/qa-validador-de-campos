@@ -696,6 +696,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Catálogo canónico inmutable de suites de prueba
   const SUITES_CATALOG = defaultSuites;
 
+  // Exposición canónica para verificación automatizada e interoperabilidad:
+  if (typeof window !== 'undefined') {
+    window.TIER_HIERARCHY = TIER_HIERARCHY;
+    window.SUITES_CATALOG = SUITES_CATALOG;
+  }
+  if (typeof globalThis !== 'undefined') {
+    globalThis.TIER_HIERARCHY = TIER_HIERARCHY;
+    globalThis.SUITES_CATALOG = SUITES_CATALOG;
+  }
+
   // =======================================================================================
   // REFERENCIAS A ELEMENTOS DEL DOM (DOCUMENT OBJECT MODEL)
   // =======================================================================================
@@ -1046,11 +1056,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const id = e.target.dataset.id;
         const item = all.find(p => p.id === id);
         if (item) {
-          item.selected = e.target.checked;
-          if (!e.target.checked) {
-            item.userDeselected = true;
-          } else {
+          const isChecked = e.target.checked;
+          item.selected = isChecked;
+          const targetLevel = TIER_HIERARCHY[currentDepthTier || 'normal'] || 2;
+          const pLevel = item.tier ? (TIER_HIERARCHY[item.tier] || 2) : 0;
+          if (isChecked) {
             delete item.userDeselected;
+            if (pLevel > targetLevel || item.isCustom) {
+              item.userSelected = true;
+            } else {
+              delete item.userSelected;
+            }
+          } else {
+            delete item.userSelected;
+            if (pLevel <= targetLevel || item.isCustom) {
+              item.userDeselected = true;
+            } else {
+              delete item.userDeselected;
+            }
           }
         }
 
@@ -1200,8 +1223,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Se itera sobre las suites por defecto actualizando la propiedad 'selected' según la jerarquía.
     defaultSuites.forEach(p => {
       const pLevel = TIER_HIERARCHY[p.tier] || 2;
-      // La prueba queda seleccionada si su nivel numérico es menor o igual al nivel objetivo y no fue deseleccionada explícitamente.
-      p.selected = (pLevel <= targetLevel) && !p.userDeselected;
+      // La prueba queda seleccionada si su nivel numérico es menor o igual al nivel objetivo (o fue seleccionada explícitamente) y no fue deseleccionada explícitamente.
+      p.selected = !p.userDeselected && ((pLevel <= targetLevel) || !!p.userSelected);
     });
 
     // Se garantiza que los payloads personalizados del usuario permanezcan activos a menos que se hayan desmarcado manualmente.
@@ -1243,15 +1266,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   checkSelectAll.addEventListener('change', (e) => {
     const isChecked = e.target.checked;
     const all = getAllPayloads();
+    const targetLevel = TIER_HIERARCHY[currentDepthTier || 'normal'] || 2;
     // Se actualiza la selección de todas las pruebas que pertenezcan a la categoría que está actualmente en pantalla.
     all.forEach(p => {
       const inCategory = (currentCategory === 'all') || (currentCategory === 'custom' ? !!p.isCustom : p.category === currentCategory);
       if (inCategory) {
         p.selected = isChecked;
-        if (!isChecked) {
-          p.userDeselected = true;
-        } else {
+        const pLevel = p.tier ? (TIER_HIERARCHY[p.tier] || 2) : 0;
+        if (isChecked) {
           delete p.userDeselected;
+          if (pLevel > targetLevel || p.isCustom) {
+            p.userSelected = true;
+          } else {
+            delete p.userSelected;
+          }
+        } else {
+          delete p.userSelected;
+          if (pLevel <= targetLevel || p.isCustom) {
+            p.userDeselected = true;
+          } else {
+            delete p.userDeselected;
+          }
         }
       }
     });
@@ -1439,12 +1474,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isSlug = !!f.isSlugField || /\bslug\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
             const isEmail = f.type === 'email' || /\b(email|correo|mail)\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
             const isUrl = !isSlug && !isEmail && (f.type === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password', 'textarea'].includes(f.type) && f.tag !== 'textarea' && !f.isContentEditable && (!!f.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`))));
+            const isNumericText = f.type === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
             if (isEmail) {
               f.fillerValue = `usuario.qa${Math.floor(100 + Math.random() * 900)}@test.com`;
             } else if (isSlug) {
               f.fillerValue = 'recurso-qa-valido-' + Math.floor(100 + Math.random() * 900);
             } else if (isUrl) {
               f.fillerValue = 'https://qa.ejemplo.com/recurso-' + Math.floor(100 + Math.random() * 900);
+            } else if (f.type === 'number') {
+              f.fillerValue = String(Math.floor(10 + Math.random() * 80));
+            } else if (f.type === 'tel' || isNumericText) {
+              f.fillerValue = '55' + Math.floor(10000000 + Math.random() * 90000000);
+            } else if (f.type === 'date' || f.type === 'datetime-local' || f.type === 'month') {
+              f.fillerValue = '2025-06-15';
             } else {
               f.fillerValue = 'Dato ' + Math.floor(1000 + Math.random() * 9000);
             }
@@ -1951,6 +1993,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       resetDashboardState();
       defaultSuites.forEach(p => {
         delete p.userDeselected;
+        delete p.userSelected;
+      });
+      customPayloads.forEach(c => {
+        delete c.userDeselected;
+        delete c.userSelected;
+        c.selected = true;
       });
       applyDepthTier('normal');
       updateSelectedCount();

@@ -454,6 +454,34 @@
   }
 
   // ============================================================================
+  // FUNCIÓN: getParentForm
+  // OBJETIVO: Localizar el formulario o contenedor contextual de un campo,
+  //           atravesando las fronteras de Shadow DOM abiertos si el elemento
+  //           reside dentro de un componente encapsulado.
+  // PARÁMETROS:
+  //   - el: Elemento HTML objetivo.
+  // RETORNO: El elemento form o contenedor contextual, o null.
+  // ============================================================================
+  function getParentForm(el) {
+    if (!el || !(el instanceof HTMLElement)) return null;
+    if (el.form) return el.form;
+    let curr = el;
+    while (curr) {
+      if (curr.closest) {
+        const found = curr.closest('form, [role="form"], .modal, .card, .section');
+        if (found) return found;
+      }
+      const root = curr.getRootNode ? curr.getRootNode() : null;
+      if (root && root instanceof ShadowRoot) {
+        curr = root.host;
+      } else {
+        break;
+      }
+    }
+    return null;
+  }
+
+  // ============================================================================
   // FUNCIÓN: getUniqueSelector
   // OBJETIVO: Construir un selector CSS legible y compacto que permita
   //           re-identificar el elemento unívocamente en la página.
@@ -566,11 +594,13 @@
       return '';
     }
 
-    // CASO 0.1: Campos semánticos de URL / Enlace / Slug (deben ser en minúsculas y válidos)
+    // CASO 0.1: Campos semánticos de Slug de ruta (deben ser en minúsculas y válidos)
+    if (isSlugField(el)) {
+      return 'recurso-qa-valido';
+    }
+
+    // CASO 0.2: Campos semánticos de URL / Enlace
     if (isUrlField(el)) {
-      if (isSlugField(el)) {
-        return 'recurso-qa-valido';
-      }
       return 'https://qa.ejemplo.com/recurso-valido';
     }
 
@@ -653,7 +683,7 @@
     if (!fieldEl) return null;
 
     // 1. Inspeccionar si el campo está dentro de un elemento <form> o contenedor con rol 'form'
-    const form = fieldEl.form || fieldEl.closest('form, [role="form"]');
+    const form = getParentForm(fieldEl);
     if (form) {
       // 1a. Botones externos enlazados mediante el atributo estándar HTML5 form="id_del_formulario"
       if (form.id) {
@@ -764,7 +794,7 @@
   // RETORNO: Objeto estructurado con metadatos del campo.
   // ============================================================================
   function getElementMetadata(el, allowHidden = false) {
-    const parentForm = el.form || el.closest('form, [role="form"], .modal, .card, .section');
+    const parentForm = getParentForm(el);
     const formSaveBtn = autoDetectSaveButton(el, allowHidden);
     const formId = parentForm ? (parentForm.id || getUniqueSelector(parentForm)) : 'form_1';
     const formTitle = parentForm ? getFormTitle(parentForm) : 'Formulario Principal';
@@ -1595,11 +1625,11 @@
     }
 
     // 2. Localizar el formulario o contenedor padre del campo
-    const parentForm = targetEl.form || targetEl.closest('form, [role="form"], .modal, .card, .section');
+    const parentForm = getParentForm(targetEl);
     if (!parentForm) return;
 
-    // 3. Inspeccionar todos los controles interactivos dentro del contenedor
-    const controls = Array.from(parentForm.querySelectorAll('input, select, textarea'));
+    // 3. Inspeccionar todos los controles interactivos dentro del contenedor (incluyendo Shadow DOM abierto)
+    const controls = collectTestableInputs(parentForm);
     for (const ctrl of controls) {
       // Ignorar el campo bajo prueba, los ya completados, o los que estén deshabilitados/readonly
       if (ctrl === targetEl || filledElements.has(ctrl)) continue;
@@ -1798,7 +1828,7 @@
         // Instalamos un interceptor temporal en fase de captura del evento 'submit'.
         // Si el formulario intentara realizar una recarga completa del navegador,
         // preventDefault() anulará la navegación, manteniendo la extensión y el test en curso.
-        const activeForm = el.form || (btnToClick ? btnToClick.closest('form') : null);
+        const activeForm = getParentForm(el) || (btnToClick ? getParentForm(btnToClick) : null);
         const preventDefaultNavigation = (e) => {
           e.preventDefault();
         };

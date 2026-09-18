@@ -8,6 +8,8 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 ## [Sin publicar]
 
 ### Añadido
+- **interoperability:** Exponer formalmente TIER_HIERARCHY y SUITES_CATALOG en window y globalThis para facilitar auditorías externas e inspección programática.
+- **shadow-dom:** Implementar función getParentForm en picker.js para resolución ascendente y transversal de formularios a través de árboles Shadow DOM abiertos.
 - **test-catalog:** Definir alias canónico SUITES_CATALOG correspondiente a defaultSuites con jerarquía de herencia inmutable de 4 niveles.
 - **lab:** Incorporar control encapsulado en Shadow DOM abierto en Formulario 3 de test-sample.html para verificación diagnóstica integral.
 - **shadow-dom:** Implementar recolección recursiva de elementos en árboles Shadow DOM abiertos (collectTestableInputs) y retargeting de eventos (composedPath) en picker.js.
@@ -35,6 +37,11 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **docs:** Saneamiento estructural de README.md: desvincular contrato legal extenso hacia TERMS.md, incorporar enlaces a PRIVACY.md y SECURITY.md, y precisar inferencia de backend a partir de señales observables.
 
 ### Corregido
+- **depth-selector:** Sincronizar tracking bidireccional de selecciones explícitas (userSelected) y deselecciones (userDeselected) al conmutar casillas individuales y de selección masiva (checkSelectAll), preservando la intención del usuario al alternar entre niveles de profundidad.
+- **shadow-dom:** Corregir aislamiento de controles encapsulados en Shadow DOM en autoDetectSaveButton, getElementMetadata, fillMandatoryFormRequirements y runSinglePayload, recolectando campos hermanos dentro de componentes abiertos mediante collectTestableInputs.
+- **heuristics:** Desacoplar generación de valores sintéticos para campos tipo slug de la evaluación de URLs en generateSmartDummyValue de picker.js, previniendo asignación de cadenas genéricas con espacios en slugs.
+- **fillers:** Incorporar generadores semánticos de respaldo para campos numéricos, telefónicos y selectores de fecha en renderSiblingFillers ante contingencias de comunicación IPC.
+- **reset:** Restablecer integralmente estados de selección de payloads personalizados y suites por defecto al invocar el botón de reinicio global #btn-reset-all.
 - **depth-selector:** Preservar estados de deselección manual (userDeselected) al alternar entre niveles de profundidad (Simple, Normal, Avanzado, Total) en defaultSuites sin reactivaciones indebidas.
 - **heuristics:** Inmunizar áreas de texto <textarea> y editores enriquecidos contenteditable contra categorización espuria como URL cuando contengan descriptores web en etiquetas o placeholders.
 - **queue:** Prevenir contaminación cruzada de payloads personalizados en campos numéricos (restringiendo vectores de script/inyección no numéricos) y campos telefónicos/postales (excluyendo emojis).
