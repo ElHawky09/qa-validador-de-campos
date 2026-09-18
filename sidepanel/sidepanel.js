@@ -2070,7 +2070,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       selectedFields.forEach(field => {
         const countForField = queue.filter(t => t.field === field).length;
         const item = document.createElement('div');
-        item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(27, 59, 43, 0.4);';
+        item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid rgba(19, 56, 82, 0.4);';
         
         const formTag = field.formTitle ? `<span style="color: #3a6582; font-size: 9px; margin-right: 3px;">[${escapeHtml(field.formTitle)}]</span>` : '';
         const fieldName = escapeHtml(field.label || field.name || field.id || field.selector || 'Campo');
