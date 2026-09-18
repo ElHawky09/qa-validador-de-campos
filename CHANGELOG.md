@@ -8,6 +8,9 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 ## [Sin publicar]
 
 ### Añadido
+- **test-catalog:** Definir alias canónico SUITES_CATALOG correspondiente a defaultSuites con jerarquía de herencia inmutable de 4 niveles.
+- **lab:** Incorporar control encapsulado en Shadow DOM abierto en Formulario 3 de test-sample.html para verificación diagnóstica integral.
+- **shadow-dom:** Implementar recolección recursiva de elementos en árboles Shadow DOM abiertos (collectTestableInputs) y retargeting de eventos (composedPath) en picker.js.
 - **ui:** Incorporar modal de confirmación para detención de pruebas (#confirm-stop-modal) en el panel lateral, pausando la ejecución de forma no destructiva y evitando cancelaciones accidentales.
 - **ui:** Incorporar modal de confirmación previa al inicio de verificación (#confirm-run-modal) en el panel lateral, exhibiendo resumen de campos a evaluar, profundidad seleccionada, total de pruebas y control de confirmación interactivo.
 - **test-cases:** Incorporar vectores nativos para campos type="email" (email_valid y email_invalid_format) en defaultSuites, incrementando el catálogo base a 53 pruebas (SEC2-H04).
@@ -32,6 +35,9 @@ y este proyecto se adhiere a [Semantic Versioning](https://semver.org/lang/es/sp
 - **docs:** Saneamiento estructural de README.md: desvincular contrato legal extenso hacia TERMS.md, incorporar enlaces a PRIVACY.md y SECURITY.md, y precisar inferencia de backend a partir de señales observables.
 
 ### Corregido
+- **depth-selector:** Preservar estados de deselección manual (userDeselected) al alternar entre niveles de profundidad (Simple, Normal, Avanzado, Total) en defaultSuites sin reactivaciones indebidas.
+- **heuristics:** Inmunizar áreas de texto <textarea> y editores enriquecidos contenteditable contra categorización espuria como URL cuando contengan descriptores web en etiquetas o placeholders.
+- **queue:** Prevenir contaminación cruzada de payloads personalizados en campos numéricos (restringiendo vectores de script/inyección no numéricos) y campos telefónicos/postales (excluyendo emojis).
 - **routing:** Desacoplar campos de correo electrónico de heurística de URLs cuando el placeholder o etiqueta contenga términos como dominio, garantizando asignación exclusiva de pruebas de email (SEC2-H04).
 - **validation:** Respetar atributo novalidate en formulario y formnovalidate en botón antes de marcar bloqueo de guardado por errores nativos HTML5 en picker (SEC2-H14).
 - **heuristics:** Soportar generación inteligente de datos de prueba para atributos pattern con sufijo alfabético en picker (SEC2-H16).

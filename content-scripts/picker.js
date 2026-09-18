@@ -495,7 +495,7 @@
     
     // Si el tipo nativo de HTML5 es 'url', confirmación inmediata
     if (type === 'url') return true;
-    if (type === 'email' || type === 'number' || type === 'date' || type === 'datetime-local' || type === 'month' || type === 'tel' || type === 'password' || type === 'checkbox' || type === 'radio' || type === 'file') return false;
+    if (type === 'email' || type === 'number' || type === 'date' || type === 'datetime-local' || type === 'month' || type === 'tel' || type === 'password' || type === 'checkbox' || type === 'radio' || type === 'file' || tag === 'textarea' || el.isContentEditable) return false;
 
     // Recopilamos todas las pistas textuales del campo para análisis de palabras clave
     const name = (el.name || '').toLowerCase();
@@ -772,6 +772,7 @@
     return {
       tag: el.tagName.toLowerCase(),
       type: (el.getAttribute('type') || (el.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text')).toLowerCase(),
+      isContentEditable: !!el.isContentEditable,
       isUrlField: isUrlField(el),
       isSlugField: isSlugField(el),
       id: el.id || '',
@@ -817,6 +818,31 @@
   }
 
   // ============================================================================
+  // FUNCIÓN: collectTestableInputs
+  // OBJETIVO: Recolectar recursivamente todos los campos auditables dentro de un
+  //           contenedor, incluyendo nodos encapsulados en Shadow DOM abiertos.
+  // PARÁMETROS:
+  //   - rootNode: Nodo raíz de búsqueda (Element o ShadowRoot).
+  // RETORNO: Arreglo de elementos auditables comprobados con isTestableField.
+  // ============================================================================
+  function collectTestableInputs(rootNode) {
+    const inputs = [];
+    if (!rootNode) return inputs;
+    const query = 'input, textarea, select, [contenteditable]';
+    if (rootNode.querySelectorAll) {
+      inputs.push(...Array.from(rootNode.querySelectorAll(query)).filter(isTestableField));
+    }
+    const allEls = rootNode.querySelectorAll ? Array.from(rootNode.querySelectorAll('*')) : [];
+    for (let i = 0; i < allEls.length; i++) {
+      const el = allEls[i];
+      if (el.shadowRoot) {
+        inputs.push(...collectTestableInputs(el.shadowRoot));
+      }
+    }
+    return inputs;
+  }
+
+  // ============================================================================
   // FUNCIÓN: detectSingleForm
   // OBJETIVO: Descubrir e indexar automáticamente el formulario principal o
   //           el contenedor modal donde se encuentra el usuario en la página.
@@ -836,7 +862,7 @@
       const forms = Array.from(document.querySelectorAll('form, [role="form"], .modal, .card, .section'));
       for (const f of forms) {
         // Filtramos para verificar que contenga al menos un campo interactivo auditable
-        const inputs = Array.from(f.querySelectorAll('input, textarea, select, [contenteditable]')).filter(isTestableField);
+        const inputs = collectTestableInputs(f);
         if (inputs.length > 0) {
           container = f;
           break;
@@ -850,8 +876,7 @@
     }
 
     // Obtenemos todos los campos interactivos auditables dentro de este contenedor
-    const rawInputs = Array.from(container.querySelectorAll('input, textarea, select, [contenteditable]'));
-    const testable = rawInputs.filter(isTestableField);
+    const testable = collectTestableInputs(container);
     const title = getFormTitle(container, 1);
     const fields = testable.map(el => getElementMetadata(el, true));
     // Deducimos el botón de guardado local correspondiente a estos campos
@@ -1028,7 +1053,7 @@
   function onMouseOver(e) {
     // Si ningún modo de selección está encendido, salir de inmediato
     if (!isPickingField && !isPickingSaveButton && !isPickingForm && !isPickingReopenStep) return;
-    const target = e.target;
+    const target = (e.composedPath && e.composedPath()[0]) || e.target;
     // Ignorar si el puntero se encuentra sobre los propios elementos de nuestra interfaz HUD
     if (target === bannerEl || bannerEl?.contains(target) || target === tooltipEl) return;
 
@@ -1151,7 +1176,7 @@
   // ============================================================================
   function onClick(e) {
     if (!isPickingField && !isPickingSaveButton && !isPickingForm && !isPickingReopenStep) return;
-    const target = e.target;
+    const target = (e.composedPath && e.composedPath()[0]) || e.target;
     // Si el usuario hace clic dentro de la barra superior de instrucciones, no hacer nada
     if (target === bannerEl || bannerEl?.contains(target)) return;
 

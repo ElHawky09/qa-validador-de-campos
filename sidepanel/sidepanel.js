@@ -693,6 +693,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   ];
 
+  // Catálogo canónico inmutable de suites de prueba
+  const SUITES_CATALOG = defaultSuites;
+
   // =======================================================================================
   // REFERENCIAS A ELEMENTOS DEL DOM (DOCUMENT OBJECT MODEL)
   // =======================================================================================
@@ -1042,7 +1045,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       chk.addEventListener('change', (e) => {
         const id = e.target.dataset.id;
         const item = all.find(p => p.id === id);
-        if (item) item.selected = e.target.checked;
+        if (item) {
+          item.selected = e.target.checked;
+          if (!e.target.checked) {
+            item.userDeselected = true;
+          } else {
+            delete item.userDeselected;
+          }
+        }
 
         // Actualiza el checkbox maestro según el conjunto de tarjetas visibles:
         if (checkSelectAll) {
@@ -1106,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const fType = (field.type || 'text').toLowerCase();
       const isSlug = !!field.isSlugField || /\bslug\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
       const isEmail = fType === 'email' || /\b(email|correo|mail)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
-      const isUrl = !isSlug && !isEmail && (fType === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password'].includes(fType) && (!!field.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`))));
+      const isUrl = !isSlug && !isEmail && (fType === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password', 'textarea'].includes(fType) && field.tag !== 'textarea' && !field.isContentEditable && (!!field.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`))));
       const isNumericText = fType === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
 
       let applicable = [];
@@ -1127,10 +1137,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const customs = all.filter(p => {
         if (!p.isCustom || p.selected === false) return false;
         if (isUrl) return p.category === 'url' || p.category === 'security';
-        if (fType === 'number') return p.category === 'number' || p.category === 'security';
+        if (fType === 'number') return p.category === 'number';
         if (fType === 'date' || fType === 'datetime-local' || fType === 'month') return p.category === 'date';
         if (isEmail) return p.category === 'text' || p.category === 'security';
-        return p.category === 'text' || p.category === 'emoji' || p.category === 'security' || (isNumericText && p.category === 'number');
+        if (isNumericText) return p.category === 'text' || p.category === 'security' || p.category === 'number';
+        return p.category === 'text' || p.category === 'emoji' || p.category === 'security';
       });
 
       customs.forEach(c => {
@@ -1189,8 +1200,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Se itera sobre las suites por defecto actualizando la propiedad 'selected' según la jerarquía.
     defaultSuites.forEach(p => {
       const pLevel = TIER_HIERARCHY[p.tier] || 2;
-      // La prueba queda seleccionada si su nivel numérico es menor o igual al nivel objetivo.
-      p.selected = pLevel <= targetLevel;
+      // La prueba queda seleccionada si su nivel numérico es menor o igual al nivel objetivo y no fue deseleccionada explícitamente.
+      p.selected = (pLevel <= targetLevel) && !p.userDeselected;
     });
 
     // Se garantiza que los payloads personalizados del usuario permanezcan activos a menos que se hayan desmarcado manualmente.
@@ -1237,6 +1248,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const inCategory = (currentCategory === 'all') || (currentCategory === 'custom' ? !!p.isCustom : p.category === currentCategory);
       if (inCategory) {
         p.selected = isChecked;
+        if (!isChecked) {
+          p.userDeselected = true;
+        } else {
+          delete p.userDeselected;
+        }
       }
     });
     // Se refleja el cambio en la interfaz gráfica.
@@ -1422,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Fallback heurístico local si falla la comunicación IPC:
             const isSlug = !!f.isSlugField || /\bslug\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
             const isEmail = f.type === 'email' || /\b(email|correo|mail)\b/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`);
-            const isUrl = !isSlug && !isEmail && (f.type === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password'].includes(f.type) && (!!f.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`))));
+            const isUrl = !isSlug && !isEmail && (f.type === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password', 'textarea'].includes(f.type) && f.tag !== 'textarea' && !f.isContentEditable && (!!f.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${f.name || ''} ${f.id || ''} ${f.label || ''} ${f.placeholder || ''}`))));
             if (isEmail) {
               f.fillerValue = `usuario.qa${Math.floor(100 + Math.random() * 900)}@test.com`;
             } else if (isSlug) {
@@ -1933,6 +1949,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       resultsCard.style.display = 'none';
       testResults = [];
       resetDashboardState();
+      defaultSuites.forEach(p => {
+        delete p.userDeselected;
+      });
       applyDepthTier('normal');
       updateSelectedCount();
     }
@@ -1974,7 +1993,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Heurística avanzada para determinar si el campo representa una URL, slug, número semántico o email:
       const isSlug = !!field.isSlugField || /\bslug\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
       const isEmail = fType === 'email' || /\b(email|correo|mail)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
-      const isUrl = !isSlug && !isEmail && (fType === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password'].includes(fType) && (!!field.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`))));
+      const isUrl = !isSlug && !isEmail && (fType === 'url' || (!['number', 'date', 'datetime-local', 'month', 'tel', 'password', 'textarea'].includes(fType) && field.tag !== 'textarea' && !field.isContentEditable && (!!field.isUrlField || /\b(url|link|enlace|sitio|website|web|endpoint|dominio|domain|repositorio|repo|webhook|uri)\b|avatar_url|profile_url/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`))));
       const isNumericText = fType === 'tel' || /\b(cp|postal|zip|telefono|tel|phone|identificacion|dni|cedula|nif|cif)\b/i.test(`${field.name || ''} ${field.id || ''} ${field.label || ''} ${field.placeholder || ''}`);
 
       if (isUrl) {
@@ -2001,10 +2020,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const customs = selectedPayloads.filter(p => {
         if (!p.isCustom) return false;
         if (isUrl) return p.category === 'url' || p.category === 'security';
-        if (fType === 'number') return p.category === 'number' || p.category === 'security';
+        if (fType === 'number') return p.category === 'number';
         if (fType === 'date' || fType === 'datetime-local' || fType === 'month') return p.category === 'date';
         if (isEmail) return p.category === 'text' || p.category === 'security';
-        return p.category === 'text' || p.category === 'emoji' || p.category === 'security' || (isNumericText && p.category === 'number');
+        if (isNumericText) return p.category === 'text' || p.category === 'security' || p.category === 'number';
+        return p.category === 'text' || p.category === 'emoji' || p.category === 'security';
       });
       customs.forEach(c => {
         if (!applicable.includes(c)) applicable.push(c);

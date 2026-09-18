@@ -356,6 +356,13 @@
           <span class="error-text" id="error-esp-editable">Error al Guardar: El contenido enriquecido no puede estar vacío.</span>
         </div>
 
+        <!-- Control Encapsulado en Shadow DOM (open) -->
+        <div class="form-group" id="group-esp-shadow">
+          <label for="shadow-host-component">Control Encapsulado en Shadow DOM (open)</label>
+          <p class="sub-desc">Campo dentro de un árbol Shadow DOM abierto para evaluar resolución e inyección recursiva.</p>
+          <div id="shadow-host-component"></div>
+        </div>
+
         <!-- Botón de Envío Formulario 3 -->
         <button type="submit" id="btn-guardar-especializados" class="btn-submit" style="background: #0284c7;">
           Guardar Controles Especializados
@@ -693,6 +700,15 @@
         succBanner3.style.display = 'block';
         return true;
       });
+
+      // Inicialización de componente Shadow DOM abierto en Formulario 3
+      const shadowHost = document.getElementById('shadow-host-component');
+      if (shadowHost && !shadowHost.shadowRoot) {
+        const shadow = shadowHost.attachShadow({ mode: 'open' });
+        shadow.innerHTML = `
+          <input type="text" id="input-esp-shadow" name="esp_shadow" placeholder="Dato dentro de Shadow DOM" style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; box-sizing: border-box; background: #ffffff; color: #1e293b;" value="Texto en Shadow DOM">
+        `;
+      }
     }
 
     // ----------------------------------------------------------------------------
